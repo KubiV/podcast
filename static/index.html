@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Podcast Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+
+    <div class="container mx-auto px-4 py-8 max-w-6xl space-y-8">
+        
+        <!-- HEADER & TERMINAL -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-700 pb-4 gap-4">
+            <div>
+                <h1 class="text-4xl font-extrabold text-emerald-400 tracking-wide mb-2">🎓 AI Podcast Studio</h1>
+                <p class="text-slate-400">Automatizovaná syntéza stovek stran studijních textů do high-yield podcastů.</p>
+            </div>
+            <div class="w-full md:w-1/3 bg-slate-950 p-3 rounded border border-slate-800 shadow-inner">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="text-[10px] font-bold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span> Live Konzole
+                    </h3>
+                    <label class="text-[10px] text-slate-400 flex items-center gap-1 cursor-pointer hover:text-slate-200 transition select-none">
+                        <input type="checkbox" id="autoScrollToggle" checked class="accent-amber-500 w-3 h-3 cursor-pointer">
+                        Autoscroll
+                    </label>
+                </div>
+                <div id="liveTerminal" class="h-24 overflow-y-auto font-mono text-[10px] text-slate-400 bg-black p-2 rounded border border-slate-900 scroll-smooth">
+                    <div class="italic text-slate-600">// Systém připraven.</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- KROK 1 & 2: PROJEKT A ZDROJE -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow flex flex-col">
+                <h2 class="text-lg font-bold mb-4 text-slate-200">📂 Krok 1: Výběr projektu</h2>
+                <div class="flex gap-2 mb-4">
+                    <select id="projectSelect" class="flex-1 bg-slate-900 text-white p-2 rounded border border-slate-600 focus:outline-none" onchange="onProjectChange()">
+                        <option value="">-- Vyberte projekt --</option>
+                    </select>
+                    <button onclick="createNewProject()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-2 rounded text-sm font-medium transition shadow">
+                        ➕ Nový
+                    </button>
+                </div>
+                <div class="bg-slate-900/50 p-3 rounded text-sm text-slate-400 border border-slate-700/50 mt-auto">
+                    <p>Každý projekt má svou vlastní vyhledávací databázi a složku médií (Interna se nepromíchá s ARO).</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow flex flex-col transition-opacity duration-300" id="step2Block" style="opacity: 0.5; pointer-events: none;">
+                <h2 class="text-lg font-bold mb-4 text-slate-200 flex justify-between items-center">
+                    <span>📚 Krok 2: Kontext (Materiály)</span>
+                    <span id="fileCount" class="text-xs bg-emerald-950 text-emerald-400 px-2 py-1 rounded-full border border-emerald-900">0 souborů</span>
+                </h2>
+                <label id="uploadLabel" class="w-full flex flex-col items-center px-4 py-3 bg-slate-900 text-slate-400 rounded border border-dashed border-slate-600 cursor-pointer hover:bg-slate-800 hover:text-emerald-400 transition mb-3">
+                    <span id="uploadLabelText" class="text-sm font-medium text-center">📥 Nahrát materiály (PDF, DOCX, PPTX, TXT)</span>
+                    <input type="file" id="docsUploadInput" accept=".pdf,.docx,.pptx,.txt" multiple class="hidden" onchange="uploadDocs()" />
+                </label>
+                <ul id="fileList" class="space-y-2 max-h-32 overflow-y-auto pr-1 text-xs"></ul>
+            </div>
+        </div>
+
+        <!-- KROK 3: OTÁZKY -->
+        <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow transition-opacity duration-300" id="step3Block" style="opacity: 0.5; pointer-events: none;">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                <h2 class="text-lg font-bold text-slate-200">📝 Krok 3: Zkouškové otázky</h2>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="addManualQuestion()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded transition font-medium">➕ Přidat ručně</button>
+                    <label class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded cursor-pointer transition flex items-center font-medium">
+                        📂 Import z CSV
+                        <input type="file" id="csvFileInput" accept=".csv,.txt" class="hidden" onchange="uploadCSVFile()" />
+                    </label>
+                    <button onclick="clearQuestions()" class="text-xs bg-red-950/60 hover:bg-red-900 text-red-400 border border-red-900/50 px-3 py-2 rounded transition">🗑️ Vymazat seznam</button>
+                </div>
+            </div>
+
+            <div class="border border-slate-700 rounded-lg overflow-hidden bg-slate-900 max-h-64 overflow-y-auto shadow-inner">
+                <table class="w-full text-left text-sm table-fixed">
+                    <thead class="sticky top-0 bg-slate-800 shadow z-10 text-slate-300">
+                        <tr class="border-b border-slate-700">
+                            <th class="p-3 w-12 text-center"><input type="checkbox" id="selectAllCheckbox" onchange="toggleAllQuestions(this.checked)" class="accent-emerald-500 w-4 h-4 cursor-pointer"></th>
+                            <th class="p-3 w-12 text-center">#</th>
+                            <th class="p-3">Znění otázky (Klikni pro výběr do Studia)</th>
+                            <th class="p-3 w-28 text-center">Stav</th>
+                            <th class="p-3 w-12 text-center"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="questionsTableBody">
+                        <tr><td colspan="5" class="p-4 text-center text-slate-500 italic">Zatím žádné otázky. Nahrajte CSV nebo je přidejte ručně.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- KROK 4: KONFIGURACE VÝSTUPU -->
+        <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow space-y-4 transition-opacity duration-300" id="step4Block" style="opacity: 0.5; pointer-events: none;">
+            <h2 class="text-lg font-bold text-slate-200">⚙️ Krok 4: Nastavení AI a výstupu</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="space-y-1">
+                    <label class="text-xs text-slate-400 font-bold uppercase">AI Model (Text)</label>
+                    <select id="geminiModelSelect" class="w-full p-2 bg-slate-900 border border-slate-600 rounded text-sm text-white focus:outline-none">
+                        <option value="gemini-3.5-flash" selected>Gemini 3.5 Flash (Původní)</option>
+                        <option value="gemini-1.5-flash-002">Gemini 1.5 Flash 002</option>
+                        <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
+                    </select>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs text-slate-400 font-bold uppercase">TTS Poskytovatel</label>
+                    <select id="ttsProviderSelect" class="w-full p-2 bg-slate-900 border border-slate-600 rounded text-sm text-white focus:outline-none" onchange="toggleVoices()">
+                        <option value="openai">OpenAI (TTS-1)</option>
+                        <option value="elevenlabs">ElevenLabs</option>
+                    </select>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs text-slate-400 font-bold uppercase">Hlas</label>
+                    <select id="ttsVoiceSelect" class="w-full p-2 bg-slate-900 border border-slate-600 rounded text-sm text-white focus:outline-none"></select>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs text-emerald-400 font-bold uppercase">Výstupní formát</label>
+                    <select id="outputFormatSelect" class="w-full p-2 bg-slate-900 border border-emerald-600/50 rounded text-sm font-bold text-white focus:outline-none focus:border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.1)]">
+                        <option value="mp3">🎧 Audio MP3 (+ SRT)</option>
+                        <option value="mp4" selected>📺 Video MP4 (Titulky + Text)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 p-4 rounded border border-slate-700">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-3 gap-4">
+                    <div class="flex items-center gap-2 w-full md:w-auto">
+                        <label class="text-xs text-slate-400 font-bold uppercase shrink-0">Prompty:</label>
+                        <select id="promptSelect" class="bg-slate-800 text-emerald-400 font-semibold text-xs border border-slate-600 rounded p-1.5 focus:outline-none flex-1" onchange="loadSelectedPrompt()"></select>
+                    </div>
+                    
+                    <div class="flex flex-col gap-1 w-full md:w-64 bg-slate-800 p-2 rounded border border-slate-700">
+                        <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase">
+                            <span>Délka (Znaky):</span>
+                            <span id="charLimitLabel" class="text-emerald-400">8000 (~10 min)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[9px] text-slate-500">5m</span>
+                            <input type="range" id="charLimitInput" min="4000" max="32000" step="4000" value="8000" class="flex-1 accent-emerald-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg appearance-none outline-none" oninput="updateCharLimitLabel()">
+                            <span class="text-[9px] text-slate-500">40m</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <textarea id="systemPromptInput" class="w-full p-3 bg-black border border-slate-700 rounded text-xs text-slate-300 leading-relaxed focus:outline-none focus:border-slate-500 resize-y min-h-[120px] shadow-inner"></textarea>
+                
+                <div class="flex justify-end mt-3 gap-2">
+                    <button onclick="savePrompt()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-medium transition shadow">💾 Uložit do šablony</button>
+                    <button onclick="addPrompt()" class="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium transition shadow">➕ Nová šablona</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- KROK 5: STUDIO A DÁVKY -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 transition-opacity duration-300" id="step5Block" style="opacity: 0.5; pointer-events: none;">
+            
+            <div class="lg:col-span-2 bg-slate-800 p-5 rounded-xl border border-slate-700 shadow flex flex-col">
+                <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
+                    <h2 class="text-lg font-bold text-slate-200">🎙️ Krok 5A: Studio (Detail)</h2>
+                    <span id="activeQuestionTitle" class="text-sm text-emerald-400 font-medium bg-emerald-900/30 px-3 py-1 rounded-full truncate max-w-[200px] md:max-w-xs border border-emerald-800/30">Vyberte otázku ↑</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+                    <div class="flex flex-col">
+                        <button id="btnGenScript" disabled onclick="runScriptGeneration()" class="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold py-2 rounded text-sm transition mb-2 shadow">
+                            1. Vygenerovat osnovu textu
+                        </button>
+                        <textarea id="resultScriptTextarea" placeholder="Zde se objeví vygenerovaný text pro úpravy před hlasovou syntézou." class="w-full flex-1 min-h-[220px] p-3 bg-slate-900 border border-slate-600 rounded text-xs text-white resize-none leading-relaxed focus:outline-none focus:border-slate-400 mb-1 shadow-inner"></textarea>
+                        <div class="text-[10px] text-slate-400 text-right uppercase tracking-wider font-bold">Znaků: <span id="charCount" class="font-mono text-emerald-400">0</span></div>
+                        
+                        <details class="bg-slate-900 border border-slate-700 rounded p-2 mt-2 group">
+                            <summary class="text-xs text-slate-400 cursor-pointer select-none hover:text-emerald-400 outline-none flex items-center font-semibold">
+                                <span class="group-open:rotate-90 transition-transform mr-1">▶</span> Zobrazit PDF Kontext (RAG)
+                            </summary>
+                            <textarea id="contextTextarea" readonly class="w-full h-32 mt-2 p-2 bg-black border border-slate-800 rounded text-[10px] text-slate-500 font-mono resize-y focus:outline-none scroll-smooth"></textarea>
+                        </details>
+                    </div>
+
+                    <div class="flex flex-col bg-slate-900/50 p-4 rounded border border-slate-700/50">
+                        <button id="btnGenAudio" disabled onclick="runAudioGeneration()" class="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold py-2 rounded text-sm transition shadow mb-4">
+                            2. Syntetizovat audionahrávku
+                        </button>
+                        <div id="audioOutputBox" class="hidden flex-col items-center justify-center flex-1 space-y-4">
+                            <span id="outputFilenameLabel" class="text-sm text-slate-200 font-mono font-bold text-center break-all"></span>
+                            <div id="mediaContainer" class="w-full shadow-lg rounded overflow-hidden"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dávkové zpracování a STORNO -->
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex flex-col justify-center items-center text-center space-y-4 shadow border-indigo-900/30">
+                <div class="w-full">
+                    <h2 class="text-lg font-bold text-slate-200 mb-1">⚡ Krok 5B: Dávky</h2>
+                    <p class="text-[11px] text-slate-400">Automaticky zpracuje otázky z tabulky na pozadí.</p>
+                </div>
+                
+                <button id="btnBatchSelected" onclick="runBatchProcessing('selected')" class="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold py-3 rounded shadow transition flex justify-center items-center gap-2">
+                    ▶️ Spustit zaškrtnuté
+                </button>
+                <button id="btnBatchAll" onclick="runBatchProcessing('all')" class="w-full bg-slate-700 hover:bg-slate-600 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold py-3 rounded shadow transition flex justify-center items-center gap-2">
+                    ⏭️ Zpracovat vše
+                </button>
+
+                <div class="w-full border-t border-slate-700 pt-4 mt-2">
+                    <button onclick="cancelProcessing()" class="w-full bg-red-950/80 hover:bg-red-900 border border-red-900 text-red-300 font-bold py-2.5 rounded shadow transition flex justify-center items-center gap-2 text-sm">
+                        🛑 Zrušit generování
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- KROK 6: PRŮZKUMNÍK -->
+        <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-slate-200">🗂️ Krok 6: Průzkumník medií (<span id="explorerProjName" class="text-emerald-400">Vše</span>)</h2>
+                <button onclick="loadExplorer()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded transition shadow">🔄 Aktualizovat</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="explorerGrid">
+                <!-- Položky se načtou dynamicky -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentProject = "";
+        let questions = [];
+        let selectedQuestionIndex = null;
+        let currentAbortController = null;
+        let activeBatch = null;
+        const finishedBatchIds = new Set();
+
+        const voicesData = {
+            openai: [
+                { id: "onyx", name: "Onyx (Mužský)" },
+                { id: "alloy", name: "Alloy (Neutrální)" },
+                { id: "shimmer", name: "Shimmer (Ženský)" }
+            ],
+            elevenlabs: [
+                { id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel (Čeština)" },
+                { id: "AZnzlk1XvdvUeBnXmlld", name: "Domi" }
+            ]
+        };
+
+        // --- SPRÁVA PROMPTŮ ---
+        let savedPrompts = [];
+        const defaultPrompts = [
+            {
+                name: "Strukturovaný (nový)",
+                text: `Jsi špičkový profesor vnitřního lékařství a zkušený zkoušející. Tvým úkolem je připravit medika 5. ročníku na náročnou ústní zkoušku. Na základě přiložených studijních materiálů kompletně zpracuj zkouškovou otázku: **[NÁZEV OTÁZKY]**.\n\nNapiš text jako vysoce koncentrovaný, plynulý audiosouhrn určený k HLASITÉMU POSLECHU. Zcela vynech klasickou "podcastovou omáčku". Text musí být vybalancovaný pro soustředěný poslech.\n\nDodrž tyto striktní instrukce:\n\n1. **MAXIMÁLNÍ DÉLKA** textu je absolutně omezena na {MAX_CHARS} znaků.\n2. **STRUKTURA VÝKLADU:** Pro každou podotázku začni rovnou údernou větou. Následně zakomponuj do plynulého monologu:\n - Definice\n - Epidemiologie\n - Etiologie a RF\n - Patofyziologie\n - Klinický obraz\n - Diagnostika\n - Léčba\n - Komplikace\n3. **PLYNULOST:** Přechody musí znít plynule (např. "Pokud jde o epidemiologii...").\n4. **ZKRATKY A AKRONYMY:** Striktně rozepiš (např. místo EKG napiš elektrokardiogramu).\n5. **ZÁKAZ FORMÁTOVÁNÍ:** Nepoužívej odrážky, seznamy, závorky ani tabulky. Text musí být lineární.\n6. **ČISTÝ TEXT:** Žádné režijní poznámky.`
+            }
+        ];
+
+        window.addEventListener("DOMContentLoaded", () => {
+            setupSSE();
+            initPrompts();
+            toggleVoices();
+            loadProjects();
+            updateCharLimitLabel();
+            
+            document.getElementById("resultScriptTextarea").addEventListener("input", (e) => {
+                document.getElementById("charCount").textContent = e.target.value.length;
+            });
+        });
+
+        // --- ZRUŠENÍ (STORNO) ---
+        async function cancelProcessing() {
+            if (currentAbortController) {
+                currentAbortController.abort();
+                currentAbortController = null;
+            }
+
+            if (activeBatch && activeBatch.project === currentProject) {
+                try {
+                    const res = await fetch("/api/cancel-batch", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ project: currentProject })
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.status === "cancelling") {
+                        appendConsoleLog("🛑 Storno dávky odesláno. Probíhající API volání se bezpečně dokončí, další otázka se nespustí.");
+                        return;
+                    }
+                    appendConsoleLog("⚠️ Na serveru už neběží žádná dávka. UI bylo odemčeno.");
+                    activeBatch = null;
+                    setBatchControls(false);
+                } catch(e) {
+                    appendConsoleLog("❌ Storno dávky se nepodařilo odeslat na server.");
+                    return;
+                }
+            }
+            
+            const btnS = document.getElementById("btnGenScript");
+            if(btnS) { btnS.disabled = false; btnS.textContent = "1. Vygenerovat osnovu textu"; }
+            const btnA = document.getElementById("btnGenAudio");
+            if(btnA) { btnA.disabled = false; btnA.textContent = "2. Syntetizovat audionahrávku"; }
+            
+            let changed = false;
+            questions.forEach(q => {
+                if(q.status === "Processing") {
+                    q.status = "Ready";
+                    changed = true;
+                }
+            });
+            if(changed) {
+                saveQuestionsToStorage();
+                renderQuestionsTable();
+            }
+            loadExplorer();
+        }
+
+        // --- SLIDER DÉLKY ---
+        function updateCharLimitLabel() {
+            const val = document.getElementById("charLimitInput").value;
+            const mins = val / 800;
+            document.getElementById("charLimitLabel").textContent = `${val} (~${mins} min)`;
+        }
+
+        // --- INFRA ---
+        function setupSSE() {
+            const eventSource = new EventSource("/api/logs");
+            eventSource.addEventListener("log", (event) => {
+                try {
+                    appendConsoleLog(JSON.parse(event.data).message);
+                } catch (e) {
+                    appendConsoleLog(event.data);
+                }
+            });
+            eventSource.addEventListener("batch", (event) => {
+                try {
+                    handleBatchEvent(JSON.parse(event.data));
+                } catch (e) {
+                    appendConsoleLog("⚠️ Nepodařilo se zpracovat aktualizaci stavu dávky.");
+                }
+            });
+        }
+
+        function appendConsoleLog(message) {
+            const terminal = document.getElementById("liveTerminal");
+            const autoScroll = document.getElementById("autoScrollToggle");
+            const logDiv = document.createElement("div");
+            const isError = String(message).startsWith("❌");
+            const isWarning = String(message).startsWith("⚠️") || String(message).startsWith("🛑");
+            logDiv.className = `border-l pl-2 py-0.5 break-words ${isError ? "border-red-700 text-red-300" : isWarning ? "border-amber-700 text-amber-300" : "border-slate-700"}`;
+            logDiv.textContent = `> ${message}`;
+            terminal.appendChild(logDiv);
+
+            // Konzole je živý přehled, ne nekonečný DOM strom.
+            while (terminal.children.length > 250) {
+                terminal.removeChild(terminal.firstChild);
+            }
+            if (autoScroll && autoScroll.checked) {
+                terminal.scrollTop = terminal.scrollHeight;
+            }
+        }
+
+        function setBatchControls(isRunning) {
+            document.getElementById("btnBatchSelected").disabled = isRunning;
+            document.getElementById("btnBatchAll").disabled = isRunning;
+        }
+
+        function updateQuestionsByIndexes(questionIndexes, status) {
+            const targetIndexes = new Set(questionIndexes || []);
+            if (targetIndexes.size === 0) return;
+
+            let changed = false;
+            questions.forEach(question => {
+                if (targetIndexes.has(question.q_index) && question.status !== status) {
+                    question.status = status;
+                    changed = true;
+                }
+            });
+            if (changed) {
+                saveQuestionsToStorage();
+                renderQuestionsTable();
+            }
+        }
+
+        function handleBatchEvent(event) {
+            if (event.project !== currentProject) return;
+
+            if (event.type === "started") {
+                activeBatch = {
+                    batchId: event.batch_id,
+                    project: event.project,
+                    questionIndexes: event.question_indexes || []
+                };
+                setBatchControls(true);
+                updateQuestionsByIndexes(activeBatch.questionIndexes, "Processing");
+                return;
+            }
+
+            if (event.type === "finished") {
+                finishedBatchIds.add(event.batch_id);
+                updateQuestionsByIndexes(event.completed_question_indexes, "Done");
+                // Chybná nebo zrušená otázka se vrací do připraveného stavu,
+                // takže ji lze po opravě API znovu spustit bez restartu stránky.
+                updateQuestionsByIndexes(event.pending_question_indexes, "Ready");
+                if (activeBatch && event.batch_id === activeBatch.batchId) {
+                    activeBatch = null;
+                }
+                setBatchControls(false);
+                loadExplorer();
+                return;
+            }
+
+            if (!activeBatch || event.batch_id !== activeBatch.batchId) return;
+
+            if (event.type === "question_completed") {
+                updateQuestionsByIndexes([event.question_index], "Done");
+            }
+        }
+
+        function toggleVoices() {
+            const provider = document.getElementById("ttsProviderSelect").value;
+            const voiceSelect = document.getElementById("ttsVoiceSelect");
+            voiceSelect.innerHTML = "";
+            voicesData[provider].forEach(v => {
+                const opt = document.createElement("option");
+                opt.value = v.id; opt.textContent = v.name;
+                voiceSelect.appendChild(opt);
+            });
+        }
+
+        // --- PROJEKTY ---
+        async function loadProjects() {
+            const res = await fetch("/api/projects");
+            const data = await res.json();
+            const select = document.getElementById("projectSelect");
+            select.innerHTML = '<option value="">-- Vyberte projekt --</option>';
+            data.projects.forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = p; opt.textContent = p;
+                select.appendChild(opt);
+            });
+            
+            const savedProj = localStorage.getItem("aiPodcastActiveProject");
+            if(savedProj && data.projects.includes(savedProj)) {
+                select.value = savedProj;
+                onProjectChange();
+            }
+        }
+
+        async function createNewProject() {
+            const name = prompt("Zadejte název nového projektu (např. Interna, ARO):");
+            if (!name) return;
+            await fetch("/api/projects", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ name })
+            });
+            await loadProjects();
+            document.getElementById("projectSelect").value = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+            onProjectChange();
+        }
+
+        function onProjectChange() {
+            const requestedProject = document.getElementById("projectSelect").value;
+            if (activeBatch && requestedProject !== activeBatch.project) {
+                alert("Během dávkového zpracování nelze změnit projekt. Nejprve vyčkejte na dokončení nebo použijte Storno.");
+                document.getElementById("projectSelect").value = currentProject;
+                return;
+            }
+
+            currentProject = requestedProject;
+            localStorage.setItem("aiPodcastActiveProject", currentProject);
+            
+            const blocks = ["step2Block", "step3Block", "step4Block", "step5Block"];
+            const exProjLabel = document.getElementById("explorerProjName");
+
+            if (currentProject) {
+                blocks.forEach(b => {
+                    document.getElementById(b).style.opacity = "1";
+                    document.getElementById(b).style.pointerEvents = "auto";
+                });
+                exProjLabel.textContent = currentProject;
+                loadFileList();
+                loadQuestionsFromStorage();
+            } else {
+                blocks.forEach(b => {
+                    document.getElementById(b).style.opacity = "0.5";
+                    document.getElementById(b).style.pointerEvents = "none";
+                });
+                exProjLabel.textContent = "Vše";
+                questions = [];
+                renderQuestionsTable();
+            }
+            loadExplorer();
+        }
+
+        // --- MATERIÁLY ---
+        async function loadFileList() {
+            if (!currentProject) return;
+            const res = await fetch(`/api/files?project=${currentProject}`);
+            const data = await res.json();
+            const fileList = document.getElementById("fileList");
+            document.getElementById("fileCount").textContent = `${data.files.length} souborů`;
+            fileList.innerHTML = data.files.length === 0 ? `<li class="text-slate-500 italic text-center py-1">Žádné materiály</li>` : "";
+            
+            data.files.forEach(f => {
+                const ext = f.split('.').pop().toLowerCase();
+                let icon = "📄";
+                if(ext === "pptx") icon = "📊";
+                if(ext === "docx") icon = "📝";
+                
+                const li = document.createElement("li");
+                li.className = "flex justify-between items-center bg-slate-900 p-1.5 rounded border border-slate-700 group";
+                li.innerHTML = `
+                    <span class="truncate pr-2 text-slate-300" title="${f}">${icon} ${f}</span>
+                    <button onclick="deleteFile('${f}')" class="text-red-500 font-bold px-1 opacity-50 group-hover:opacity-100 transition outline-none">✕</button>
+                `;
+                fileList.appendChild(li);
+            });
+        }
+
+        async function uploadDocs() {
+            const input = document.getElementById("docsUploadInput");
+            if(!input.files.length || !currentProject) return;
+            
+            const labelText = document.getElementById("uploadLabelText");
+            const originalText = labelText.innerText;
+            labelText.innerText = "⏳ Nahrávám...";
+            
+            const formData = new FormData();
+            for(let i = 0; i < input.files.length; i++) {
+                formData.append("files", input.files[i]);
+            }
+            formData.append("project", currentProject);
+            
+            try {
+                await fetch("/api/files/upload", { method: "POST", body: formData });
+            } catch(e) {
+                alert("Chyba při nahrávání.");
+            }
+            
+            input.value = "";
+            labelText.innerText = originalText;
+            await loadFileList();
+        }
+
+        async function deleteFile(filename) {
+            if (!currentProject) return;
+            await fetch(`/api/files/${filename}?project=${currentProject}`, { method: "DELETE" });
+            await loadFileList();
+        }
+
+        // --- OTÁZKY (CSV & UI Edit) ---
+        function saveQuestionsToStorage() {
+            if(currentProject) localStorage.setItem(`aiPodcastQ_${currentProject}`, JSON.stringify(questions));
+        }
+        function loadQuestionsFromStorage() {
+            const stored = localStorage.getItem(`aiPodcastQ_${currentProject}`);
+            questions = stored ? JSON.parse(stored) : [];
+            renderQuestionsTable();
+        }
+
+        async function uploadCSVFile() {
+            const input = document.getElementById("csvFileInput");
+            if(!input.files.length) return;
+            
+            const formData = new FormData();
+            formData.append("file", input.files[0]);
+            
+            const res = await fetch("/api/files/upload-csv", { method: "POST", body: formData });
+            const data = await res.json();
+            
+            if(res.ok) {
+                const newQ = data.questions.map((q, i) => ({ 
+                    title: q, 
+                    status: "Ready", 
+                    selected: false, 
+                    q_index: questions.length + i + 1 
+                }));
+                questions = [...questions, ...newQ];
+                saveQuestionsToStorage();
+                renderQuestionsTable();
+            }
+            input.value = "";
+        }
+
+        function addManualQuestion() {
+            const q = prompt("Zadejte znění otázky:");
+            if(q) {
+                questions.push({ title: q, status: "Ready", selected: false, q_index: questions.length + 1 });
+                saveQuestionsToStorage();
+                renderQuestionsTable();
+            }
+        }
+
+        function updateQuestionTitle(idx) {
+            const newTitle = prompt("Upravit znění otázky:", questions[idx].title);
+            if(newTitle && newTitle.trim()) {
+                questions[idx].title = newTitle.trim();
+                saveQuestionsToStorage();
+                renderQuestionsTable();
+                if(selectedQuestionIndex === idx) {
+                    document.getElementById("activeQuestionTitle").textContent = questions[idx].title;
+                }
+            }
+        }
+
+        function removeQuestion(idx) {
+            questions.splice(idx, 1);
+            if(selectedQuestionIndex === idx) resetWorkspace();
+            saveQuestionsToStorage();
+            renderQuestionsTable();
+        }
+
+        function clearQuestions() {
+            if(confirm("Vymazat celý seznam otázek?")) {
+                questions = []; 
+                saveQuestionsToStorage();
+                resetWorkspace();
+                renderQuestionsTable(); 
+            }
+        }
+
+        function toggleAllQuestions(isChecked) {
+            questions.forEach(q => q.selected = isChecked);
+            renderQuestionsTable();
+        }
+
+        function toggleQuestion(idx, isChecked) {
+            questions[idx].selected = isChecked;
+            document.getElementById("selectAllCheckbox").checked = questions.length > 0 && questions.every(q => q.selected);
+        }
+
+        function renderQuestionsTable() {
+            const tbody = document.getElementById("questionsTableBody");
+            if(questions.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500 italic">Zatím žádné otázky. Nahrajte CSV nebo je přidejte ručně.</td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = "";
+            questions.forEach((q, idx) => {
+                if (!q.q_index) q.q_index = idx + 1;
+
+                const tr = document.createElement("tr");
+                tr.className = `border-b border-slate-800/80 hover:bg-slate-800 transition ${selectedQuestionIndex === idx ? 'bg-slate-700/80' : ''}`;
+                
+                let badge = `<span class="text-slate-500 text-[10px] md:text-xs">Čeká</span>`;
+                if(q.status === "Done") badge = `<span class="bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800 text-[10px] md:text-xs">Audio OK</span>`;
+                if(q.status === "In Progress") badge = `<span class="bg-amber-950 text-amber-400 px-2 py-0.5 rounded border border-amber-800 text-[10px] md:text-xs">Text OK</span>`;
+                if(q.status === "Processing") badge = `<span class="bg-blue-950 text-blue-400 px-2 py-0.5 rounded border border-blue-800 text-[10px] md:text-xs animate-pulse">Zpracovávám</span>`;
+
+                tr.innerHTML = `
+                    <td class="p-2 text-center">
+                        <input type="checkbox" ${q.selected ? 'checked' : ''} onchange="toggleQuestion(${idx}, this.checked)" class="accent-emerald-500 cursor-pointer w-4 h-4">
+                    </td>
+                    <td class="p-2 text-center text-slate-400 font-mono text-xs md:text-sm" title="Vnitřní ID: ${q.q_index}">${idx + 1}</td>
+                    
+                    <td class="p-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-slate-200 cursor-pointer hover:text-emerald-300 truncate flex-1 min-w-0 font-medium" onclick="selectQuestion(${idx})" title="${q.title}">${q.title}</span>
+                            <button onclick="event.stopPropagation(); updateQuestionTitle(${idx})" class="text-slate-500 hover:text-emerald-400 flex-shrink-0 transition text-xs md:text-sm px-1 outline-none" title="Upravit název">✏️</button>
+                        </div>
+                    </td>
+                    
+                    <td class="p-2 text-center">${badge}</td>
+                    <td class="p-2 text-center">
+                        <button onclick="removeQuestion(${idx})" class="text-red-500 hover:text-red-400 font-bold px-1 text-sm outline-none">✕</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function selectQuestion(idx) {
+            selectedQuestionIndex = idx;
+            renderQuestionsTable();
+            document.getElementById("activeQuestionTitle").textContent = questions[idx].title;
+            document.getElementById("btnGenScript").disabled = false;
+            document.getElementById("resultScriptTextarea").value = "";
+            document.getElementById("contextTextarea").value = "";
+            document.getElementById("charCount").textContent = "0";
+            document.getElementById("btnGenAudio").disabled = true;
+            document.getElementById("audioOutputBox").classList.add("hidden");
+            document.getElementById("audioOutputBox").classList.remove("flex");
+        }
+
+        function resetWorkspace() {
+            selectedQuestionIndex = null;
+            document.getElementById("activeQuestionTitle").textContent = "Vyberte otázku z tabulky ↑";
+            document.getElementById("btnGenScript").disabled = true;
+            document.getElementById("btnGenAudio").disabled = true;
+            document.getElementById("resultScriptTextarea").value = "";
+            document.getElementById("contextTextarea").value = "";
+            document.getElementById("charCount").textContent = "0";
+            document.getElementById("audioOutputBox").classList.add("hidden");
+            document.getElementById("audioOutputBox").classList.remove("flex");
+        }
+
+        // --- PROMPTY ---
+        function initPrompts() {
+            const stored = localStorage.getItem("aiPodcastPrompts");
+            if (stored) savedPrompts = JSON.parse(stored);
+            else savedPrompts = [...defaultPrompts];
+            renderPromptDropdown();
+        }
+
+        function renderPromptDropdown() {
+            const select = document.getElementById("promptSelect");
+            select.innerHTML = "";
+            savedPrompts.forEach((p, idx) => {
+                const opt = document.createElement("option");
+                opt.value = idx; opt.textContent = p.name;
+                select.appendChild(opt);
+            });
+            loadSelectedPrompt();
+        }
+
+        function loadSelectedPrompt() {
+            const select = document.getElementById("promptSelect");
+            if (savedPrompts[select.value]) {
+                document.getElementById("systemPromptInput").value = savedPrompts[select.value].text;
+            }
+        }
+
+        function addPrompt() {
+            const currentText = document.getElementById("systemPromptInput").value;
+            const name = prompt("Název šablony:");
+            if (name) {
+                savedPrompts.push({ name: name.trim(), text: currentText });
+                localStorage.setItem("aiPodcastPrompts", JSON.stringify(savedPrompts));
+                renderPromptDropdown();
+                document.getElementById("promptSelect").value = savedPrompts.length - 1;
+            }
+        }
+
+        function savePrompt() {
+            const idx = document.getElementById("promptSelect").value;
+            if (savedPrompts[idx]) {
+                savedPrompts[idx].text = document.getElementById("systemPromptInput").value;
+                localStorage.setItem("aiPodcastPrompts", JSON.stringify(savedPrompts));
+                alert("Šablona uložena.");
+            }
+        }
+
+        function getDynamicPrompt() {
+            let prompt = document.getElementById("systemPromptInput").value;
+            const limit = document.getElementById("charLimitInput").value;
+            return prompt.replace(/{MAX_CHARS}/g, limit);
+        }
+
+        // --- EXEKUCE (MANUÁLNÍ) ---
+        async function runScriptGeneration() {
+            if (activeBatch) {
+                alert("Během dávkového zpracování nelze spustit ruční generování.");
+                return;
+            }
+            if(selectedQuestionIndex === null) return;
+            const question = questions[selectedQuestionIndex].title;
+            
+            const btn = document.getElementById("btnGenScript");
+            btn.disabled = true;
+            btn.textContent = "⏳ Analyzuji kontext a generuji osnovu...";
+
+            currentAbortController = new AbortController();
+
+            try {
+                const res = await fetch("/api/generate-script", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        question, 
+                        prompt: getDynamicPrompt(), 
+                        project: currentProject,
+                        gemini_model: document.getElementById("geminiModelSelect").value
+                    }),
+                    signal: currentAbortController.signal
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    document.getElementById("resultScriptTextarea").value = data.script;
+                    document.getElementById("contextTextarea").value = data.context; 
+                    document.getElementById("charCount").textContent = data.script.length;
+                    document.getElementById("btnGenAudio").disabled = false;
+                    
+                    questions[selectedQuestionIndex].status = "In Progress";
+                    saveQuestionsToStorage();
+                    renderQuestionsTable();
+                } else {
+                    alert("Chyba při zpracování: " + data.detail);
+                }
+            } catch(e) {
+                if (e.name !== 'AbortError') alert("Nelze navázat spojení se serverem.");
+            } finally {
+                currentAbortController = null;
+                btn.disabled = false;
+                btn.textContent = "1. Vygenerovat osnovu textu";
+            }
+        }
+
+        async function runAudioGeneration() {
+            if (activeBatch) {
+                alert("Během dávkového zpracování nelze spustit ruční syntézu.");
+                return;
+            }
+            const script = document.getElementById("resultScriptTextarea").value;
+            if(!script.trim() || selectedQuestionIndex === null) return;
+
+            const btn = document.getElementById("btnGenAudio");
+            btn.disabled = true;
+            btn.textContent = "⏳ Generuji zvuk/video...";
+
+            currentAbortController = new AbortController();
+            const q = questions[selectedQuestionIndex];
+
+            try {
+                const res = await fetch("/api/generate-audio", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        script, 
+                        filename: `${currentProject}_Q${q.q_index}_${q.title.substring(0, 15)}`,
+                        question_title: q.title,
+                        provider: document.getElementById("ttsProviderSelect").value,
+                        voice: document.getElementById("ttsVoiceSelect").value,
+                        format: document.getElementById("outputFormatSelect").value
+                    }),
+                    signal: currentAbortController.signal
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    const outBox = document.getElementById("audioOutputBox");
+                    outBox.classList.remove("hidden");
+                    outBox.classList.add("flex");
+                    document.getElementById("outputFilenameLabel").textContent = data.filename;
+                    
+                    const container = document.getElementById("mediaContainer");
+                    container.innerHTML = "";
+                    
+                    if (data.format === "mp4") {
+                        const video = document.createElement("video");
+                        video.controls = true;
+                        video.className = "w-full outline-none bg-black";
+                        video.src = data.audio_url;
+                        container.appendChild(video);
+                    } else {
+                        const audio = document.createElement("audio");
+                        audio.controls = true;
+                        audio.className = "w-full outline-none";
+                        audio.src = data.audio_url;
+                        container.appendChild(audio);
+                    }
+                    
+                    questions[selectedQuestionIndex].status = "Done";
+                    saveQuestionsToStorage();
+                    renderQuestionsTable();
+                    loadExplorer();
+                } else {
+                    alert("Chyba syntézy: " + data.detail);
+                }
+            } catch(e) {
+                if (e.name !== 'AbortError') alert("Chyba přenosu.");
+            } finally {
+                currentAbortController = null;
+                btn.disabled = false;
+                btn.textContent = "2. Syntetizovat audionahrávku";
+            }
+        }
+
+        // --- EXEKUCE (DÁVKA) ---
+        async function runBatchProcessing(mode) {
+            if (activeBatch) {
+                alert("Dávka už běží. Vyčkejte na dokončení nebo použijte Storno.");
+                return;
+            }
+
+            let target = mode === 'all' ? questions.map(q => q) : questions.filter(q => q.selected);
+            if (target.length === 0) {
+                alert("Nebyly vybrány otázky."); return;
+            }
+
+            target.forEach(q => q.status = "Processing");
+            saveQuestionsToStorage();
+            renderQuestionsTable();
+            setBatchControls(true);
+
+            try {
+                const res = await fetch("/api/process-batch", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        questions: target.map(q => ({title: q.title, q_index: q.q_index})), 
+                        prompt: getDynamicPrompt(),
+                        provider: document.getElementById("ttsProviderSelect").value,
+                        voice: document.getElementById("ttsVoiceSelect").value,
+                        format: document.getElementById("outputFormatSelect").value,
+                        project: currentProject,
+                        gemini_model: document.getElementById("geminiModelSelect").value
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.detail || "Dávku se nepodařilo spustit.");
+                }
+
+                // Událost "started" obvykle přijde hned poté; odpověď ji jistí
+                // i při pomalejším SSE připojení.
+                if (!finishedBatchIds.has(data.batch_id)) {
+                    activeBatch = {
+                        batchId: data.batch_id,
+                        project: currentProject,
+                        questionIndexes: target.map(q => q.q_index)
+                    };
+                } else {
+                    setBatchControls(false);
+                }
+                appendConsoleLog("🚀 Dávka byla spuštěna na pozadí. Průběh sledujte v Live konzoli.");
+            } catch(e) {
+                updateQuestionsByIndexes(target.map(q => q.q_index), "Ready");
+                setBatchControls(false);
+                alert("Dávku se nepodařilo spustit: " + e.message);
+            }
+        }
+
+        // --- PRŮZKUMNÍK SOUBORŮ ---
+        let explorerFilesCache = [];
+
+        async function loadExplorer() {
+            if (!currentProject) {
+                document.getElementById("explorerGrid").innerHTML = "";
+                return;
+            }
+
+            const res = await fetch(`/api/outputs?project=${currentProject}`);
+            const data = await res.json();
+            const grid = document.getElementById("explorerGrid");
+            grid.innerHTML = "";
+            
+            explorerFilesCache = data.files || [];
+            
+            if (explorerFilesCache.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center text-slate-500 italic py-4">Pro tento projekt nejsou žádné soubory.</div>`;
+            } else {
+                explorerFilesCache.forEach(f => {
+                    const isVideo = f.endsWith(".mp4");
+                    const isAudio = f.endsWith(".mp3");
+                    
+                    let icon = isVideo ? "🎬" : isAudio ? "🎧" : "📄";
+                    let typeColor = isVideo ? "text-purple-400" : isAudio ? "text-blue-400" : "text-amber-400";
+                    
+                    const card = document.createElement("div");
+                    card.className = "bg-slate-900 border border-slate-700 p-3 rounded-lg flex flex-col gap-2 group hover:border-slate-500 transition shadow";
+                    card.innerHTML = `
+                        <div class="flex items-start gap-2">
+                            <div class="text-2xl mt-1">${icon}</div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs text-slate-200 font-mono font-bold truncate" title="${f}">${f}</p>
+                                <p class="text-[10px] ${typeColor} uppercase font-bold mt-1">${f.split('.').pop()}</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center mt-2 border-t border-slate-800 pt-2">
+                            <a href="/audio/${f}" target="_blank" class="text-xs bg-emerald-900/50 hover:bg-emerald-800 text-emerald-400 px-2 py-1 rounded transition">Otevřít</a>
+                            <button onclick="deleteExplorerFile('${f}')" class="text-xs text-red-500 hover:text-red-400 font-bold px-2 py-1 rounded transition opacity-50 group-hover:opacity-100">Smazat</button>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+
+            syncStatusWithExplorer();
+        }
+
+        async function deleteExplorerFile(filename) {
+            if(confirm(`Opravdu smazat ${filename}?`)) {
+                await fetch(`/api/outputs/${filename}`, { method: "DELETE" });
+                loadExplorer();
+            }
+        }
+
+        // --- SYNCHRONIZACE TABULKY S PRŮZKUMNÍKEM ---
+        function syncStatusWithExplorer() {
+            let changed = false;
+            
+            questions.forEach(q => {
+                const expectedPrefix = `${currentProject}_Q${q.q_index}_`;
+                const hasMedia = explorerFilesCache.some(f => f.startsWith(expectedPrefix) && (f.endsWith('.mp3') || f.endsWith('.mp4')));
+
+                if (hasMedia && q.status !== "Done") {
+                    q.status = "Done";
+                    changed = true;
+                } else if (!hasMedia && q.status === "Done") {
+                    q.status = "Ready"; 
+                    changed = true;
+                }
+            });
+
+            if (changed) {
+                saveQuestionsToStorage();
+                renderQuestionsTable();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Podcast Studio - Interna</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+
+    <div class="container mx-auto px-4 py-6 max-w-7xl">
+        <header class="mb-6 flex justify-between items-center border-b border-slate-700 pb-4">
+            <div>
+                <h1 class="text-3xl font-extrabold text-emerald-400 tracking-wide">🎓 AI Studio pro zkouškové podcasty</h1>
+                <p class="text-slate-400 text-sm">Zpracování PDF materiálů v reálném čase s generováním videa (MP4 s titulky).</p>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- LEVÝ SLOUPEC: Soubory, Prompt, Konfigurace -->
+            <div class="space-y-6 lg:col-span-1">
+                
+                <!-- 1. Studijní materiály -->
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                    <h2 class="text-lg font-bold mb-3 text-slate-200 flex items-center justify-between">
+                        <span>📚 1. Studijní materiály</span>
+                        <span id="fileCount" class="text-xs bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded-full">0 souborů</span>
+                    </h2>
+                    <div class="mb-4">
+                        <label class="w-full flex flex-col items-center px-4 py-3 bg-slate-900 text-slate-400 rounded-lg border border-dashed border-slate-600 cursor-pointer hover:bg-slate-850 hover:text-white transition">
+                            <span class="text-sm">📥 Nahrát studijní PDF</span>
+                            <input type="file" id="pdfUploadInput" accept=".pdf" class="hidden" onchange="uploadPDF()" />
+                        </label>
+                    </div>
+                    <ul id="fileList" class="space-y-2 max-h-36 overflow-y-auto pr-1 text-xs"></ul>
+                </div>
+
+                <!-- 2. Nastavení a Hlas -->
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-4">
+                    <h2 class="text-lg font-bold text-slate-200">⚙️ 2. Konfigurace</h2>
+                    
+                    <div class="flex justify-between items-center bg-slate-900 p-3 rounded border border-slate-600 text-sm">
+                        <span class="text-slate-300">Cílová délka (znaků):</span>
+                        <select id="charLimitInput" class="bg-slate-800 text-emerald-400 font-bold border border-slate-500 rounded p-1 focus:outline-none">
+                            <option value="4000">4 000 (cca 5 min)</option>
+                            <option value="8000" selected>8 000 (cca 10 min)</option>
+                            <option value="12000">12 000 (cca 15 min)</option>
+                            <option value="16000">16 000 (cca 20 min)</option>
+                        </select>
+                    </div>
+
+                    <!-- KNIHOVNA PROMPTŮ -->
+                    <div class="bg-slate-900 p-3 rounded border border-slate-600 space-y-3">
+                        <div class="flex flex-col gap-2">
+                            <label class="text-xs text-slate-400 font-bold uppercase tracking-wider">Knihovna promptů:</label>
+                            <select id="promptSelect" class="w-full bg-slate-800 text-emerald-400 font-semibold text-sm border border-slate-500 rounded p-2 focus:outline-none" onchange="loadSelectedPrompt()"></select>
+                        </div>
+                        
+                        <textarea id="systemPromptInput" class="w-full h-48 p-2 bg-slate-800 border border-slate-500 rounded text-xs text-slate-200 leading-relaxed focus:outline-none placeholder-slate-500"></textarea>
+                        
+                        <div class="flex flex-col sm:flex-row gap-2 justify-end">
+                            <button onclick="savePrompt()" class="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-2 rounded text-xs transition font-medium">
+                                💾 Uložit
+                            </button>
+                            <button onclick="addPrompt()" class="w-full sm:w-auto bg-blue-700 hover:bg-blue-600 text-white px-3 py-2 rounded text-xs transition font-medium">
+                                ➕ Nový
+                            </button>
+                            <button onclick="deletePrompt()" class="w-full sm:w-auto bg-red-900 hover:bg-red-800 text-white px-3 py-2 rounded text-xs transition font-medium">
+                                🗑️ Smazat
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <select id="ttsProviderSelect" class="w-full p-2 bg-slate-900 border border-slate-600 rounded text-xs text-white" onchange="toggleVoices()">
+                                <option value="openai">OpenAI</option>
+                                <option value="elevenlabs">ElevenLabs</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select id="ttsVoiceSelect" class="w-full p-2 bg-slate-900 border border-slate-600 rounded text-xs text-white"></select>
+                        </div>
+                    </div>
+                    
+                    <!-- NOVINKA: VÝBĚR FORMÁTU -->
+                    <div class="flex justify-between items-center bg-slate-900 p-3 rounded border border-slate-600 text-sm">
+                        <span class="text-slate-300 font-bold">Výstupní formát:</span>
+                        <select id="outputFormatSelect" class="bg-slate-800 text-white font-bold border border-slate-500 rounded p-1 focus:outline-none">
+                            <option value="mp3">🎧 Pouze MP3 (+ .srt)</option>
+                            <option value="mp4" selected>📺 MP4 Video (Vpálené titulky)</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <!-- Vizuální Real-time Konzole Logování -->
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-amber-500 mb-2 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                        Průběh zpracování:
+                    </h3>
+                    <div id="liveTerminal" class="h-48 overflow-y-auto font-mono text-[11px] text-slate-300 space-y-1 bg-black/50 p-2 rounded border border-slate-900 scroll-smooth">
+                        <div class="text-slate-500 italic">// Systém připraven. Čeká na akci...</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- PRAVÝ SLOUPEC: Otázky a Pracovní plocha -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- 3. Zkouškové otázky & Dávkové zpracování -->
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                        <h2 class="text-lg font-bold text-slate-200">📝 3. Seznam zkouškových otázek</h2>
+                        <div class="flex flex-wrap gap-2">
+                            <label class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded cursor-pointer transition flex items-center gap-1">
+                                📂 Nahrát CSV/TXT
+                                <input type="file" id="csvFileInput" accept=".csv,.txt" class="hidden" onchange="uploadCSVFile()" />
+                            </label>
+                            <button onclick="runBatchProcessing('selected')" class="text-xs bg-blue-900 text-blue-300 hover:bg-blue-800 px-3 py-2 rounded transition shadow-lg flex items-center gap-1 font-bold">
+                                ▶️ Zpracovat vybrané
+                            </button>
+                            <button onclick="runBatchProcessing('all')" class="text-xs bg-purple-900 text-purple-300 hover:bg-purple-800 px-3 py-2 rounded transition shadow-lg flex items-center gap-1 font-bold">
+                                ⏭️ Zpracovat vše
+                            </button>
+                            <button onclick="clearQuestions()" class="text-xs bg-red-950 text-red-400 hover:bg-red-900 px-3 py-2 rounded transition flex items-center gap-1">🗑️ Smazat</button>
+                        </div>
+                    </div>
+
+                    <div class="border border-slate-700 rounded-lg overflow-hidden bg-slate-900 max-h-64 overflow-y-auto shadow-inner">
+                        <table class="w-full text-left text-xs">
+                            <thead class="sticky top-0 bg-slate-800 shadow z-10">
+                                <tr class="border-b border-slate-700 text-slate-300">
+                                    <th class="p-2 w-8 text-center">
+                                        <input type="checkbox" id="selectAllCheckbox" onchange="toggleAllQuestions(this.checked)" class="accent-emerald-500 cursor-pointer w-3.5 h-3.5">
+                                    </th>
+                                    <th class="p-2 w-10 text-center">ID</th>
+                                    <th class="p-2">Otázka</th>
+                                    <th class="p-2 w-24 text-center">Stav</th>
+                                </tr>
+                            </thead>
+                            <tbody id="questionsTableBody">
+                                <tr>
+                                    <td colspan="4" class="p-4 text-center text-slate-500 italic">Žádné otázky. Nahrajte CSV soubor tlačítkem výše.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 4. Studio (Manuální kontrola 1 otázky) -->
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                        <h2 class="text-lg font-bold text-slate-200">🎙️ 4. Manuální úprava (Aktivní otázka)</h2>
+                        <span id="activeQuestionTitle" class="text-sm text-emerald-400 font-medium font-mono">Vyberte řádek z tabulky</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex flex-col space-y-1">
+                            <button id="btnGenScript" disabled onclick="runScriptGeneration()" class="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-medium py-2 rounded text-xs transition mb-1 shadow-lg">
+                                Krok 1: Vygenerovat scénář
+                            </button>
+                            
+                            <textarea id="resultScriptTextarea" placeholder="Zde se objeví text pro kontrolu a úpravy před hlasovou syntézou." class="w-full h-48 p-3 bg-slate-900 border border-slate-600 rounded text-xs text-white resize-none leading-relaxed focus:outline-none"></textarea>
+                            
+                            <div class="flex justify-between items-center text-xs text-slate-400 px-1 mt-1 bg-slate-900 border border-slate-700 rounded p-2">
+                                <span>Počet znaků: <span id="charCount" class="font-mono text-emerald-400 font-bold">0</span></span>
+                            </div>
+
+                            <div class="mt-2">
+                                <details class="bg-slate-900 border border-slate-700 rounded p-2 group">
+                                    <summary class="text-xs text-slate-400 cursor-pointer select-none hover:text-emerald-400 outline-none flex items-center gap-1 font-semibold transition">
+                                        <span class="group-open:rotate-90 transition-transform">▶</span> 
+                                        🔍 Zobrazit kontext vytažený z PDF
+                                    </summary>
+                                    <textarea id="contextTextarea" readonly placeholder="Zatím žádný kontext..." class="w-full h-40 mt-2 p-2 bg-black border border-slate-800 rounded text-[11px] text-slate-500 font-mono resize-y focus:outline-none scroll-smooth"></textarea>
+                                </details>
+                            </div>
+
+                        </div>
+
+                        <div class="flex flex-col justify-between pt-1">
+                            <button id="btnGenAudio" disabled onclick="runAudioGeneration()" class="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-medium py-2 rounded text-xs transition mb-4 shadow-lg">
+                                Krok 2: Vytvořit MP3 / MP4
+                            </button>
+                            
+                            <div id="audioOutputBox" class="hidden bg-slate-900 p-4 rounded-lg border border-slate-700 space-y-3 mt-auto shadow-inner">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs text-slate-400">🎧 Přehrávač:</span>
+                                    <span id="outputFilenameLabel" class="text-xs text-slate-200 font-mono font-bold truncate max-w-[150px]"></span>
+                                </div>
+                                <!-- Podle formátu se zobrazí buď audio nebo video element -->
+                                <div id="mediaContainer"></div>
+                                
+                                <div class="flex justify-between items-center mt-2 border-t border-slate-800 pt-2">
+                                    <button onclick="runSubtitleGeneration()" class="text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded transition flex items-center gap-1">
+                                        📄 Dogenerovat .srt titulky
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let questions = [];
+        let selectedQuestionIndex = null;
+
+        const voicesData = {
+            openai: [
+                { id: "onyx", name: "Onyx (Mužský)" },
+                { id: "alloy", name: "Alloy (Neutrální)" },
+                { id: "shimmer", name: "Shimmer (Ženský)" }
+            ],
+            elevenlabs: [
+                { id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel (Čeština)" },
+                { id: "AZnzlk1XvdvUeBnXmlld", name: "Domi" }
+            ]
+        };
+
+        // --- SPRÁVA PROMPTŮ ---
+        let savedPrompts = [];
+        const defaultPrompts = [
+            {
+                name: "Strukturovaný (nový)",
+                text: `Jsi špičkový profesor vnitřního lékařství a zkušený zkoušející. Tvým úkolem je připravit medika 5. ročníku na náročnou ústní zkoušku z interny. Na základě přiložených studijních materiálů kompletně zpracuj zkouškovou otázku: **[NÁZEV OTÁZKY]**.\n\nNapiš text jako vysoce koncentrovaný, plynulý audiosouhrn určený k HLASITÉMU POSLECHU. Zcela vynech klasickou "podcastovou omáčku" (absolutně žádné "Vítejte", "Dnes se podíváme na...", "Dobrý den" apod.). Text musí být vybalancovaný pro soustředěný poslech, ale maximálně nabitý fakty.\n\nDodrž tyto striktní instrukce:\n\n1. **MAXIMÁLNÍ DÉLKA** textu je absolutně omezena na {MAX_CHARS} znaků. Zaměř se striktně na "high-yield" informace a klíčová slova, která musí u zkoušky zaznít.\n2. **STRUKTURA VÝKLADU A ZPRACOVÁNÍ PODOTÁZEK:** Pokud zadaná otázka obsahuje více podotázek nebo samostatných okruhů, je tvou absolutní povinností zpracovat systematicky a vyčerpávajícím způsobem VŠECHNY z nich. Pro každou jednotlivou podotázku začni rovnou jedinou údernou větou, která zkoušejícímu okamžitě ukáže, že přesně víš, o čem mluvíš, takzvaný otvírák. Následně do plynulého monologu u dané podotázky postupně a logicky zakomponuj těchto deset bodů v přesném pořadí:\n   - Definice\n   - Epidemiologie\n   - Etiologie a rizikové faktory\n   - Patofyziologie\n   - Klinický obraz\n   - Diagnostika\n   - Diferenciální diagnostika\n   - Léčba\n   - Komplikace\n   - Prognóza a prevence\n   Jakmile tento cyklus dokončíš, plynule přejdi k další podotázce ze zadání a celý proces opakuj.\n3. **PLYNULOST A ZVUKOVÉ ZÁLOŽKY:** Vždy těsně předtím, než začneš mluvit o dalším bodu osnovy, velmi stručně a přirozeně zmíníš jeho název, aby se posluchač mohl rychle zorientovat (např. "K definici tohoto stavu...", "Pokud jde o epidemiologii...", "V rámci klinického obrazu dominují..."). Vyhni se ale robotickému číslování typu "Bod jedna, definice". Přechody musí znít plynule a přirozeně jako výklad na přednášce.\n4. **RYTMUS A DÉLKA VĚT:** Striktně omez délku jednotlivých vět, aby mozek stíhal informace ukládat. Pokud musíš vyjmenovat více než tři symptomy, rizikové faktory nebo léky, rozděl výčet do dvou či více na sebe navazujících vět. Udržíš tím přirozené tempo mluveného slova.\n5. **ZKRATKY A AKRONYMY:** Klinické akronymy a zkratky vždy plynule rozepiš do textu celým slovem (například místo "na EKG" napiš "na elektrokardiogramu", místo "IgG" napiš "imunoglobulin G"), aby je hlasový syntetizátor nepřečetl jako nesmyslný shluk hlásek.\n6. **ODBORNOST:** Mluv výhradně spisovnou, ale přirozenou češtinou. Odborné termíny nevysvětluj polopaticky – mluvíš k budoucímu lékaři. Uváděj je rovnou v přesných klinických souvislostech.\n7. **ZÁKAZ FORMÁTOVÁNÍ:** Nepoužívej ŽÁDNÉ odrážky, seznamy, závorky ani tabulky. Text musí být čistě lineární a syntakticky plynulý, aby ho šlo přečíst bez zadrhávání TTS syntetizátoru (místo závorek použij spojky nebo vsuvky).\n8. **ČISTÝ TEXT:** Výsledek nesmí obsahovat žádné režijní poznámky (například pauza, nadechnutí). Výstupem bude pouze čistý mluvený text připravený pro převod na hlas.`
+            },
+            {
+                name: "Standardní přehled",
+                text: `Jsi špičkový profesor vnitřního lékařství a zkušený zkoušející. Tvým úkolem je připravit medika 5. ročníku na náročnou ústní zkoušku z interny. Na základě přiložených studijních materiálů kompletně zpracuj zkouškovou otázku: [NÁZEV OTÁZKY].\n\nNapiš text jako vysoce koncentrovaný, plynulý audiosouhrn určený k HLASITÉMU POSLECHU. Zcela vynech klasickou "podcastovou omáčku" (absolutně žádné "Vítejte", "Dnes se podíváme na...", "Dobrý den" apod.). Jdi okamžitě k věci. Text musí být vybalancovaný pro soustředěný poslech, ale maximálně nabitý fakty.\n\nDodrž tyto striktní instrukce:\n1. MAXIMÁLNÍ DÉLKA textu je absolutně omezena na {MAX_CHARS} znaků. Zaměř se striktně na "high-yield" informace, patofyziologické mechanismy a klíčová slova, která zkoušející chtějí u zkoušky slyšet.\n2. Úvod omez na nulu. Začni rovnou jasnou a údernou definicí onemocnění, poté plynule a logicky přejdi přes etiopatogenezi ke klinickému obrazu pacienta, diagnostice (včetně specifických laboratorních a zobrazovacích nálezů) a zakonči moderní terapií. Prostě klinické věci.\n3. Mluv výhradně spisovnou, ale přirozenou češtinou, aby se text dobře poslouchal. Syntetizuj informace z dodaných zdrojů do logických souvislostí bez zbytečných vycpávkových slov.\n4. Odborné termíny nevysvětluj polopaticky – mluvíš k budoucímu lékaři. Uváděj je rovnou v přesných klinických souvislostech.\n5. Nepoužívej ŽÁDNÉ odrážky, seznamy, závorky ani tabulky. Text musí být čistě lineární a syntakticky plynulý, aby ho šlo přečíst bez zadrhávání TTS syntetizátoru (místo závorek použij spojky nebo vsuvky).\n6. Výsledek nesmí obsahovat žádné režijní poznámky (např. *pauza*, *nadechnutí*). Výstupem bude pouze čistý mluvený text připravený pro převod na hlas.`
+            }
+        ];
+
+        function initPrompts() {
+            const stored = localStorage.getItem("aiPodcastPrompts");
+            if (stored) {
+                savedPrompts = JSON.parse(stored);
+            } else {
+                savedPrompts = [...defaultPrompts];
+                savePromptsToStorage();
+            }
+            renderPromptDropdown();
+        }
+
+        function savePromptsToStorage() {
+            localStorage.setItem("aiPodcastPrompts", JSON.stringify(savedPrompts));
+        }
+
+        function renderPromptDropdown() {
+            const select = document.getElementById("promptSelect");
+            select.innerHTML = "";
+            savedPrompts.forEach((p, idx) => {
+                const opt = document.createElement("option");
+                opt.value = idx;
+                opt.textContent = p.name;
+                select.appendChild(opt);
+            });
+            const lastActive = localStorage.getItem("aiPodcastLastPromptIndex");
+            if (lastActive && savedPrompts[lastActive]) {
+                select.value = lastActive;
+            }
+            loadSelectedPrompt();
+        }
+
+        function loadSelectedPrompt() {
+            const select = document.getElementById("promptSelect");
+            const idx = select.value;
+            if (savedPrompts[idx]) {
+                document.getElementById("systemPromptInput").value = savedPrompts[idx].text;
+                localStorage.setItem("aiPodcastLastPromptIndex", idx);
+            }
+        }
+
+        function addPrompt() {
+            const currentText = document.getElementById("systemPromptInput").value;
+            if (!currentText.trim()) {
+                alert("Text promptu je prázdný.");
+                return;
+            }
+            const name = prompt("Zadejte název pro tento nový prompt:");
+            if (name && name.trim() !== "") {
+                savedPrompts.push({ name: name.trim(), text: currentText });
+                savePromptsToStorage();
+                renderPromptDropdown();
+                document.getElementById("promptSelect").value = savedPrompts.length - 1;
+                loadSelectedPrompt();
+            }
+        }
+
+        function savePrompt() {
+            const select = document.getElementById("promptSelect");
+            const idx = select.value;
+            if (savedPrompts[idx]) {
+                savedPrompts[idx].text = document.getElementById("systemPromptInput").value;
+                savePromptsToStorage();
+                const btn = event.currentTarget;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = "✅ Uloženo";
+                btn.classList.add("bg-emerald-500");
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove("bg-emerald-500");
+                }, 1500);
+            }
+        }
+
+        function deletePrompt() {
+            if (savedPrompts.length <= 1) {
+                alert("V knihovně musí zůstat alespoň jeden prompt.");
+                return;
+            }
+            const select = document.getElementById("promptSelect");
+            const idx = select.value;
+            if (confirm("Opravdu chcete smazat prompt: '" + savedPrompts[idx].name + "'?")) {
+                savedPrompts.splice(idx, 1);
+                savePromptsToStorage();
+                renderPromptDropdown();
+            }
+        }
+
+        // -----------------------
+
+        window.addEventListener("DOMContentLoaded", () => {
+            loadFileList();
+            toggleVoices();
+            setupSSE();
+            initPrompts();
+            
+            const textarea = document.getElementById("resultScriptTextarea");
+            textarea.addEventListener("input", () => {
+                document.getElementById("charCount").textContent = textarea.value.length;
+            });
+        });
+
+        function setupSSE() {
+            const eventSource = new EventSource("/api/logs");
+            const terminal = document.getElementById("liveTerminal");
+            
+            eventSource.onmessage = function(event) {
+                const logDiv = document.createElement("div");
+                logDiv.className = "border-l-2 border-slate-700 pl-2 py-0.5 break-words";
+                logDiv.textContent = `> ${event.data}`;
+                terminal.appendChild(logDiv);
+                terminal.scrollTop = terminal.scrollHeight;
+            };
+        }
+
+        function toggleVoices() {
+            const provider = document.getElementById("ttsProviderSelect").value;
+            const voiceSelect = document.getElementById("ttsVoiceSelect");
+            voiceSelect.innerHTML = "";
+            voicesData[provider].forEach(v => {
+                const opt = document.createElement("option");
+                opt.value = v.id; opt.textContent = v.name;
+                voiceSelect.appendChild(opt);
+            });
+        }
+
+        async function loadFileList() {
+            try {
+                const res = await fetch("/api/files");
+                const data = await res.json();
+                const fileList = document.getElementById("fileList");
+                document.getElementById("fileCount").textContent = `${data.files.length} souborů`;
+                fileList.innerHTML = data.files.length === 0 ? `<li class="text-slate-500 italic text-center py-2">Prázdno</li>` : "";
+                
+                data.files.forEach(f => {
+                    const li = document.createElement("li");
+                    li.className = "flex justify-between items-center bg-slate-900 p-1.5 rounded border border-slate-700 group";
+                    li.innerHTML = `
+                        <span class="truncate pr-2 text-slate-300">📄 ${f}</span>
+                        <button onclick="deleteFile('${f}')" class="text-red-500 font-bold px-1 opacity-50 group-hover:opacity-100 transition">✕</button>
+                    `;
+                    fileList.appendChild(li);
+                });
+            } catch(e) {
+                console.error("Nelze načíst soubory:", e);
+            }
+        }
+
+        async function uploadPDF() {
+            const input = document.getElementById("pdfUploadInput");
+            if(!input.files.length) return;
+            const formData = new FormData();
+            formData.append("file", input.files[0]);
+            await fetch("/api/files/upload", { method: "POST", body: formData });
+            input.value = "";
+            await loadFileList();
+        }
+
+        async function uploadCSVFile() {
+            const input = document.getElementById("csvFileInput");
+            if(!input.files.length) return;
+            
+            const formData = new FormData();
+            formData.append("file", input.files[0]);
+            
+            try {
+                const res = await fetch("/api/files/upload-csv", { method: "POST", body: formData });
+                const data = await res.json();
+                
+                if(res.ok) {
+                    questions = data.questions.map(q => ({ title: q, status: "Ready", selected: false }));
+                    document.getElementById("selectAllCheckbox").checked = false;
+                    renderQuestionsTable();
+                } else {
+                    alert("Nahrání CSV selhalo.");
+                }
+            } catch(e) {
+                alert("Chyba při nahrávání souboru.");
+            }
+            input.value = "";
+        }
+
+        async function deleteFile(filename) {
+            await fetch(`/api/files/${filename}`, { method: "DELETE" });
+            await loadFileList();
+        }
+
+        function clearQuestions() {
+            questions = []; 
+            selectedQuestionIndex = null;
+            document.getElementById("selectAllCheckbox").checked = false;
+            renderQuestionsTable(); 
+            resetWorkspace();
+        }
+
+        function toggleAllQuestions(isChecked) {
+            questions.forEach(q => q.selected = isChecked);
+            renderQuestionsTable();
+        }
+
+        function toggleQuestion(idx, isChecked) {
+            questions[idx].selected = isChecked;
+            const allSelected = questions.length > 0 && questions.every(q => q.selected);
+            document.getElementById("selectAllCheckbox").checked = allSelected;
+        }
+
+        function renderQuestionsTable() {
+            const tbody = document.getElementById("questionsTableBody");
+            
+            if(questions.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500 italic">Tabulka je prázdná.</td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = "";
+            questions.forEach((q, idx) => {
+                const tr = document.createElement("tr");
+                tr.className = `border-b border-slate-800 hover:bg-slate-850 cursor-pointer transition ${selectedQuestionIndex === idx ? 'bg-slate-700/50' : ''}`;
+                
+                tr.onclick = (e) => {
+                    if(e.target.type !== 'checkbox') {
+                        selectQuestion(idx);
+                    }
+                };
+
+                let badge = `<span class="text-slate-500 text-[10px]">Čeká</span>`;
+                if(q.status === "Done") badge = `<span class="bg-emerald-950 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-800 text-[10px]">Audio OK</span>`;
+                if(q.status === "In Progress") badge = `<span class="bg-amber-950 text-amber-400 px-1.5 py-0.5 rounded border border-amber-800 text-[10px]">Text OK</span>`;
+                if(q.status === "Processing") badge = `<span class="bg-blue-950 text-blue-400 px-1.5 py-0.5 rounded border border-blue-800 text-[10px] animate-pulse">Zpracovávám</span>`;
+
+                tr.innerHTML = `
+                    <td class="p-2 text-center" onclick="event.stopPropagation()">
+                        <input type="checkbox" ${q.selected ? 'checked' : ''} onchange="toggleQuestion(${idx}, this.checked)" class="accent-emerald-500 cursor-pointer w-3.5 h-3.5">
+                    </td>
+                    <td class="p-2 text-center text-slate-400 font-mono">${idx + 1}</td>
+                    <td class="p-2 text-slate-200 truncate max-w-xs md:max-w-md">${q.title}</td>
+                    <td class="p-2 text-center">${badge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function selectQuestion(idx) {
+            selectedQuestionIndex = idx;
+            renderQuestionsTable();
+            document.getElementById("activeQuestionTitle").textContent = `Otázka ${idx + 1}: ${questions[idx].title}`;
+            document.getElementById("btnGenScript").disabled = false;
+            document.getElementById("resultScriptTextarea").value = "";
+            document.getElementById("contextTextarea").value = "";
+            document.getElementById("charCount").textContent = "0";
+            document.getElementById("btnGenAudio").disabled = true;
+            document.getElementById("audioOutputBox").classList.add("hidden");
+        }
+
+        function resetWorkspace() {
+            document.getElementById("activeQuestionTitle").textContent = "Vyberte řádek z tabulky";
+            document.getElementById("btnGenScript").disabled = true;
+            document.getElementById("btnGenAudio").disabled = true;
+            document.getElementById("resultScriptTextarea").value = "";
+            document.getElementById("contextTextarea").value = "";
+            document.getElementById("charCount").textContent = "0";
+            document.getElementById("audioOutputBox").classList.add("hidden");
+        }
+
+        function getDynamicPrompt() {
+            let prompt = document.getElementById("systemPromptInput").value;
+            const limit = document.getElementById("charLimitInput").value;
+            return prompt.replace(/{MAX_CHARS}/g, limit);
+        }
+
+        async function runBatchProcessing(mode) {
+            let targetQuestions = [];
+            
+            if (mode === 'all') {
+                targetQuestions = questions.map((q, idx) => ({ title: q.title, index: idx }));
+            } else if (mode === 'selected') {
+                targetQuestions = questions
+                    .map((q, idx) => ({ ...q, index: idx }))
+                    .filter(q => q.selected);
+            }
+
+            if (targetQuestions.length === 0) {
+                alert("Nebyly vybrány žádné otázky ke zpracování.");
+                return;
+            }
+
+            const prompt = getDynamicPrompt();
+            const provider = document.getElementById("ttsProviderSelect").value;
+            const voice = document.getElementById("ttsVoiceSelect").value;
+            const format = document.getElementById("outputFormatSelect").value;
+            const questionTitles = targetQuestions.map(q => q.title);
+
+            targetQuestions.forEach(q => {
+                questions[q.index].status = "Processing";
+            });
+            renderQuestionsTable();
+
+            try {
+                const res = await fetch("/api/process-batch", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        questions: questionTitles, 
+                        prompt: prompt, 
+                        provider: provider, 
+                        voice: voice,
+                        format: format
+                    })
+                });
+                
+                const data = await res.json();
+                if(!res.ok) {
+                    alert("Chyba při spuštění dávky: " + (data.detail || "Neznámá chyba"));
+                }
+            } catch(e) {
+                alert("Nelze navázat spojení se serverem.");
+            }
+        }
+
+        async function runScriptGeneration() {
+            if(selectedQuestionIndex === null) return;
+            const question = questions[selectedQuestionIndex].title;
+            const prompt = getDynamicPrompt();
+
+            document.getElementById("btnGenScript").disabled = true;
+            document.getElementById("btnGenScript").textContent = "Generuji text...";
+
+            try {
+                const res = await fetch("/api/generate-script", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question, prompt })
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    document.getElementById("resultScriptTextarea").value = data.script;
+                    document.getElementById("contextTextarea").value = data.context; 
+                    document.getElementById("charCount").textContent = data.script.length;
+                    document.getElementById("btnGenAudio").disabled = false;
+                    questions[selectedQuestionIndex].status = "In Progress";
+                    renderQuestionsTable();
+                } else {
+                    alert("Chyba při zpracování: " + data.detail);
+                }
+            } catch(e) {
+                alert("Nelze navázat spojení.");
+            } finally {
+                document.getElementById("btnGenScript").disabled = false;
+                document.getElementById("btnGenScript").textContent = "Krok 1: Vygenerovat scénář";
+            }
+        }
+
+        async function runAudioGeneration() {
+            const script = document.getElementById("resultScriptTextarea").value;
+            if(!script.trim() || selectedQuestionIndex === null) return;
+
+            const filename = `Otazka_${selectedQuestionIndex + 1}`;
+            const provider = document.getElementById("ttsProviderSelect").value;
+            const voice = document.getElementById("ttsVoiceSelect").value;
+            const format = document.getElementById("outputFormatSelect").value;
+
+            document.getElementById("btnGenAudio").disabled = true;
+            document.getElementById("btnGenAudio").textContent = "Vytvářím záznam...";
+
+            try {
+                const res = await fetch("/api/generate-audio", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ script, filename, provider, voice, format })
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    document.getElementById("outputFilenameLabel").textContent = data.filename;
+                    document.getElementById("audioOutputBox").classList.remove("hidden");
+                    
+                    const container = document.getElementById("mediaContainer");
+                    container.innerHTML = ""; // Vyčistit starý prvek
+                    
+                    if (data.format === "mp4") {
+                        const video = document.createElement("video");
+                        video.controls = true;
+                        video.className = "w-full rounded outline-none";
+                        video.src = data.audio_url;
+                        container.appendChild(video);
+                    } else {
+                        const audio = document.createElement("audio");
+                        audio.controls = true;
+                        audio.className = "w-full outline-none";
+                        audio.src = data.audio_url;
+                        container.appendChild(audio);
+                    }
+                    
+                    questions[selectedQuestionIndex].status = "Done";
+                    renderQuestionsTable();
+                } else {
+                    alert("Chyba TTS syntézy: " + data.detail);
+                }
+            } catch(e) {
+                alert("Chyba přenosu.");
+            } finally {
+                document.getElementById("btnGenAudio").disabled = false;
+                document.getElementById("btnGenAudio").textContent = "Krok 2: Vytvořit MP3 / MP4";
+            }
+        }
+
+        async function runSubtitleGeneration() {
+            const script = document.getElementById("resultScriptTextarea").value;
+            let filename = document.getElementById("outputFilenameLabel").textContent;
+
+            // Pokud je zobrazený MP4, musíme pro SRT odvodit název MP3 (která existuje na pozadí)
+            filename = filename.replace('.mp4', '.mp3');
+
+            if(!script || !filename) {
+                alert("Není dostupný text nebo audio soubor ke spárování.");
+                return;
+            }
+
+            try {
+                const res = await fetch("/api/generate-subtitles", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ script: script, filename: filename })
+                });
+                const data = await res.json();
+                if(!res.ok) {
+                    alert("Chyba při generování titulků: " + data.detail);
+                } else {
+                    console.log("Titulky ručně dogenerovány.");
+                }
+            } catch(e) {
+                alert("Chyba přenosu.");
+            }
+        }
+    </script>
+</body>
+</html>

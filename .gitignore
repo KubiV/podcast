@@ -1,0 +1,8 @@
+.env
+generated_audio
+poznamky.txt
+uploads/
+generated_audio/
+otazky.csv
+chroma_db/
+venv/
