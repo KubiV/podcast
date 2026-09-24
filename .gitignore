@@ -1,9 +1,115 @@
+# ==============================================================================
+# Byte-compiled / optimized / DLL files
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ==============================================================================
+# Virtual Environments
+# ==============================================================================
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ==============================================================================
+# Secrets, Environment Variables & User Config (API Keys)
+# ==============================================================================
 .env
-generated_audio
-poznamky.txt
+.env.local
+.env.*.local
+*.env
+user_config.json
+
+# ==============================================================================
+# Generated Application Data & Runtime Storage
+# ==============================================================================
 uploads/
 generated_audio/
-otazky.csv
+generated_notes/
+generated_tests/
+generated_flashcards/
+lessons_meta/
 chroma_db/
-venv/
-__pycache__/
+
+# Local databases & user data files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+chat_history.db
+chat_history.db*
+otazky.csv
+poznamky.txt
+
+# Audio outputs (if saved in root or subdirectories)
+*.mp3
+*.wav
+*.m4a
+*.flac
+*.aac
+
+# ==============================================================================
+# PyInstaller & Build Outputs
+# ==============================================================================
+build/
+dist/
+*.manifest
+*.app/
+# Note: Keep medstudio.spec tracked, but ignore auto-generated PyInstaller spec files if any
+# !medstudio.spec
+
+# Packaging / Distribution
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ==============================================================================
+# Scratchpad, Local Tests & Temporary Files
+# ==============================================================================
+scratch/
+tmp/
+temp/
+*.tmp
+
+# ==============================================================================
+# Logs
+# ==============================================================================
+*.log
+logs/
+
+# ==============================================================================
+# Operating System Files
+# ==============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+
+# Linux
+*~
+
+# ==============================================================================
+# IDE & Code Editors
+# ==============================================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

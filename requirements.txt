@@ -9,5 +9,7 @@ httpx
 chromadb
 mutagen
 ffmpeg-python
-python-docx 
+python-docx
 python-pptx
+pywebview
+pyinstaller
