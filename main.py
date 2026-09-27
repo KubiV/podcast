@@ -1138,8 +1138,38 @@ async def query_rag_context_with_sources(question: str, project: str, n_results:
     return context_text, unique_sources, raw_context
 
 
+DEFAULT_PODCAST_PROMPT = """Jsi špičkový profesor vnitřního lékařství a zkušený zkoušející. Tvým úkolem je připravit medika 5. ročníku na náročnou ústní zkoušku z interny. Na základě přiložených studijních materiálů kompletně zpracuj zkouškovou otázku: [NÁZEV OTÁZKY].
+Napiš text jako vysoce koncentrovaný, plynulý audiosouhrn určený k HLASITÉMU POSLECHU. Zcela vynech klasickou "podcastovou omáčku" (absolutně žádné "Vítejte", "Dnes se podíváme na...", "Dobrý den" apod.). Text musí být vybalancovaný pro soustředěný poslech, ale maximálně nabitý fakty.
+Dodrž tyto striktní instrukce:
+1. MAXIMÁLNÍ DÉLKA textu je absolutně omezena na {MAX_CHARS} znaků. Zaměř se striktně na "high-yield" informace a klíčová slova, která musí u zkoušky zaznít.
+2. STRUKTURA VÝKLADU: Začni rovnou jedinou údernou větou, která zkoušejícímu okamžitě ukáže, že přesně víš, o čem mluvíš (tzv. otvírák). Následně do plynulého monologu postupně a logicky zakomponuj těchto 10 bodů v přesném pořadí:
+ Definice a dělení (také dle různých hledisek)
+ Epidemiologie
+ Etiologie a rizikové faktory
+ Patofyziologie
+ Klinický obraz
+ Diagnostika
+ Diferenciální diagnostika
+ Léčba
+ Komplikace
+ Prognóza a prevence
+3. PLYNULOST A ZVUKOVÉ ZÁLOŽKY: Vždy těsně předtím, než začneš mluvit o dalším bodu osnovy, velmi stručně a přirozeně zmíníš jeho název, aby se posluchač mohl rychle zorientovat (např. "K definici tohoto stavu...", "Pokud jde o epidemiologii...", "V rámci klinického obrazu dominují..."). Vyhni se ale robotickému číslování typu "Bod jedna, definice". Přechody musí znít plynule a přirozeně jako výklad na přednášce.
+4. RYTMUS A DÉLKA VĚT: Striktně omez délku jednotlivých vět, aby mozek stíhal informace ukládat. Pokud musíš vyjmenovat více než tři symptomy, rizikové faktory nebo léky, rozděl výčet do dvou či více na sebe navazujících vět. Udržíš tím přirozené tempo mluveného slova.
+5. ZKRATKY A AKRONYMY: Klinické akronymy a zkratky vždy plynule rozepiš do textu celým slovem (například místo "na EKG" napiš "na elektrokardiogramu", místo "IgG" napiš "imunoglobulin G"), aby je hlasový syntetizátor nepřečetl jako nesmyslný shluk hlásek.
+6. ODBORNOST: Mluv výhradně spisovnou, ale přirozenou češtinou. Odborné termíny nevysvětluj polopaticky – mluvíš k budoucímu lékaři. Uváděj je rovnou v přesných klinických souvislostech.
+7. ZÁKAZ FORMÁTOVÁNÍ: Nepoužívej ŽÁDNÉ odrážky, seznamy, závorky ani tabulky. Text musí být čistě lineární a syntakticky plynulý, aby ho šlo přečíst bez zadrhávání TTS syntetizátoru.
+8. ČISTÝ TEXT: Výsledek nesmí obsahovat žádné režijní poznámky (např. pauza, nadechnutí). Výstupem bude pouze čistý mluvený text připravený pro převod na hlas."""
+
 async def internal_generate_script(question: str, custom_prompt: str, provider: str, project: str, gemini_model: str):
-    final_prompt = enrich_prompt_for_tts(custom_prompt, provider)
+    prompt_to_use = custom_prompt if custom_prompt and custom_prompt.strip() else DEFAULT_PODCAST_PROMPT
+    if "[NÁZEV OTÁZKY]" in prompt_to_use:
+        prompt_to_use = prompt_to_use.replace("[NÁZEV OTÁZKY]", question)
+    if "{QUESTION}" in prompt_to_use:
+        prompt_to_use = prompt_to_use.replace("{QUESTION}", question)
+    if "{MAX_CHARS}" in prompt_to_use:
+        prompt_to_use = prompt_to_use.replace("{MAX_CHARS}", "8000")
+
+    final_prompt = enrich_prompt_for_tts(prompt_to_use, provider)
     context_text, unique_sources, raw_context = await query_rag_context_with_sources(question, project, n_results=30)
 
     ukazka_textu = raw_context[:150].replace('\n', ' ')
@@ -1156,66 +1186,31 @@ async def internal_generate_script(question: str, custom_prompt: str, provider: 
     )
     return script, raw_context
 
-DEFAULT_NOTES_PROMPT = r"""Jsi šéfredaktor postgraduální akademické učebnice vnitřního lékařství a přísný zkoušející u státních rigorózních a atestačních zkoušek z interny (úroveň Klener, Češka, Harrison's Principles of Internal Medicine).
-Tvým úkolem je na základě poskytnutých studijních materiálů vytvořit vyčerpávající, vysoce strukturovaný a maximálně fakticky nabitý studijní text k této zkouškové otázce: {QUESTION}.
+DEFAULT_NOTES_PROMPT = r"""Jsi špičkový profesor vnitřního lékařství a zkušený, náročný, ale spravedlivý zkoušející. Tvým úkolem je připravit medika 5. ročníku na ústní zkoušku z interny. Na základě nahraných studijních materiálů v tomto notebooku vytvoř komplexní, vysoce strukturovaný a fakticky nabitý studijní text k této zkouškové otázce: {QUESTION}.
 
-CÍL: Výstup musí dosahovat absolutní odborné hloubky a faktické spolehlivosti (standard Google NotebookLM a rigorózní atestační přípravy).
-
-ZÁVAZNÁ PRAVIDLA PRO ZPRACOVÁNÍ:
-
-1. EXHAUSTIVNÍ KLINICKÁ A LABORATORNÍ HLOUBKA:
-   - NIKDY nezjednodušuj, nezkracuj ani nepoužívej obecné fráze na úkor klinického, patofyziologického a farmakologického detailu.
-   - Vždy uváděj KONKRÉTNÍ diagnostická kritéria s přesnými mezními čísly a jednotkami:
-     * Spirometrie a BDT/BPT: obstrukce ($FEV_1/FVC < 0{,}70$ resp. pod LLN), Bronchodilatační test (BDT: nárůst $FEV_1 \ge 12\ \% \land \ge 200\text{ ml}$), Bronchoprovokační test (BPT: metacholin $PC_{20} \le 8\text{ mg/ml}$ s poklesem $FEV_1 \ge 20\ \%$), variabilita PEF ($> 10\ \%$ u dospělých).
-     * FeNO prahové hodnoty: $< 25\text{ ppb}$ (norma / eozinofilní zánět nepravděpodobný), $25–50\text{ ppb}$ (šedá zóna), $> 50\text{ ppb}$ (aktivní eozinofilní zánět, vysoká predikce odpovědi na IKS).
-     * Sputová cytologie a specifické markery: eozinofily $> 3\ \%$, Charcotovy-Leydenovy krystaly (krystalizovaná lyzofosfolipáza eozinofilů), Curschmannovy spirály (hlenové odlitky drobných bronchiolů), Creolova tělíska (deskvamovaný epitel), sérový/sputový ECP (eosinofilní kationtový protein).
-   - Detailní fenotypizace a endotypizace:
-     * T2-high (alergické, pozdní eozinofilní, aspirinem indukované/AERD – Samterova triáda: astma + nosní polypy + intolerance ASA/NSAID) vs T2-low (neutrofilní, kouřením či obezitou asociované, paucigranulocytární).
-
-2. DETAILNÍ LÉKOVÁ SCHÉMATA A FARMAKOTERAPIE:
-   - Uveď přesné stupně doporučených postupů (např. GINA 1–5):
-     * Striktně rozlišuj Track 1 (preferovaný režim: nízkodávkovaný IKS + formoterol jako úleva i udržovací léčba – MART) a Track 2 (alternativní režim: SABA dle potřeby + pravidelný IKS).
-     * Uveď konkrétní generika (budesonid/formoterol, beklometazon/formoterol, flutikason propionát), aplikační formy (DPI, pMDI se spacerem) a dávkování.
-     * Přídatná léčba: LAMA (tiotropium Respimat), LTRA (montelukast), p.o. kortikosteroidy (prednison $40–50\text{ mg}$ u těžké exacerbace).
-     * Biologická léčba u těžkého refrakterního onemocnění (stupeň 5): anti-IgE (omalizumab), anti-IL-5 (mepolizumab, reslizumab), anti-IL-5R (benralizumab), anti-IL-4R $\\alpha$ (dupilumab), anti-TSLP (tezepelumab) včetně indikačních biomarkerů (IgE, krevní eozinofily, FeNO).
-   - Zásadní kontraindikace a letální kombinace:
-     * ZÁKAZ monoterapie LABA bez IKS u astmatu (riziko maskování zánětu a náhlé smrti!).
-     * Kardioselektivní i neselektivní beta-blokátory u astmatu (kontraindikace).
-     * NSAID a ASA u pacientů s AERD.
-
-3. STRUKTURA PRO VÍCEDÍLNÉ OTÁZKY:
-   - Pokud otázka obsahuje více témat (např. část A: Astma, část B: Lymfomy), MUSÍŠ vytvořit pro KAŽDÉ onemocnění samostatnou plnohodnotnou část (`# ČÁST A: ...`, `# ČÁST B: ...`) a pro obě dodržet kompletní osnovu níže bez jakéhokoliv ošizení!
-
-4. DIFERENCIÁLNÍ DIAGNOSTIKA V TABULCE (GFM):
-   - Diferenciální diagnostiku MUSÍŠ zpracovat formou validní GitHub Flavored Markdown tabulky.
-   - Minimálně 5–8 jednotek (např. CHOPN, Asthma cardiale, PE, UACS, cizí těleso, a vzácnější jednotky: EGPA / Churg-Strauss syndrom, ABPA, dysfunkce hlasivkových vazů / VCD).
-   - Tabulka MUSÍ mít před sebou i za sebou prázdný řádek a řádky tabulky MUSÍ následovat bezprostředně za sebou (každý řádek začíná a končí `|` s jedním `\n`, NIKDY nevkládej prázdné řádky mezi řádky tabulky). Nikdy neslévej řádky tabulky do jednoho odstavce!
-
-5. GRANULÁRNÍ CITACE PER-FACTUM:
-   - U každého konkrétního faktu, čísla, diagnostického prahu, léku a patofyziologického tvrzení uveď bezprostředně referenci na poskytnutý segment ve formátu `[X, s. Y]` (kde X je ID zdroje a Y je číslo strany uvedené v záhlaví úryvku) nebo `[X]` (pokud strana není v záhlaví uvedena).
-   - PŘÍSNÝ ZÁKAZ souhrnného citování na konci odstavce či kapitoly. Cituj granulárně přímo u každého jednotlivého faktu!
-
-6. FORMÁTOVÁNÍ MATEMATIKY A CHEMIE (LATEX):
-   - Používej standardní KaTeX syntaxi: `$výraz$` pro inline (např. `$FEV_1/FVC < 0{,}70$`, `$\\ge 12\\ \\%$`, `$400\\,\\mu\\text{g}$`) a `$$výraz$$` pro blokové výrazy.
-
-7. POVINNÁ STRUKTURA VÝKLADU (pro každé onemocnění):
-## Otvírák: (Jedna suverénní, komplexní definující věta pro zahájení zkoušky, která demonstruje hluboký přehled.)
-## Definice a mezinárodní konsenzus:
-## Epidemiologie a demografie:
-## Etiologie a rizikové faktory: (Exogenní alergeny, infekce, léky, profesní vlivy)
-## Patofyziologie a buněčné mechanismy: (Imunitní kaskáda, cytokiny, časná a pozdní fáze, remodelace stěny)
-## Fenotypy a endotypy: (T2-high vs T2-low, klinické podtypy)
-## Klinický obraz a fyzikální nález: (Triáda, cirkadiánní rytmus, poslechový a poklepový nález)
-## Diagnostika: (Spirometrie, BDT, BPT, FeNO, PEF monitoring, laboratorní markery a cytologie sputa, zobrazovací metody)
-## Diferenciální diagnostika: (Striktně ve formátu přehledné GFM tabulky s odlišujícími rysy)
-## Léčba: (Stupňovité schéma např. GINA 1–5, Track 1 MART vs Track 2 SABA, farmaka, biologická léčba, terapie akutní exacerbace)
-## Komplikace a život ohrožující stavy: (Status asthmaticus, remodelace, cor pulmonale)
-## Prognóza, dispenzarizace a prevence:
-## Chytáky zkoušejících a "Red Flags": (Tichý hrudník, letální chyby v medikaci, záludné dotazy)
-## Použité zdroje: (Očíslovaný seznam citovaných souborů s rozsahem stran)
-
-8. ČISTÝ VÝSTUP:
-   - Začni přímo nadpisem první úrovně `# {QUESTION}` a pokračuj strukturovaným textem. Žádné úvodní ani závěrečné zdvořilostní řeči."""
+Dodrž tyto striktní instrukce:
+1. CÍLOVKA A ÚROVEŇ ODBORNOSTI: Text je určen pro medika před zkouškou. Vynech základní omáčku a polopatické vysvětlování (žádné opakování bazální anatomie). Zaměř se striktně na "high-yield" informace, klasifikace, diagnostická kritéria, algoritmy léčby a klinická "buzzwords", která musí u zkoušky zaznít.
+2. ABSOLUTNÍ ZÁKAZ "WALL OF TEXT": Mozek se učí vizuálně. Vyhni se dlouhým souvislým odstavcům. Text musí být scannovatelný. Piš heslovitě, maximálně využívej odrážky (bullet points) a u klasifikací nebo diferenciální diagnostiky neváhej použít Markdown tabulku, pokud to zvýší přehlednost.
+3. ZVÝRAZNĚNÍ: Pomocí tučného písma systematicky zvýrazňuj klíčové pojmy, názvy syndromů, specifická diagnostická kritéria a hlavní skupiny léků.
+4. ZKRATKY: Na rozdíl od audio-přehledů zde běžné klinické zkratky (EKG, CT, MR, JIP, ACEi, NYHA, CHSK atd.) NERozepisuj. Text musí být úderný a odpovídat běžnému lékařskému zápisu.
+5. VÍCEJAZYČNOST A TERMINOLOGIE: Nahrané materiály mohou být v různých jazycích (např. anglické mezinárodní guidelines, české učebnice a skripta). Informace přirozeně integruj a sjednoť do přesné a standardní české lékařské terminologie.
+6. ZDROJOVÁNÍ V HORNÍM INDEXU: Využij poskytnuté očíslované úryvky zdrojů označené jako [1], [2] atd. U každého klíčového faktu, kritéria či doporučení uveď referenci na daný zdroj formou horního indexu <sup>[1]</sup> nebo [1].
+7. STRUKTURA VÝKLADU: Text musí striktně dodržet následující osnovu. Každý bod bude tvořit samostatnou sekci s nadpisem (použij H2 formátování - ##):
+## Otvírák: (Jedna geniální, úderná věta, kterou student zkoušku začne, aby ukázal absolutní přehled.)
+## Definice: (Krátká, úderná, přesná.)
+## Dělení (základní a také dle různých hledisek)
+## Epidemiologie: (Jen klíčová data – věk, pohlaví, incidence.)
+## Etiologie a rizikové faktory:
+## Patofyziologie: (Stručný a logický mechanismus.)
+## Klinický obraz: (Typické příznaky, dělení, manifestace.)
+## Diagnostika: (Laboratoř, zobrazovací metody, zlatý standard, diagnostická kritéria.)
+## Diferenciální diagnostika: (Nejdůležitější jednotky a stručný klíč, jak je odlišit.)
+## Léčba: (Konzervativní, farmakologická s konkrétními zástupci, intervenční/chirurgická.)
+## Komplikace: (Akutní a chronické.)
+## Prognóza a prevence:
+## Chytáky a "Red Flags": (1-3 typické záludnosti, oblíbené dotazy zkoušejících nebo chyby, na kterých se vyhazuje.)
+## Použité zdroje: (Očíslovaný seznam citovaných podkladů s přesnými názvy souborů)
+8. ČISTÝ VÝSTUP: Vynech jakékoliv AI fráze typu "Zde je váš text", "Doufám, že to pomáže". Začni rovnou nadpisem první úrovně (# {QUESTION}) a skonči sekcí Použité zdroje. Vycházej primárně a pouze z nahraných zdrojů."""
 
 async def internal_generate_notes(question: str, project: str, custom_prompt: str = "", gemini_model: str = "gemini-3.6-flash"):
     context_text, unique_sources, raw_context = await query_rag_context_with_sources(question, project, n_results=40)
@@ -1232,10 +1227,11 @@ async def internal_generate_notes(question: str, project: str, custom_prompt: st
         f"{context_text}\n"
         f"===============================================================================\n\n"
         f"INSTRUKCE PRO GENEROVÁNÍ:\n"
-        f"- Vypracuj vyčerpávající a fakticky hluboký studijní text dle zadané osnovy.\n"
-        f"- Uveď přesná mezní diagnostická čísla, fenotypizaci, cytologii sputa (krystaly, spirály), schémata GINA 1-5 a kontraindikace.\n"
-        f"- Diferenciální diagnostiku zpracuj jako validní kompaktní GFM Markdown tabulku (každý řádek na novém řádku, bez prázdných řádků mezi řádky tabulky).\n"
-        f"- U každého jednotlivého faktu uveď granulární citaci [X, s. Y] ze záhlaví úryvků."
+        f"- Vypracuj vyčerpávající, přehledný a fakticky nabitý studijní text pro medika 5. ročníku před zkouškou z interny.\n"
+        f"- Dodrž striktní strukturu H2 nadpisů dle osnovy v systémovém promptu.\n"
+        f"- Piš heslovitě s odrážkami, zvýrazňuj tučným písmem klíčové pojmy a léky, klinické zkratky nerozepisuj.\n"
+        f"- U diferenciální diagnostiky nebo klasifikací použij přehlednou Markdown tabulku.\n"
+        f"- U každého klíčového faktu uveď citaci zdroje formou horního indexu <sup>[1]</sup> nebo [1]."
     )
 
     await send_log(f"📝 Odesílám zadání pro vygenerování studijního textu do {gemini_model} (max 16k tokenů, hloubková syntéza)...")

@@ -1682,6 +1682,7 @@
                     <textarea id="systemPromptInput" class="w-full p-3 bg-black border border-slate-700 rounded text-xs text-slate-300 leading-relaxed focus:outline-none focus:border-slate-500 resize-y min-h-[120px] shadow-inner font-mono"></textarea>
                     
                     <div class="flex justify-end mt-3 gap-2">
+                        <button onclick="resetPodcastPrompt()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1.5 rounded text-xs font-medium transition shadow" title="Obnovit výchozí znění promptu">🔄 Obnovit výchozí</button>
                         <button onclick="savePrompt()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-medium transition shadow">💾 Uložit do šablony</button>
                         <button onclick="addPrompt()" class="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium transition shadow">➕ Nová šablona</button>
                     </div>
@@ -1862,13 +1863,34 @@
                         </div>
 
                         <!-- Šablona promptu (rozbalovací) -->
-                        <details class="bg-slate-900/80 border border-slate-700 rounded-lg p-3 group">
+                        <details class="bg-slate-900/80 border border-slate-700 rounded-lg p-3 group" id="notesPromptDetails">
                             <summary class="text-xs text-sky-400 font-semibold cursor-pointer select-none flex items-center justify-between">
-                                <span>🛠️ Zobrazit / Upravit prompt</span>
+                                <div class="flex items-center gap-2">
+                                    <span>🛠️ Zobrazit / Upravit prompt</span>
+                                    <span id="notesCustomPromptBadge" class="hidden text-[9px] bg-sky-950 text-sky-300 border border-sky-800/80 px-1.5 py-0.5 rounded font-medium">Uložený vlastní</span>
+                                </div>
                                 <span class="group-open:rotate-180 transition-transform">▼</span>
                             </summary>
-                            <textarea id="notesPromptInput" class="w-full h-44 mt-2 p-2.5 bg-black border border-slate-800 rounded text-[11px] text-slate-300 font-mono resize-y leading-relaxed focus:outline-none"></textarea>
-                            <button onclick="resetNotesPromptToDefault()" class="mt-2 text-[10px] text-slate-400 hover:text-white underline">Obnovit výchozí medicínský prompt</button>
+                            <textarea id="notesPromptInput" oninput="onNotesPromptInputChanged()" class="w-full h-44 mt-2 p-2.5 bg-black border border-slate-800 rounded text-[11px] text-slate-300 font-mono resize-y leading-relaxed focus:outline-none"></textarea>
+                            <div class="flex items-center justify-between mt-2.5 gap-2 flex-wrap">
+                                <div class="flex items-center gap-2">
+                                    <button type="button" id="btnSaveNotesPrompt" onclick="saveNotesPrompt()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-3 py-1.5 rounded-lg text-xs transition shadow flex items-center gap-1.5" title="Uloží upravený prompt do paměti prohlížeče pro budoucí použití">
+                                        <span>💾</span>
+                                        <span>Uložit upravený prompt</span>
+                                    </button>
+                                    <span id="notesPromptSavedFeedback" class="text-[11px] text-emerald-400 font-medium transition-opacity duration-300 opacity-0 pointer-events-none flex items-center gap-1">
+                                        <span>✓</span> Uloženo
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2.5">
+                                    <button type="button" id="btnRevertSavedNotesPrompt" onclick="revertToSavedNotesPrompt()" class="hidden text-[10px] text-amber-300 hover:text-amber-200 underline transition" title="Vrátí naposledy uložený vlastní prompt">
+                                        Vrátit uložený prompt
+                                    </button>
+                                    <button type="button" onclick="resetNotesPromptToDefault()" class="text-[10px] text-slate-400 hover:text-white underline transition" title="Obnovit výchozí medicínský prompt ze šablony">
+                                        Obnovit výchozí medicínský prompt
+                                    </button>
+                                </div>
+                            </div>
                         </details>
 
                         <!-- Tlačítko pro vygenerování: Režim Jedna otázka -->
@@ -4417,7 +4439,7 @@ STRIKTNÍ PRAVIDLA PRO KARTIČKY:
         const defaultPodcastPrompts = [
             {
                 name: "Strukturovaný podcast (nový)",
-                text: "Jsi špičkový profesor vnitřního lékařství a zkušený zkoušející. Tvým úkolem je připravit medika 5. ročníku na náročnou ústní zkoušku z interny. Na základě přiložených studijních materiálů kompletně zpracuj zkouškovou otázku: [NÁZEV OTÁZKY].\nNapiš text jako vysoce koncentrovaný, plynulý audiosouhrn určený k HLASITÉMU POSLECHU. Zcela vynech klasickou \"podcastovou omáčku\" (absolutně žádné \"Vítejte\", \"Dnes se podíváme na...\", \"Dobrý den\" apod.). Text musí být vybalancovaný pro soustředěný poslech, ale maximálně nabitý fakty.\nDodrž tyto striktní instrukce:\n1. MAXIMÁLNÍ DÉLKA textu je absolutně omezena na {MAX_CHARS} znaků. Zaměř se striktně na \"high-yield\" informace a klíčová slova, která musí u zkoušky zaznít.\n2. STRUKTURA VÝKLADU: Začni rovnou jedinou údernou větou, která zkoušejícímu okamžitě ukáže, že přesně víš, o čem mluvíš (tzv. otvírák). Následně do plynulého monologu postupně a logicky zakomponuj těchto 10 bodů v přesném pořadí:\n Definice\n Epidemiologie\n Etiologie a rizikové faktory\n Patofyziologie\n Klinický obraz\n Diagnostika\n Diferenciální diagnostika\n Léčba\n Komplikace\n Prognóza a prevence\n3. PLYNULOST A ZVUKOVÉ ZÁLOŽKY: Vždy těsně předtím, než začneš mluvit o dalším bodu osnovy, velmi stručně a přirozeně zmíníš jeho název, aby se posluchač mohl rychle zorientovat (např. \"K definici tohoto stavu...\", \"Pokud jde o epidemiologii...\", \"V rámci klinického obrazu dominují...\"). Vyhni se ale robotickému číslování typu \"Bod jedna, definice\". Přechody musí znít plynule a přirozeně jako výklad na přednášce.\n4. RYTMUS A DÉLKA VĚT: Striktně omez délku jednotlivých vět, aby mozek stíhal informace ukládat. Pokud musíš vyjmenovat více než tři symptomy, rizikové faktory nebo léky, rozděl výčet do dvou či více na sebe navazujících vět. Udržíš tím přirozené tempo mluveného slova.\n5. ZKRATKY A AKRONYMY: Klinické akronymy a zkratky vždy plynule rozepiš do textu celým slovem (například místo \"na EKG\" napiš \"na elektrokardiogramu\", místo \"IgG\" napiš \"imunoglobulin G\"), aby je hlasový syntetizátor nepřečetl jako nesmyslný shluk hlásek.\n6. ODBORNOST: Mluv výhradně spisovnou, ale přirozenou češtinou. Odborné termíny nevysvětluj polopaticky – mluvíš k budoucímu lékaři. Uváděj je rovnou v přesných klinických souvislostech.\n7. ZÁKAZ FORMÁTOVÁNÍ: Nepoužívej ŽÁDNÉ odrážky, seznamy, závorky ani tabulky. Text musí být čistě lineární a syntakticky plynulý, aby ho šlo přečíst bez zadrhávání TTS syntetizátoru.\n8. ČISTÝ TEXT: Výsledek nesmí obsahovat žádné režijní poznámky (např. pauza, nadechnutí). Výstupem bude pouze čistý mluvený text připravený pro převod na hlas."
+                text: "Jsi špičkový profesor vnitřního lékařství a zkušený zkoušející. Tvým úkolem je připravit medika 5. ročníku na náročnou ústní zkoušku z interny. Na základě přiložených studijních materiálů kompletně zpracuj zkouškovou otázku: [NÁZEV OTÁZKY].\nNapiš text jako vysoce koncentrovaný, plynulý audiosouhrn určený k HLASITÉMU POSLECHU. Zcela vynech klasickou \"podcastovou omáčku\" (absolutně žádné \"Vítejte\", \"Dnes se podíváme na...\", \"Dobrý den\" apod.). Text musí být vybalancovaný pro soustředěný poslech, ale maximálně nabitý fakty.\nDodrž tyto striktní instrukce:\n1. MAXIMÁLNÍ DÉLKA textu je absolutně omezena na {MAX_CHARS} znaků. Zaměř se striktně na \"high-yield\" informace a klíčová slova, která musí u zkoušky zaznít.\n2. STRUKTURA VÝKLADU: Začni rovnou jedinou údernou větou, která zkoušejícímu okamžitě ukáže, že přesně víš, o čem mluvíš (tzv. otvírák). Následně do plynulého monologu postupně a logicky zakomponuj těchto 10 bodů v přesném pořadí:\n Definice a dělení (také dle různých hledisek)\n Epidemiologie\n Etiologie a rizikové faktory\n Patofyziologie\n Klinický obraz\n Diagnostika\n Diferenciální diagnostika\n Léčba\n Komplikace\n Prognóza a prevence\n3. PLYNULOST A ZVUKOVÉ ZÁLOŽKY: Vždy těsně předtím, než začneš mluvit o dalším bodu osnovy, velmi stručně a přirozeně zmíníš jeho název, aby se posluchač mohl rychle zorientovat (např. \"K definici tohoto stavu...\", \"Pokud jde o epidemiologii...\", \"V rámci klinického obrazu dominují...\"). Vyhni se ale robotickému číslování typu \"Bod jedna, definice\". Přechody musí znít plynule a přirozeně jako výklad na přednášce.\n4. RYTMUS A DÉLKA VĚT: Striktně omez délku jednotlivých vět, aby mozek stíhal informace ukládat. Pokud musíš vyjmenovat více než tři symptomy, rizikové faktory nebo léky, rozděl výčet do dvou či více na sebe navazujících vět. Udržíš tím přirozené tempo mluveného slova.\n5. ZKRATKY A AKRONYMY: Klinické akronymy a zkratky vždy plynule rozepiš do textu celým slovem (například místo \"na EKG\" napiš \"na elektrokardiogramu\", místo \"IgG\" napiš \"imunoglobulin G\"), aby je hlasový syntetizátor nepřečetl jako nesmyslný shluk hlásek.\n6. ODBORNOST: Mluv výhradně spisovnou, ale přirozenou češtinou. Odborné termíny nevysvětluj polopaticky – mluvíš k budoucímu lékaři. Uváděj je rovnou v přesných klinických souvislostech.\n7. ZÁKAZ FORMÁTOVÁNÍ: Nepoužívej ŽÁDNÉ odrážky, seznamy, závorky ani tabulky. Text musí být čistě lineární a syntakticky plynulý, aby ho šlo přečíst bez zadrhávání TTS syntetizátoru.\n8. ČISTÝ TEXT: Výsledek nesmí obsahovat žádné režijní poznámky (např. pauza, nadechnutí). Výstupem bude pouze čistý mluvený text připravený pro převod na hlas."
             }
         ];
 
@@ -7375,28 +7397,7 @@ STRIKTNÍ PRAVIDLA PRO KARTIČKY:
             const cleanTitle = questionTitle.trim();
 
             // 1. Automaticky sestav strukturovaný systémový prompt se zněním otázky
-            const promptTemplate = `Jsi špičkový profesor vnitřního lékařství a zkušený, náročný, ale spravedlivý zkoušející. Tvým úkolem je připravit medika 5. ročníku na ústní zkoušku z interny. Na základě nahraných studijních materiálů v tomto notebooku/projektu vytvoř komplexní, vysoce strukturovaný a fakticky nabitý studijní text k této zkouškové otázce: {{questionTitle}}.
-Dodrž tyto striktní instrukce:
-1. CÍLOVKA A ÚROVEŇ ODBORNOSTI: Text je určen pro medika před zkouškou. Vynech základní omáčku a polopatické vysvětlování (žádné opakování bazální anatomie). Zaměř se striktně na 'high-yield' informace, klasifikace, diagnostická kritéria, algoritmy léčby a klinická 'buzzwords', která musí u zkoušky zaznít.
-2. ABSOLUTNÍ ZÁKAZ 'WALL OF TEXT': Vyhni se dlouhým souvislým odstavcům. Piš heslovitě, maximálně využívej odrážky (bullet points) a u klasifikací nebo diferenciální diagnostiky použij Markdown tabulku.
-3. ZVÝRAZNĚNÍ: Tučným písmem systematicky zvýrazňuj klíčové pojmy, názvy syndromů, diagnostická kritéria a skupiny léků.
-4. ZKRATKY: Běžné klinické zkratky (EKG, CT, MR, JIP, ACEi, NYHA atd.) nerozepisuj.
-5. STRUKTURA VÝKLADU (striktní H2 nadpisy):
-   - Otvírák: (Jedna geniální, úderná věta na úvod.)
-   - Definice:
-   - Epidemiologie:
-   - Etiologie a rizikové faktory:
-   - Patofyziologie:
-   - Klinický obraz:
-   - Diagnostika:
-   - Diferenciální diagnostika:
-   - Léčba:
-   - Komplikace:
-   - Prognóza a prevence:
-   - Chytáky a 'Red Flags': (1-3 typické záludnosti a chyby, na kterých se vyhazuje.)
-6. ČISTÝ VÝSTUP: Začni rovnou nadpisem (# Název otázky) a skonči bodem Chytáky a Red Flags. Vycházej primárně z nahraných zdrojů projektu.`;
-
-            const finalPrompt = promptTemplate.replace("{{questionTitle}}", cleanTitle);
+            const finalPrompt = DEFAULT_NOTES_PROMPT.replace(/{QUESTION}/g, cleanTitle);
 
             // 2. Přepnout uživatele do záložky „Poznámky z materiálů“
             switchTab('notes');
@@ -7415,6 +7416,7 @@ Dodrž tyto striktní instrukce:
                 // Rozbalit detaily promptu pro přehled uživatele
                 const details = promptInput.closest("details");
                 if (details) details.open = true;
+                updateNotesPromptStatusBadge();
             }
 
             appendConsoleLog(`💡 Spouštím generování expertního vysvětlení pro: "${cleanTitle.substring(0, 45)}..."`);
@@ -7969,16 +7971,122 @@ Dodrž tyto striktní instrukce:
             }
         }
 
-        function initNotesAndCardsPrompts() {
+        function updateNotesPromptStatusBadge() {
+            const badge = document.getElementById("notesCustomPromptBadge");
             const npInput = document.getElementById("notesPromptInput");
-            if (npInput) npInput.value = DEFAULT_NOTES_PROMPT;
+            const btnRevert = document.getElementById("btnRevertSavedNotesPrompt");
+            if (!badge || !npInput) return;
 
-            const cpInput = document.getElementById("cardsPromptInput");
-            if (cpInput) cpInput.value = DEFAULT_CARDS_PROMPT;
+            const saved = localStorage.getItem("aiNotesPrompt");
+            const current = npInput.value;
+
+            if (saved !== null) {
+                if (current !== saved) {
+                    badge.classList.remove("hidden");
+                    badge.textContent = "Neuložené změny";
+                    badge.className = "text-[9px] bg-amber-950/80 text-amber-300 border border-amber-800/80 px-1.5 py-0.5 rounded font-medium";
+                    if (btnRevert) btnRevert.classList.remove("hidden");
+                } else {
+                    badge.classList.remove("hidden");
+                    badge.textContent = "Uložený vlastní";
+                    badge.className = "text-[9px] bg-sky-950 text-sky-300 border border-sky-800/80 px-1.5 py-0.5 rounded font-medium";
+                    if (btnRevert) btnRevert.classList.add("hidden");
+                }
+            } else {
+                if (current !== DEFAULT_NOTES_PROMPT) {
+                    badge.classList.remove("hidden");
+                    badge.textContent = "Neuložené změny";
+                    badge.className = "text-[9px] bg-amber-950/80 text-amber-300 border border-amber-800/80 px-1.5 py-0.5 rounded font-medium";
+                    if (btnRevert) btnRevert.classList.add("hidden");
+                } else {
+                    badge.classList.add("hidden");
+                    if (btnRevert) btnRevert.classList.add("hidden");
+                }
+            }
+        }
+
+        function onNotesPromptInputChanged() {
+            updateNotesPromptStatusBadge();
+        }
+
+        let notesFeedbackTimeout = null;
+        function showNotesPromptFeedback(text, isSuccess = true) {
+            const feedback = document.getElementById("notesPromptSavedFeedback");
+            const btn = document.getElementById("btnSaveNotesPrompt");
+            if (!feedback) return;
+            feedback.innerHTML = isSuccess ? `<span>✓</span> ${text}` : `<span>ℹ️</span> ${text}`;
+            feedback.className = `text-[11px] ${isSuccess ? 'text-emerald-400' : 'text-sky-300'} font-medium transition-opacity duration-300 opacity-100 flex items-center gap-1`;
+
+            if (btn && isSuccess) {
+                btn.classList.add("bg-emerald-600", "hover:bg-emerald-500");
+                btn.classList.remove("bg-sky-600", "hover:bg-sky-500");
+                setTimeout(() => {
+                    btn.classList.remove("bg-emerald-600", "hover:bg-emerald-500");
+                    btn.classList.add("bg-sky-600", "hover:bg-sky-500");
+                }, 1500);
+            }
+
+            if (notesFeedbackTimeout) clearTimeout(notesFeedbackTimeout);
+            notesFeedbackTimeout = setTimeout(() => {
+                feedback.classList.remove("opacity-100");
+                feedback.classList.add("opacity-0");
+            }, 3000);
+        }
+
+        function saveNotesPrompt() {
+            const npInput = document.getElementById("notesPromptInput");
+            if (!npInput) return;
+            const val = npInput.value.trim();
+            if (!val) {
+                alert("Prompt nesmí být prázdný.");
+                return;
+            }
+            localStorage.setItem("aiNotesPrompt", npInput.value);
+            updateNotesPromptStatusBadge();
+            showNotesPromptFeedback("Prompt úspěšně uložen!", true);
+            appendConsoleLog("💾 Upravený prompt pro studijní texty byl úspěšně uložen do paměti prohlížeče.");
+        }
+
+        function revertToSavedNotesPrompt() {
+            const saved = localStorage.getItem("aiNotesPrompt");
+            const npInput = document.getElementById("notesPromptInput");
+            if (saved !== null && npInput) {
+                npInput.value = saved;
+                updateNotesPromptStatusBadge();
+                showNotesPromptFeedback("Vrácen uložený prompt", false);
+            }
         }
 
         function resetNotesPromptToDefault() {
-            document.getElementById("notesPromptInput").value = DEFAULT_NOTES_PROMPT;
+            const hasSaved = localStorage.getItem("aiNotesPrompt") !== null;
+            if (hasSaved) {
+                if (!confirm("Opravdu si přejete smazat uložený vlastní prompt a vrátit původní výchozí medicínský prompt?")) {
+                    return;
+                }
+                localStorage.removeItem("aiNotesPrompt");
+            }
+            const npInput = document.getElementById("notesPromptInput");
+            if (npInput) npInput.value = DEFAULT_NOTES_PROMPT;
+            updateNotesPromptStatusBadge();
+            showNotesPromptFeedback("Výchozí prompt obnoven", false);
+            appendConsoleLog("🔄 Výchozí medicínský prompt pro studijní texty byl obnoven.");
+        }
+
+        function initNotesAndCardsPrompts() {
+            const npInput = document.getElementById("notesPromptInput");
+            if (npInput) {
+                const savedNotesPrompt = localStorage.getItem("aiNotesPrompt");
+                if (savedNotesPrompt !== null && savedNotesPrompt.trim()) {
+                    npInput.value = savedNotesPrompt;
+                } else {
+                    npInput.value = DEFAULT_NOTES_PROMPT;
+                }
+            }
+
+            const cpInput = document.getElementById("cardsPromptInput");
+            if (cpInput) cpInput.value = DEFAULT_CARDS_PROMPT;
+
+            updateNotesPromptStatusBadge();
         }
 
         function onNotesQuestionSelectChange() {
@@ -12630,9 +12738,31 @@ Dodrž tyto striktní instrukce:
 
         function initPrompts() {
             const stored = localStorage.getItem("aiPodcastPrompts");
-            if (stored) savedPrompts = JSON.parse(stored);
-            else savedPrompts = [...defaultPodcastPrompts];
+            if (stored) {
+                try {
+                    savedPrompts = JSON.parse(stored);
+                    const defIdx = savedPrompts.findIndex(p => p.name === "Strukturovaný podcast (nový)");
+                    if (defIdx !== -1) {
+                        savedPrompts[defIdx].text = defaultPodcastPrompts[0].text;
+                    }
+                } catch(e) {
+                    savedPrompts = [...defaultPodcastPrompts];
+                }
+            } else {
+                savedPrompts = [...defaultPodcastPrompts];
+            }
             renderPromptDropdown();
+        }
+
+        function resetPodcastPrompt() {
+            const select = document.getElementById("promptSelect");
+            const idx = select ? select.value : 0;
+            if (confirm("Opravdu chcete obnovit tuto šablonu promptu na výchozí hodnotu?")) {
+                savedPrompts[idx] = { ...defaultPodcastPrompts[0] };
+                localStorage.setItem("aiPodcastPrompts", JSON.stringify(savedPrompts));
+                loadSelectedPrompt();
+                appendConsoleLog("🔄 Výchozí prompt pro podcast byl obnoven.");
+            }
         }
 
         function renderPromptDropdown() {
