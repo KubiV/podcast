@@ -39,46 +39,55 @@ def find_available_port(preferred_port: int = 8000, max_attempts: int = 50) -> i
 def run_desktop_app():
     parser = argparse.ArgumentParser(description="AI MedStudio Desktop")
     parser.add_argument("--browser", action="store_true", help="Otevřít v systémovém webovém prohlížeči místo nativního okna")
-    parser.add_argument("--port", type=int, default=8000, help="Preferovaný port (výchozí: 8000)")
+    parser.add_argument("--port", type=int, default=8000, help="Preferovaný port pro lokální server (výchozí: 8000)")
+    parser.add_argument("--server", type=str, default=os.getenv("AIMEDSTUDIO_SERVER_URL", ""), help="URL vzdáleného serveru (např. http://nas.local:8000)")
     args, _ = parser.parse_known_args()
 
-    port = find_available_port(args.port)
-    url = f"http://127.0.0.1:{port}"
-    print(f"🩺 AI MedStudio startuje na: {url}")
+    remote_mode = bool(args.server.strip())
+    server = None
 
-    # Import až zde, aby se správně uplatnila cesty MEIPASS před načtením modulů
-    import uvicorn
-    from main import app
+    if remote_mode:
+        url = args.server.strip().rstrip("/")
+        print(f"🌐 AI MedStudio Desktop se připojuje ke vzdálenému serveru: {url}")
+    else:
+        port = find_available_port(args.port)
+        url = f"http://127.0.0.1:{port}"
+        print(f"🩺 AI MedStudio startuje lokálně na: {url}")
 
-    config = uvicorn.Config(
-        app,
-        host="127.0.0.1",
-        port=port,
-        log_level="warning",
-        access_log=False,
-    )
-    server = uvicorn.Server(config)
+        # Import až zde, aby se správně uplatnila cesty MEIPASS před načtením modulů
+        import uvicorn
+        from main import app
 
-    server_thread = threading.Thread(target=server.run, daemon=True)
-    server_thread.start()
+        config = uvicorn.Config(
+            app,
+            host="127.0.0.1",
+            port=port,
+            log_level="warning",
+            access_log=False,
+        )
+        server = uvicorn.Server(config)
 
-    # Čekání na inicializaci serveru v paměti
-    for _ in range(60):
-        if getattr(server, "started", False):
-            break
-        time.sleep(0.1)
+        server_thread = threading.Thread(target=server.run, daemon=True)
+        server_thread.start()
+
+        # Čekání na inicializaci serveru v paměti
+        for _ in range(60):
+            if getattr(server, "started", False):
+                break
+            time.sleep(0.1)
 
     # Režim prohlížeče
     if args.browser:
         print(f"Otevírám prohlížeč na: {url}")
         webbrowser.open(url)
         try:
-            while not server.should_exit:
+            while server and not server.should_exit:
                 time.sleep(0.5)
         except (KeyboardInterrupt, SystemExit):
             pass
         finally:
-            server.should_exit = True
+            if server:
+                server.should_exit = True
         return
 
     # Nativní okno pywebview s fallbackem na webový prohlížeč
@@ -100,12 +109,13 @@ def run_desktop_app():
         print(f"Nativní okno pywebview se nepodařilo otevřít ({e}). Otevírám webový prohlížeč...")
         webbrowser.open(url)
         try:
-            while not server.should_exit:
+            while server and not server.should_exit:
                 time.sleep(0.5)
         except (KeyboardInterrupt, SystemExit):
             pass
     finally:
-        server.should_exit = True
+        if server:
+            server.should_exit = True
         print("AI MedStudio ukončeno.")
 
 

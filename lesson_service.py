@@ -570,7 +570,7 @@ async def generate_lesson_package(
         send_log,
         AUDIO_DIR,
         NOTES_DIR,
-        UPLOAD_DIR,
+        LESSONS_DIR,
     )
 
     safe_proj = sanitize_project_name(project_id)
@@ -674,10 +674,10 @@ async def generate_lesson_package(
     if not study_text_markdown.strip():
         raise ValueError("Model nevrátil žádný studijní text.")
 
-    # Uložení Markdownu na disk do uploads/{safe_proj}/lesson_material.md i generated_notes
-    proj_upload_dir = os.path.join(UPLOAD_DIR, safe_proj)
-    os.makedirs(proj_upload_dir, exist_ok=True)
-    lesson_md_path = os.path.join(proj_upload_dir, "lesson_material.md")
+    # Uložení Markdownu na disk do lessons_data/{safe_proj}/lesson_material.md i generated_notes
+    lesson_dir = os.path.join(LESSONS_DIR, safe_proj)
+    os.makedirs(lesson_dir, exist_ok=True)
+    lesson_md_path = os.path.join(lesson_dir, "lesson_material.md")
     with open(lesson_md_path, "w", encoding="utf-8") as f:
         f.write(study_text_markdown)
 
@@ -734,7 +734,7 @@ async def generate_lesson_package(
         raise ValueError("Model nevrátil scénář přednášky.")
 
     # Uložíme i scénář na disk
-    script_path = os.path.join(proj_upload_dir, "lecture_script.txt")
+    script_path = os.path.join(lesson_dir, "lecture_script.txt")
     with open(script_path, "w", encoding="utf-8") as f:
         f.write(lecture_script)
 
@@ -786,7 +786,7 @@ async def generate_lesson_package(
         status="completed",
     )
 
-    # Uložení JSON metadat i do souboru v projektu pro zálohu
+    # Uložení JSON metadat i do souboru v lekci pro zálohu
     meta_payload = {
         "project_id": safe_proj,
         "title": lesson_title,
@@ -797,7 +797,7 @@ async def generate_lesson_package(
         "chapters": chapters,
         "sources": file_metas,
     }
-    with open(os.path.join(proj_upload_dir, "lesson_metadata.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(lesson_dir, "lesson_metadata.json"), "w", encoding="utf-8") as f:
         json.dump(meta_payload, f, ensure_ascii=False, indent=2)
 
     await report("complete", 100, "Výuková lekce byla úspěšně vygenerována a připravena k poslechu!")

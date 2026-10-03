@@ -14,9 +14,17 @@ from datetime import datetime
 from typing import Any, List, Optional, Tuple
 import webbrowser
 import html as html_lib
+import secrets
+import base64
+import zipfile
+import tempfile
+from starlette.background import BackgroundTask
+from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException, Body, UploadFile, File, Form, BackgroundTasks, Request
-from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
+from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse, Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from auth_service import AuthService
+
 from urllib.parse import quote
 import pdfplumber
 import chromadb
@@ -48,11 +56,14 @@ except ImportError:
 
 load_dotenv()
 
-app = FastAPI()
-
-# Detekce prostředí: Zabalená binárka (PyInstaller) vs Běžný vývoj (Python)
+# Detekce prostředí: Zabalená binárka (PyInstaller) vs Běžný vývoj / Docker (Python)
 IS_FROZEN = getattr(sys, "frozen", False)
-if IS_FROZEN:
+env_data_dir = os.environ.get("AIMEDSTUDIO_DATA_DIR")
+
+if env_data_dir:
+    USER_DATA_DIR = os.path.abspath(env_data_dir)
+    BUNDLE_DIR = sys._MEIPASS if IS_FROZEN else os.path.dirname(os.path.abspath(__file__))
+elif IS_FROZEN:
     BUNDLE_DIR = sys._MEIPASS
     exe_dir = os.path.dirname(sys.executable)
     portable_data_dir = os.path.join(exe_dir, "data")
@@ -66,6 +77,315 @@ else:
 
 os.environ["AIMEDSTUDIO_DATA_DIR"] = USER_DATA_DIR
 
+# Inicializace služby pro správu uživatelů a zabezpečení
+auth_service = AuthService(USER_DATA_DIR)
+
+# Volitelná ochrana heslem pro serverový / Docker režim (zpětná kompatibilita)
+APP_PASSWORD = os.getenv("APP_PASSWORD", "").strip()
+
+app = FastAPI()
+
+# Pydantic modely pro autentizaci
+class SetupRequest(BaseModel):
+    username: str
+    password: str
+    email: Optional[str] = None
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+    remember_me: bool = True
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    email: Optional[str] = None
+
+class RegistrationToggleRequest(BaseModel):
+    allow_registration: bool
+
+class GuestToggleRequest(BaseModel):
+    allow_guest: bool
+
+class RoleChangeRequest(BaseModel):
+    role: str
+
+def set_auth_cookie(response: Response, token: str, remember_me: bool, request: Request):
+    is_https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
+    max_age = 30 * 24 * 3600 if remember_me else 24 * 3600
+    response.set_cookie(
+        key="medstudio_session",
+        value=token,
+        max_age=max_age,
+        httponly=True,
+        samesite="lax",
+        secure=is_https,
+        path="/"
+    )
+
+def clear_auth_cookie(response: Response, request: Request):
+    is_https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
+    response.delete_cookie(
+        key="medstudio_session",
+        httponly=True,
+        samesite="lax",
+        secure=is_https,
+        path="/"
+    )
+
+def require_admin(request: Request) -> dict:
+    user = getattr(request.state, "user", None)
+    if not user:
+        raise HTTPException(status_code=401, detail="Přístup vyžaduje přihlášení.")
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Tato akce vyžaduje administrátorská oprávnění.")
+    return user
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    path = request.url.path
+
+    # Veřejně přístupné cesty:
+    # - /health (Docker / Cloudflare healthcheck)
+    # - /manifest.json, /icon.svg, /favicon.ico (PWA manifest a ikony)
+    # - / a /index.html (hlavní SPA frontend s integrovaným dialogem přihlášení a prvotního nastavení)
+    # - /api/auth/* (veřejné auth endpointy pro zjištění stavu, přihlášení a registraci)
+    if (
+        path in ("/health", "/manifest.json", "/icon.svg", "/favicon.ico", "/", "/index.html")
+        or path.startswith("/api/auth/status")
+        or path.startswith("/api/auth/setup")
+        or path.startswith("/api/auth/login")
+        or path.startswith("/api/auth/register")
+        or path.startswith("/api/auth/logout")
+    ):
+        # I pro veřejné cesty zkusíme extrahovat přihlášeného uživatele, pokud existuje relace
+        token = request.cookies.get("medstudio_session")
+        if not token:
+            auth_h = request.headers.get("Authorization")
+            if auth_h and auth_h.startswith("Bearer "):
+                token = auth_h.split(" ", 1)[1].strip()
+        user = auth_service.validate_session(token) if token else None
+
+        # Pokud není přihlášen a je povolen režim hosta, přiřadit virtuální roli hosta
+        if not user and auth_service.is_guest_allowed():
+            user = {
+                "id": -1,
+                "username": "host",
+                "email": None,
+                "role": "viewer",
+                "status": "approved",
+                "is_guest": True
+            }
+
+        request.state.user = user
+        return await call_next(request)
+
+    # Pro všechny ostatní endpointy (API, chráněné soubory, audio, materiály):
+    token = request.cookies.get("medstudio_session")
+    if not token:
+        auth_h = request.headers.get("Authorization")
+        if auth_h and auth_h.startswith("Bearer "):
+            token = auth_h.split(" ", 1)[1].strip()
+
+    user = auth_service.validate_session(token) if token else None
+
+    # Zpětná kompatibilita pro Basic Auth APP_PASSWORD
+    if not user and APP_PASSWORD:
+        auth_h = request.headers.get("Authorization")
+        if auth_h and auth_h.startswith("Basic "):
+            try:
+                encoded = auth_h.split(" ", 1)[1]
+                decoded = base64.b64decode(encoded).decode("utf-8")
+                if ":" in decoded:
+                    _, pwd = decoded.split(":", 1)
+                    if secrets.compare_digest(pwd, APP_PASSWORD):
+                        user = {"id": 0, "username": "legacy_admin", "role": "admin", "status": "approved"}
+            except Exception:
+                pass
+
+    # Pokud uživatel není přihlášen, zkontrolovat, zda je zapnutý režim nepřihlášeného hosta (pozorovatel)
+    if not user and auth_service.is_guest_allowed():
+        user = {
+            "id": -1,
+            "username": "host",
+            "email": None,
+            "role": "viewer",
+            "status": "approved",
+            "is_guest": True
+        }
+
+    if not user:
+        if auth_service.needs_setup():
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Systém vyžaduje prvotní nastavení administrátora.", "needs_setup": True}
+            )
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Přístup vyžaduje přihlášení.", "authenticated": False}
+        )
+
+    # OMEZENÍ PRO ROLI 'VIEWER' (POZOROVATEL / HOST):
+    # Pozorovatel smí pouze procházet hotové věci (metody GET, HEAD, OPTIONS).
+    # Veškeré generování, nahrávání souborů a mazání jsou blokovány s kódem 403 Forbidden.
+    if user.get("role") == "viewer":
+        if request.method in ("POST", "PUT", "DELETE", "PATCH"):
+            # Povolené výjimky pro read-only posty (příprava tisku, auth akce, lokální vyhodnocení odpovědí)
+            is_allowed = (
+                path.startswith("/api/auth/")
+                or path in ("/api/print/prepare", "/api/tests/evaluate-open-answer")
+            )
+            if not is_allowed:
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "detail": "Režim pozorovatele: Nemáte oprávnění generovat nový obsah, nahrávat ani mazat data. Můžete pouze procházet a studovat již vytvořené materiály.",
+                        "role": "viewer"
+                    }
+                )
+
+    request.state.user = user
+    return await call_next(request)
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "timestamp": datetime.now().isoformat()}
+
+# --- ENDPOINTY PRO AUTENTIZACI A SPRÁVU ÚČTŮ ---
+
+@app.get("/api/auth/status")
+async def get_auth_status(request: Request):
+    user = getattr(request.state, "user", None)
+    return {
+        "authenticated": user is not None and not user.get("is_guest", False),
+        "is_guest": bool(user and user.get("is_guest", False)),
+        "needs_setup": auth_service.needs_setup(),
+        "allow_registration": auth_service.is_registration_allowed(),
+        "allow_guest": auth_service.is_guest_allowed(),
+        "user": user
+    }
+
+
+@app.post("/api/auth/setup")
+async def setup_initial_admin(req: SetupRequest, request: Request, response: Response):
+    user, err = auth_service.create_initial_admin(req.username, req.password, req.email)
+    if err:
+        raise HTTPException(status_code=400, detail=err)
+
+    token, _ = auth_service.create_session(
+        user["id"],
+        remember_me=True,
+        user_agent=request.headers.get("user-agent", "")
+    )
+    set_auth_cookie(response, token, True, request)
+    return {"status": "ok", "user": user, "token": token}
+
+@app.post("/api/auth/login")
+async def login(req: LoginRequest, request: Request, response: Response):
+    user, msg = auth_service.authenticate(req.username, req.password)
+    if not user:
+        raise HTTPException(status_code=401, detail=msg)
+
+    token, _ = auth_service.create_session(
+        user["id"],
+        remember_me=req.remember_me,
+        user_agent=request.headers.get("user-agent", "")
+    )
+    set_auth_cookie(response, token, req.remember_me, request)
+    return {"status": "ok", "user": user, "token": token}
+
+@app.post("/api/auth/register")
+async def register(req: RegisterRequest):
+    user, err = auth_service.register_user(req.username, req.password, req.email)
+    if err:
+        raise HTTPException(status_code=400, detail=err)
+    return {
+        "status": "pending",
+        "message": "Vaše žádost o registraci byla úspěšně odeslána. Účet musí před prvním přihlášením schválit administrátor serveru."
+    }
+
+@app.post("/api/auth/logout")
+async def logout(request: Request, response: Response):
+    token = request.cookies.get("medstudio_session")
+    if not token:
+        auth_h = request.headers.get("Authorization")
+        if auth_h and auth_h.startswith("Bearer "):
+            token = auth_h.split(" ", 1)[1].strip()
+    if token:
+        auth_service.revoke_session(token)
+    clear_auth_cookie(response, request)
+    return {"status": "ok"}
+
+# --- ADMIN ENDPOINTY PRO SPRÁVU A SCHVALOVÁNÍ ÚČTŮ ---
+
+@app.get("/api/auth/admin/users")
+async def admin_get_users(request: Request):
+    require_admin(request)
+    return {
+        "users": auth_service.list_users(),
+        "summary": auth_service.get_auth_summary()
+    }
+
+@app.get("/api/auth/admin/pending")
+async def admin_get_pending(request: Request):
+    require_admin(request)
+    return {"pending": auth_service.list_pending_requests()}
+
+@app.post("/api/auth/admin/approve/{user_id}")
+async def admin_approve_user(user_id: int, request: Request, role: str = "user"):
+    require_admin(request)
+    success = auth_service.approve_user(user_id, role=role)
+    if not success:
+        raise HTTPException(status_code=404, detail="Čekající uživatel nebyl nalezen.")
+    role_label = "Pozorovatel" if role == "viewer" else ("Uživatel" if role == "user" else role)
+    return {"status": "ok", "message": f"Účet byl úspěšně schválen s rolí: {role_label}.", "role": role}
+
+@app.post("/api/auth/admin/change-role/{user_id}")
+async def admin_change_role(user_id: int, req: RoleChangeRequest, request: Request):
+    admin = require_admin(request)
+    success, msg = auth_service.change_user_role(user_id, req.role, admin["id"])
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"status": "ok", "message": msg, "role": req.role}
+
+@app.post("/api/auth/admin/reject/{user_id}")
+async def admin_reject_user(user_id: int, request: Request):
+    require_admin(request)
+    success = auth_service.reject_user(user_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Čekající uživatel nebyl nalezen.")
+    return {"status": "ok", "message": "Žádost byla zamítnuta."}
+
+@app.post("/api/auth/admin/toggle-status/{user_id}")
+async def admin_toggle_status(user_id: int, request: Request):
+    admin = require_admin(request)
+    success, msg = auth_service.toggle_user_active(user_id, admin["id"])
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"status": "ok", "message": msg}
+
+@app.delete("/api/auth/admin/users/{user_id}")
+async def admin_delete_user(user_id: int, request: Request):
+    admin = require_admin(request)
+    success, msg = auth_service.delete_user(user_id, admin["id"])
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"status": "ok", "message": msg}
+
+@app.post("/api/auth/admin/registration-toggle")
+async def admin_toggle_registration(req: RegistrationToggleRequest, request: Request):
+    require_admin(request)
+    auth_service.set_registration_allowed(req.allow_registration)
+    return {"status": "ok", "allow_registration": req.allow_registration}
+
+@app.post("/api/auth/admin/guest-toggle")
+async def admin_toggle_guest(req: GuestToggleRequest, request: Request):
+    require_admin(request)
+    auth_service.set_guest_allowed(req.allow_guest)
+    return {"status": "ok", "allow_guest": req.allow_guest}
+
+
+
 # Pokud je přibalena lokální binárka ffmpeg, přidáme ji na začátek PATH
 for b_dir in [BUNDLE_DIR, os.path.join(BUNDLE_DIR, "bin"), os.path.dirname(sys.executable) if IS_FROZEN else ""]:
     if b_dir and os.path.exists(b_dir):
@@ -76,6 +396,7 @@ for b_dir in [BUNDLE_DIR, os.path.join(BUNDLE_DIR, "bin"), os.path.dirname(sys.e
 
 STATIC_DIR = os.path.join(BUNDLE_DIR, "static")
 UPLOAD_DIR = os.path.join(USER_DATA_DIR, "uploads")
+LESSONS_DIR = os.path.join(USER_DATA_DIR, "lessons_data")
 AUDIO_DIR = os.path.join(USER_DATA_DIR, "generated_audio")
 NOTES_DIR = os.path.join(USER_DATA_DIR, "generated_notes")
 FLASHCARDS_DIR = os.path.join(USER_DATA_DIR, "generated_flashcards")
@@ -83,8 +404,32 @@ TESTS_DIR = os.path.join(USER_DATA_DIR, "generated_tests")
 DB_DIR = os.path.join(USER_DATA_DIR, "chroma_db")
 CONFIG_FILE = os.path.join(USER_DATA_DIR, "user_config.json")
 
-for d in [UPLOAD_DIR, AUDIO_DIR, NOTES_DIR, FLASHCARDS_DIR, TESTS_DIR, DB_DIR, STATIC_DIR]:
+for d in [UPLOAD_DIR, LESSONS_DIR, AUDIO_DIR, NOTES_DIR, FLASHCARDS_DIR, TESTS_DIR, DB_DIR, STATIC_DIR]:
     os.makedirs(d, exist_ok=True)
+
+def migrate_lessons_out_of_uploads() -> None:
+    """Automatická migrace: přesune složky výukových lekcí z uploads/ do samostatného lessons_data/."""
+    if not os.path.exists(UPLOAD_DIR):
+        return
+    for item in os.listdir(UPLOAD_DIR):
+        item_path = os.path.join(UPLOAD_DIR, item)
+        if os.path.isdir(item_path) and (item.startswith("lekce_") or item.startswith("lesson_")):
+            dest_path = os.path.join(LESSONS_DIR, item)
+            try:
+                if not os.path.exists(dest_path):
+                    shutil.move(item_path, dest_path)
+                    print(f"📦 [Migrace] Výuková lekce '{item}' přesunuta do lessons_data/")
+                else:
+                    for sub in os.listdir(item_path):
+                        s_src = os.path.join(item_path, sub)
+                        s_dst = os.path.join(dest_path, sub)
+                        if not os.path.exists(s_dst):
+                            shutil.move(s_src, s_dst)
+                    shutil.rmtree(item_path, ignore_errors=True)
+            except Exception as e:
+                print(f"⚠️ [Migrace] Chyba při přesunu složky lekce {item}: {e}")
+
+migrate_lessons_out_of_uploads()
 
 # Správa uživatelské konfigurace (BYOK: Bring Your Own Key)
 def load_user_config() -> dict[str, Any]:
@@ -218,8 +563,21 @@ def sanitize_name(name: str) -> str:
 # --- SPRÁVA PROJEKTŮ ---
 @app.get("/api/projects")
 async def list_projects():
-    projects = [d for d in os.listdir(UPLOAD_DIR) if os.path.isdir(os.path.join(UPLOAD_DIR, d))]
-    return {"projects": projects}
+    from chat_service import list_lessons
+    try:
+        lesson_ids = {l.get("project_id") for l in list_lessons() if l.get("project_id")}
+    except Exception:
+        lesson_ids = set()
+
+    projects = [
+        d for d in os.listdir(UPLOAD_DIR)
+        if os.path.isdir(os.path.join(UPLOAD_DIR, d))
+        and not d.startswith("lekce_")
+        and not d.startswith("lesson_")
+        and not d.startswith(".")
+        and d not in lesson_ids
+    ]
+    return {"projects": sorted(projects)}
 
 @app.post("/api/projects")
 async def create_project(payload: dict = Body(...)):
@@ -467,6 +825,547 @@ async def clear_project_data(project_id: str, payload: dict = Body(...)):
 
     await send_log(f"🧹 Projekt '{safe_proj}': Vyčištěna vybraná data ({', '.join(cleared)}).")
     return {"status": "cleared", "project": safe_proj, "cleared_categories": cleared}
+
+def cleanup_temp_file(path: str):
+    """Pomocná funkce pro bezpečné smazání dočasného souboru po odeslání odpovědi."""
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+    except Exception as e:
+        print(f"[main] Notice: Nelze smazat dočasný soubor {path}: {e}")
+
+@app.get("/api/projects/{project_id}/export-info")
+async def get_project_export_info(project_id: str):
+    """Vrací statistiky a souhrn dat projektu před zahájením exportu."""
+    safe_proj = sanitize_name(project_id)
+    proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
+    if not os.path.exists(proj_dir):
+        raise HTTPException(status_code=404, detail=f"Projekt '{safe_proj}' nebyl nalezen.")
+
+    # 1. Zdrojové soubory
+    source_files = []
+    source_bytes = 0
+    has_planner = False
+    questions_count = 0
+
+    for root, _, files in os.walk(proj_dir):
+        for f in files:
+            if f.startswith("."):
+                continue
+            fp = os.path.join(root, f)
+            sz = os.path.getsize(fp)
+            if f == PLANNER_FILENAME:
+                has_planner = True
+                try:
+                    with open(fp, "r", encoding="utf-8") as pf:
+                        pdata = json.load(pf)
+                        questions_count = len(pdata.get("questions") or [])
+                except Exception:
+                    pass
+            else:
+                source_files.append({"name": f, "size": sz})
+                source_bytes += sz
+
+    # 2. Vektorové chunky v ChromaDB
+    chunks_count = 0
+    try:
+        col = chroma_client.get_collection(f"proj_{safe_proj}")
+        chunks_count = col.count()
+    except Exception:
+        chunks_count = 0
+
+    # 3. Vygenerované soubory
+    notes_count = len([f for f in os.listdir(NOTES_DIR) if f.startswith(f"{safe_proj}_")]) if os.path.exists(NOTES_DIR) else 0
+    cards_count = len([f for f in os.listdir(FLASHCARDS_DIR) if f.startswith(f"{safe_proj}_") and f.endswith(".json")]) if os.path.exists(FLASHCARDS_DIR) else 0
+    tests_count = len([f for f in os.listdir(TESTS_DIR) if f.startswith(f"{safe_proj}_") and f.endswith(".json")]) if os.path.exists(TESTS_DIR) else 0
+
+    audio_files = []
+    audio_bytes = 0
+    if os.path.exists(AUDIO_DIR):
+        for f in os.listdir(AUDIO_DIR):
+            if f.startswith(f"{safe_proj}_"):
+                sz = os.path.getsize(os.path.join(AUDIO_DIR, f))
+                audio_files.append({"name": f, "size": sz})
+                audio_bytes += sz
+
+    # 4. Chat zprávy a vlákna
+    chat_threads_count = 0
+    chat_messages_count = 0
+    try:
+        from chat_service import get_db_connection
+        with get_db_connection() as conn:
+            r1 = conn.execute("SELECT COUNT(*) FROM chat_threads WHERE project_id = ?", (safe_proj,)).fetchone()
+            chat_threads_count = r1[0] if r1 else 0
+            r2 = conn.execute("SELECT COUNT(*) FROM chat_messages WHERE project_id = ?", (safe_proj,)).fetchone()
+            chat_messages_count = r2[0] if r2 else 0
+    except Exception:
+        pass
+
+    return {
+        "project": safe_proj,
+        "source_files": source_files,
+        "source_files_count": len(source_files),
+        "source_bytes": source_bytes,
+        "chunks_count": chunks_count,
+        "has_exam_planner": has_planner,
+        "questions_count": questions_count,
+        "notes_count": notes_count,
+        "flashcards_count": cards_count,
+        "tests_count": tests_count,
+        "audio_count": len(audio_files),
+        "audio_bytes": audio_bytes,
+        "chat_threads_count": chat_threads_count,
+        "chat_messages_count": chat_messages_count,
+    }
+
+
+@app.get("/api/projects/{project_id}/export")
+async def export_project(
+    project_id: str,
+    include_audio: bool = False,
+    include_chat: bool = True,
+    include_outputs: bool = True,
+):
+    """Zabalí kompletní studijní projekt do jednoho souboru balíčku .medproj (ZIP) pro snadný přenos na jiný počítač bez nutnosti re-indexace."""
+    safe_proj = sanitize_name(project_id)
+    proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
+    if not os.path.exists(proj_dir):
+        raise HTTPException(status_code=404, detail=f"Projekt '{safe_proj}' nebyl nalezen.")
+
+    await send_log(f"📦 Zahajuji export projektu '{safe_proj}' (audio: {'ano' if include_audio else 'ne'})...")
+
+    with tempfile.NamedTemporaryFile(suffix=".medproj", delete=False) as tf:
+        tmp_export_path = tf.name
+
+    try:
+        manifest = {
+            "version": 1,
+            "format": "medproj",
+            "app_name": "AI MedStudio",
+            "project_name": safe_proj,
+            "exported_at": datetime.now().isoformat(),
+            "include_audio": include_audio,
+            "include_chat": include_chat,
+            "include_outputs": include_outputs,
+            "stats": {
+                "source_files": [],
+                "source_files_count": 0,
+                "chunks_count": 0,
+                "has_embeddings": False,
+                "questions_count": 0,
+                "notes_count": 0,
+                "flashcards_count": 0,
+                "tests_count": 0,
+                "audio_count": 0,
+                "chat_threads_count": 0,
+                "chat_messages_count": 0,
+            },
+        }
+
+        with zipfile.ZipFile(tmp_export_path, "w", compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
+            # 1. Zdrojové soubory a plánovač
+            source_files_list = []
+            for root, _, files in os.walk(proj_dir):
+                for f in files:
+                    if f.startswith("."):
+                        continue
+                    full_p = os.path.join(root, f)
+                    rel_p = os.path.relpath(full_p, proj_dir)
+                    zf.write(full_p, f"uploads/{rel_p}")
+                    if f == PLANNER_FILENAME:
+                        try:
+                            with open(full_p, "r", encoding="utf-8") as pf:
+                                pdata = json.load(pf)
+                                manifest["stats"]["questions_count"] = len(pdata.get("questions") or [])
+                        except Exception:
+                            pass
+                    else:
+                        source_files_list.append(rel_p)
+            manifest["stats"]["source_files"] = source_files_list
+            manifest["stats"]["source_files_count"] = len(source_files_list)
+
+            # 2. Vektory a embeddingy z ChromaDB
+            col_name = f"proj_{safe_proj}"
+            chroma_dump = {
+                "collection_name": col_name,
+                "total_chunks": 0,
+                "ids": [],
+                "documents": [],
+                "metadatas": [],
+                "embeddings": [],
+            }
+            try:
+                col = chroma_client.get_collection(col_name)
+                count = col.count()
+                chroma_dump["total_chunks"] = count
+                manifest["stats"]["chunks_count"] = count
+                batch_size = 1000
+                for offset in range(0, count, batch_size):
+                    part = col.get(limit=batch_size, offset=offset, include=["embeddings", "documents", "metadatas"])
+                    if part and part.get("ids"):
+                        chroma_dump["ids"].extend(part["ids"])
+                        chroma_dump["documents"].extend(part.get("documents") or [])
+                        chroma_dump["metadatas"].extend(part.get("metadatas") or [])
+                        embs = part.get("embeddings")
+                        if embs is not None:
+                            if hasattr(embs, "tolist"):
+                                embs = embs.tolist()
+                            elif isinstance(embs, list) and len(embs) > 0 and hasattr(embs[0], "tolist"):
+                                embs = [e.tolist() for e in embs]
+                            chroma_dump["embeddings"].extend(embs)
+                if chroma_dump["embeddings"]:
+                    manifest["stats"]["has_embeddings"] = True
+            except Exception as e:
+                print(f"[export] Chroma collection get notice: {e}")
+
+            zf.writestr("chroma_vectors.json", json.dumps(chroma_dump))
+
+            # 3. SQLite záznamy (FTS5 BM25 index + chat)
+            from chat_service import export_project_sqlite_data
+            db_data = export_project_sqlite_data(safe_proj)
+            if not include_chat:
+                db_data["chat_threads"] = []
+                db_data["chat_messages"] = []
+            manifest["stats"]["chat_threads_count"] = len(db_data.get("chat_threads") or [])
+            manifest["stats"]["chat_messages_count"] = len(db_data.get("chat_messages") or [])
+            zf.writestr("database.json", json.dumps(db_data))
+
+            # 4. Vygenerované studijní výstupy (poznámky, kartičky, testy)
+            if include_outputs:
+                notes_c = 0
+                if os.path.exists(NOTES_DIR):
+                    for fn in os.listdir(NOTES_DIR):
+                        if fn.startswith(f"{safe_proj}_"):
+                            zf.write(os.path.join(NOTES_DIR, fn), f"generated/notes/{fn}")
+                            notes_c += 1
+                manifest["stats"]["notes_count"] = notes_c
+
+                fc_c = 0
+                if os.path.exists(FLASHCARDS_DIR):
+                    for fn in os.listdir(FLASHCARDS_DIR):
+                        if fn.startswith(f"{safe_proj}_"):
+                            zf.write(os.path.join(FLASHCARDS_DIR, fn), f"generated/flashcards/{fn}")
+                            fc_c += 1
+                manifest["stats"]["flashcards_count"] = fc_c
+
+                test_c = 0
+                if os.path.exists(TESTS_DIR):
+                    for fn in os.listdir(TESTS_DIR):
+                        if fn.startswith(f"{safe_proj}_"):
+                            zf.write(os.path.join(TESTS_DIR, fn), f"generated/tests/{fn}")
+                            test_c += 1
+                manifest["stats"]["tests_count"] = test_c
+
+            # 5. Audio soubory
+            if include_audio and os.path.exists(AUDIO_DIR):
+                audio_c = 0
+                for fn in os.listdir(AUDIO_DIR):
+                    if fn.startswith(f"{safe_proj}_"):
+                        zf.write(os.path.join(AUDIO_DIR, fn), f"generated/audio/{fn}")
+                        audio_c += 1
+                manifest["stats"]["audio_count"] = audio_c
+
+            # 6. Manifest
+            zf.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+
+        await send_log(f"✅ Export projektu '{safe_proj}' dokončen ({os.path.getsize(tmp_export_path) / 1024 / 1024:.1f} MB). Odesílám soubor...")
+
+        download_filename = f"{safe_proj}.medproj"
+        return FileResponse(
+            tmp_export_path,
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(download_filename)}"},
+            background=BackgroundTask(cleanup_temp_file, tmp_export_path),
+        )
+
+    except Exception as e:
+        cleanup_temp_file(tmp_export_path)
+        await send_log(f"❌ Chyba při exportu projektu '{safe_proj}': {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chyba při exportu: {str(e)}")
+
+
+@app.post("/api/projects/import/inspect")
+async def inspect_project_import(file: UploadFile = File(...)):
+    """Ověří a prozkoumá nahrávaný balíček projektu (.medproj nebo .zip) a vrátí souhrn pro potvrzení uživatelem."""
+    filename = file.filename or "projekt.medproj"
+    if not (filename.lower().endswith(".medproj") or filename.lower().endswith(".zip")):
+        raise HTTPException(status_code=400, detail="Nahraný soubor musí mít příponu .medproj nebo .zip.")
+
+    with tempfile.NamedTemporaryFile(suffix=".medproj", delete=False) as tf:
+        tmp_inspect_path = tf.name
+
+    try:
+        with open(tmp_inspect_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        if not zipfile.is_zipfile(tmp_inspect_path):
+            raise HTTPException(status_code=400, detail="Nahraný soubor není platný archiv ZIP / .medproj.")
+
+        with zipfile.ZipFile(tmp_inspect_path, "r") as zf:
+            namelist = zf.namelist()
+            manifest = {}
+            if "manifest.json" in namelist:
+                try:
+                    manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
+                except Exception:
+                    pass
+
+            raw_proj_name = manifest.get("project_name") or os.path.splitext(filename)[0]
+            safe_proj = sanitize_name(raw_proj_name) or "Importovany_projekt"
+
+            exists = os.path.exists(os.path.join(UPLOAD_DIR, safe_proj))
+            suggested_name = safe_proj
+            if exists:
+                counter = 2
+                while os.path.exists(os.path.join(UPLOAD_DIR, f"{safe_proj}_{counter}")):
+                    counter += 1
+                suggested_name = f"{safe_proj}_{counter}"
+
+            # Spočítáme položky v archivu, pokud chybí v manifestu
+            has_vectors = "chroma_vectors.json" in namelist
+            source_files_in_zip = [n[len("uploads/"):] for n in namelist if n.startswith("uploads/") and not n.endswith("/") and not n.endswith(PLANNER_FILENAME)]
+            notes_in_zip = len([n for n in namelist if n.startswith("generated/notes/") and not n.endswith("/")])
+            cards_in_zip = len([n for n in namelist if n.startswith("generated/flashcards/") and not n.endswith("/")])
+            tests_in_zip = len([n for n in namelist if n.startswith("generated/tests/") and not n.endswith("/")])
+            audio_in_zip = len([n for n in namelist if n.startswith("generated/audio/") and not n.endswith("/")])
+
+            stats = manifest.get("stats") or {}
+            if "chunks_count" not in stats and has_vectors:
+                try:
+                    cdata = json.loads(zf.read("chroma_vectors.json").decode("utf-8"))
+                    stats["chunks_count"] = cdata.get("total_chunks") or len(cdata.get("ids") or [])
+                except Exception:
+                    stats["chunks_count"] = 0
+
+            return {
+                "status": "ok",
+                "filename": filename,
+                "project_name": safe_proj,
+                "suggested_name": suggested_name,
+                "exists": exists,
+                "has_vectors": has_vectors,
+                "chunks_count": stats.get("chunks_count", 0),
+                "source_files": stats.get("source_files") or source_files_in_zip,
+                "source_files_count": stats.get("source_files_count", len(source_files_in_zip)),
+                "has_exam_planner": stats.get("has_exam_planner", f"uploads/{PLANNER_FILENAME}" in namelist),
+                "questions_count": stats.get("questions_count", 0),
+                "notes_count": stats.get("notes_count", notes_in_zip),
+                "flashcards_count": stats.get("flashcards_count", cards_in_zip),
+                "tests_count": stats.get("tests_count", tests_in_zip),
+                "audio_count": stats.get("audio_count", audio_in_zip),
+                "exported_at": manifest.get("exported_at"),
+            }
+    finally:
+        cleanup_temp_file(tmp_inspect_path)
+
+
+@app.post("/api/projects/import")
+async def import_project(
+    file: UploadFile = File(...),
+    project_name: Optional[str] = Form(None),
+    overwrite: bool = Form(False),
+    include_chat: bool = Form(True),
+    include_outputs: bool = Form(True),
+    include_audio: bool = Form(True),
+):
+    """Naimportuje projekt z balíčku .medproj nebo .zip včetně zdrojových souborů, vektorů ChromaDB, SQLite indexu a studijních výstupů."""
+    filename = file.filename or "projekt.medproj"
+    with tempfile.NamedTemporaryFile(suffix=".medproj", delete=False) as tf:
+        tmp_import_path = tf.name
+
+    try:
+        with open(tmp_import_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        if not zipfile.is_zipfile(tmp_import_path):
+            raise HTTPException(status_code=400, detail="Nahraný soubor není platný archiv ZIP / .medproj.")
+
+        with zipfile.ZipFile(tmp_import_path, "r") as zf:
+            namelist = set(zf.namelist())
+            manifest = {}
+            if "manifest.json" in namelist:
+                try:
+                    manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
+                except Exception:
+                    pass
+
+            orig_proj = sanitize_name(manifest.get("project_name") or os.path.splitext(filename)[0])
+            final_proj = sanitize_name(project_name or orig_proj)
+
+            if not final_proj:
+                raise HTTPException(status_code=400, detail="Neplatný název cílového projektu.")
+
+            target_dir = os.path.join(UPLOAD_DIR, final_proj)
+            if os.path.exists(target_dir):
+                if not overwrite:
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"Projekt '{final_proj}' již existuje. Zvolte jiný název nebo zaškrtněte možnost přepsat existující projekt.",
+                    )
+                # Vyčištění stávajícího projektu před přepsáním
+                try:
+                    chroma_client.delete_collection(name=f"proj_{final_proj}")
+                except Exception:
+                    pass
+                from chat_service import delete_project_records
+                delete_project_records(final_proj)
+                shutil.rmtree(target_dir, ignore_errors=True)
+
+            os.makedirs(target_dir, exist_ok=True)
+            await send_log(f"📥 Zahajuji import projektu '{final_proj}'...")
+
+            # 1. Extrakce zdrojových souborů z uploads/
+            imported_source_files = []
+            for n in namelist:
+                if n.startswith("uploads/") and not n.endswith("/"):
+                    rel_p = n[len("uploads/"):]
+                    dest_p = os.path.abspath(os.path.join(target_dir, rel_p))
+                    if not dest_p.startswith(os.path.abspath(target_dir)):
+                        continue
+                    os.makedirs(os.path.dirname(dest_p), exist_ok=True)
+                    with zf.open(n) as sf, open(dest_p, "wb") as df:
+                        shutil.copyfileobj(sf, df)
+
+                    if os.path.basename(dest_p) == PLANNER_FILENAME:
+                        try:
+                            with open(dest_p, "r", encoding="utf-8") as pf:
+                                pdata = json.load(pf)
+                            if isinstance(pdata, dict):
+                                pdata["project"] = final_proj
+                                with open(dest_p, "w", encoding="utf-8") as pf:
+                                    json.dump(pdata, pf, ensure_ascii=False, indent=2)
+                        except Exception as pe:
+                            print(f"[import] Planner project rename notice: {pe}")
+                    else:
+                        imported_source_files.append(rel_p)
+
+            # 2. Obnova ChromaDB vektorů a embeddingů
+            imported_chunks = 0
+            if "chroma_vectors.json" in namelist:
+                try:
+                    cdata = json.loads(zf.read("chroma_vectors.json").decode("utf-8"))
+                    col_name = f"proj_{final_proj}"
+                    target_col = chroma_client.get_or_create_collection(name=col_name)
+                    ids = cdata.get("ids") or []
+                    docs = cdata.get("documents") or []
+                    metas = cdata.get("metadatas") or []
+                    embs = cdata.get("embeddings") or []
+
+                    total = len(ids)
+                    batch_size = 500
+                    for i in range(0, total, batch_size):
+                        b_ids = ids[i:i + batch_size]
+                        b_docs = docs[i:i + batch_size]
+                        b_metas = metas[i:i + batch_size]
+                        b_embs = embs[i:i + batch_size] if (embs and len(embs) == total) else None
+                        if b_embs:
+                            target_col.upsert(ids=b_ids, documents=b_docs, metadatas=b_metas, embeddings=b_embs)
+                        else:
+                            target_col.upsert(ids=b_ids, documents=b_docs, metadatas=b_metas)
+                    imported_chunks = total
+                    await send_log(f"🧠 Úspěšně načteno {imported_chunks} vektorových chunků do ChromaDB (kolekce: {col_name}).")
+                except Exception as ce:
+                    print(f"[import] ChromaDB vectors error: {ce}")
+                    await send_log(f"⚠️ Varování: Selhalo načtení některých vektorů z ChromaDB: {ce}")
+
+            # 3. Obnova SQLite záznamů (FTS5 BM25 a chat)
+            if "database.json" in namelist:
+                try:
+                    db_data = json.loads(zf.read("database.json").decode("utf-8"))
+                    if not include_chat:
+                        db_data["chat_threads"] = []
+                        db_data["chat_messages"] = []
+                    from chat_service import import_project_sqlite_data
+                    import_project_sqlite_data(final_proj, db_data, overwrite=overwrite)
+                except Exception as dbe:
+                    print(f"[import] SQLite import error: {dbe}")
+
+            # Pojistka: Synchronizace FTS s ChromaDB
+            try:
+                from chat_service import sync_project_fts
+                sync_project_fts(final_proj)
+            except Exception as se:
+                print(f"[import] sync_project_fts notice: {se}")
+
+            # 4. Obnova studijních výstupů (poznámky, kartičky, testy)
+            imported_outputs = {"notes": 0, "flashcards": 0, "tests": 0, "audio": 0}
+            if include_outputs:
+                for n in namelist:
+                    if n.startswith("generated/notes/") and not n.endswith("/"):
+                        fname = os.path.basename(n)
+                        rest = fname[len(orig_proj) + 1:] if fname.startswith(f"{orig_proj}_") else fname
+                        new_fname = f"{final_proj}_{rest}"
+                        dest = os.path.join(NOTES_DIR, new_fname)
+                        text = zf.read(n).decode("utf-8", errors="replace")
+                        text = re.sub(
+                            r'<!-- METADATA\s*({.*?})\s*-->',
+                            lambda m: f'<!-- METADATA\n{json.dumps({**json.loads(m.group(1)), "project": final_proj}, ensure_ascii=False)}\n-->',
+                            text,
+                            count=1,
+                            flags=re.DOTALL,
+                        )
+                        with open(dest, "w", encoding="utf-8") as f:
+                            f.write(text)
+                        imported_outputs["notes"] += 1
+
+                    elif n.startswith("generated/flashcards/") and not n.endswith("/"):
+                        fname = os.path.basename(n)
+                        rest = fname[len(orig_proj) + 1:] if fname.startswith(f"{orig_proj}_") else fname
+                        new_fname = f"{final_proj}_{rest}"
+                        dest = os.path.join(FLASHCARDS_DIR, new_fname)
+                        try:
+                            fc_data = json.loads(zf.read(n).decode("utf-8"))
+                            if isinstance(fc_data, dict):
+                                fc_data["project"] = final_proj
+                            with open(dest, "w", encoding="utf-8") as f:
+                                json.dump(fc_data, f, ensure_ascii=False, indent=2)
+                        except Exception:
+                            with zf.open(n) as sf, open(dest, "wb") as df:
+                                shutil.copyfileobj(sf, df)
+                        imported_outputs["flashcards"] += 1
+
+                    elif n.startswith("generated/tests/") and not n.endswith("/"):
+                        fname = os.path.basename(n)
+                        rest = fname[len(orig_proj) + 1:] if fname.startswith(f"{orig_proj}_") else fname
+                        new_fname = f"{final_proj}_{rest}"
+                        dest = os.path.join(TESTS_DIR, new_fname)
+                        try:
+                            t_data = json.loads(zf.read(n).decode("utf-8"))
+                            if isinstance(t_data, dict):
+                                t_data["project"] = final_proj
+                                t_data["filename"] = new_fname
+                            with open(dest, "w", encoding="utf-8") as f:
+                                json.dump(t_data, f, ensure_ascii=False, indent=2)
+                        except Exception:
+                            with zf.open(n) as sf, open(dest, "wb") as df:
+                                shutil.copyfileobj(sf, df)
+                        imported_outputs["tests"] += 1
+
+            if include_audio:
+                for n in namelist:
+                    if n.startswith("generated/audio/") and not n.endswith("/"):
+                        fname = os.path.basename(n)
+                        rest = fname[len(orig_proj) + 1:] if fname.startswith(f"{orig_proj}_") else fname
+                        new_fname = f"{final_proj}_{rest}"
+                        dest = os.path.join(AUDIO_DIR, new_fname)
+                        with zf.open(n) as sf, open(dest, "wb") as df:
+                            shutil.copyfileobj(sf, df)
+                        imported_outputs["audio"] += 1
+
+            await send_log(f"🎉 Projekt '{final_proj}' byl úspěšně importován (včetně {len(imported_source_files)} podkladů a {imported_chunks} vektorových chunků).")
+
+            return {
+                "status": "success",
+                "project": final_proj,
+                "source_files": imported_source_files,
+                "source_files_count": len(imported_source_files),
+                "chunks_count": imported_chunks,
+                "outputs": imported_outputs,
+                "message": f"Projekt '{final_proj}' byl úspěšně importován.",
+            }
+
+    finally:
+        cleanup_temp_file(tmp_import_path)
 
 # --- UNIVERZÁLNÍ EXTRAKCE TEXTU SE ZACHOVÁNÍM STRAN ---
 async def extract_sections_from_file(file_path: str, filename: str) -> list[dict[str, Any]]:
@@ -1295,6 +2194,105 @@ STRIKTNÍ PRAVIDLA PRO KARTIČKY:
      }
    ]"""
 
+ADVANCED_ANKI_FLASHCARDS_PROMPT = """Jsi špičkový profesor medicíny, pedagog a mezinárodní expert na spaced repetition (Anki) podle metodických standardů Sorbonne Université, referenčního rámce francouzského Collège a Oleho Anki-konvence (Anki-Konvention).
+Tvým úkolem je na základě přiložených studijních materiálů vytvořit sérii přesně {COUNT} vysoce pokročilých, atomických a kognitivně provázaných studijních kartiček k tématu/otázce: {QUESTION}.
+
+ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
+
+1. KOGNITIVNÍ ZÁKLAD – POROZUMĚNÍ PŘED MEMOROVÁNÍM (Pravidlo 21):
+   Karty striktně děl do tří didaktických kategorií:
+   a) ODVODITELNÁ KARTA (logique): Kde jeden mechanismus nese celou odpověď, PRINCIP JE HLAVNÍ VĚC a fakta jsou jeho přímým důsledkem.
+      - Odpověď začíná principem: <b>Le principe</b> : ... (nebo česky <b>Princip</b> : ...).
+      - Následují fakta jako logické důsledky principu (např. časové prahy, patofyziologický řetězec).
+      - Dodatečné kauzální zdůvodnění patří do tlumeného řádku: <i>Pourquoi : …</i>
+      - Nápověda na líci v závorce formuluje VÝCHOZÍ OTÁZKU/ÚVAHU, ze které odpověď plyne (např. "(3 composantes · 1 distinction — l'action est-elle planifiée ?)"). Nápověda jmenuje otázku k zamyšlení, NIKDY samotnou odpověď!
+   b) NAPŮL ODVODITELNÁ KARTA: Pravidlo + výjimky. Pravidlo patří na kartu jako hlavní sdělení, výjimka je zřetelně označena (<i>Výjimka : ...</i> nebo <i>À l'inverse : ...</i>).
+   c) ČISTÁ FAKTA: Kde žádný mechanismus není, nic se nevymýšlí (dávkování léků, zákonné lhůty, mezinárodní názvy DCI, diagnostické prahy skóre).
+   ⚠️ PŘÍSNÝ ZÁKAZ VYMYŠLENÝCH MECHANISMŮ: Kde podklad kauzální vysvětlení nedává, karta zůstává striktně faktovou. Věrohodně znějící, ale nepodložené odvození se v testech a zkouškách stává systematickou chybou!
+
+2. ANATOMIE KARTY:
+   - LÍC (front):
+     Vždy začíná čipem důležitosti: [Rang A] (základní povinné jádro zkoušky) nebo [Rang B] (prohlubující/specializační).
+     Následuje přesná otázka.
+     Otázka končí NÁPOVĚDOU V ZÁVORCE: např. <br><small style='color:#a8a29e;'><i>(Nápověda...)</i></small>.
+   - RUB (back):
+     Začíná principem (u odvoditelných).
+     Obsahuje maximálně 1–3 hlavní body s tučně zvýrazněnými klíčovými pojmy, léky a čísly (<b>...</b>).
+     Tlumené vedlejší řádky pro kontext (kurzívou):
+       • <i>Pourquoi : …</i> (kauzální zdůvodnění ze zdroje)
+       • <i>Aussi : …</i> (doplňující fakta pro úplnost, která se nemají aktivně zkoušet)
+       • <i>Piège : …</i> (klinický chyták, diagnostická past, častá záměna, rozpor mezi zdroji)
+       • <i>À l'inverse : …</i> (opačný pól, zrcadlový kontrast)
+     Zakončeno sbaleným blokem ČESKÉ VRSTVY (<details>...</details>).
+
+3. NÁPOVĚDA V ZÁVORCE (INDICE - Pravidlo 6, 7):
+   - Nápověda POČÍTÁ a JMENUJE PŘIHRÁDKY/KATEGORIE, NIKDY samotné prvky!
+     Např.: (4 catégories : iatrogénie · métabolique et endocrinien · neurologique · causes mécaniques) — ptá se, co do nich patří.
+     U tabulky/srovnání: (tableau confusion ↔ démence · 4 lignes : installation, vigilance, réversibilité, signes).
+   - VÝJIMKA: Pokud jsou samotné kategorie zkoušeným učivem (např. 8 sémiologických domén, 3 clustery osobnosti, 4 mechanismy), nápověda zůstává čistě početní: (3 clusters), aby neprozradila odpověď na líci!
+   - Žádné vágní výrazy („stačí pár příkladů“, „a zbytek“). Příklady jmenované v nápovědě se v odpovědi zafixují a nezkracují.
+   - Délka nápovědy: medián kolem 50 znaků, nikdy přes 100 znaků.
+
+4. ATOMICITA A ROZSAH (Pravidla 1, 2, 11, 12, 14):
+   - Nejvýše 1–3 hlavní body na kartu! Raději 1–3 body s naprostou jistotou než 5–8 bodů povrchně.
+   - Kontrast místo paralelních karet (Pravidlo 12): Dva případy lišící se jedním parametrem či číslem se učí společně v kontrastu — srovnání je vlastní lekcí!
+   - Otázka a odpověď míří stejným směrem (Pravidlo 1).
+   - Příslovce zdroje se striktně přenášejí (Pravidlo 2): « n'entraîne jamais », « n'excède habituellement pas », « n'est pas systématique » (nikdy nevede k..., obvykle nepřekračuje..., není systematické) — zkouškové testy (EDN/QCM) stojí přesně na těchto nuancích!
+   - Čísla jen tehdy, když nesou klinické rozhodnutí (Pravidlo 11): věk, lhůta, práh skóre, dávka. Běžnou incidenci a prevalenci netestovat v jádru otázky.
+
+5. PŘEHLEDOVÉ SYNTETICKÉ KARTY (SYNTHÈSE - Pravidlo 18):
+   Do sady přirozeně zařaď i typy přehledových karet (cca 1–2 karty na 10 položek):
+   - Dělicí otázka: jedna otázka, na které se spolehlivě rozcházejí dvě diagnózy (např. „Mizí psychotické příznaky spolu s odezněním epizody nálady?“).
+   - Srovnávací tabulka: 3–5 entit × 3–4 znaky.
+   - Pojmový žebřík: stupně kontinua ve správném logickém a chronologickém pořadí (např. idée délirante → syndrome délirant → délire aigu → trouble délirant persistant).
+   - Falešný přítel (faux-ami): termíny, které v češtině/laicky znamenají něco jiného (např. délire = blud, nikoli delirium; delirium = confusion mentale).
+
+6. JAZYKOVÉ PRAVIDLO A ČESKÁ VRSTVA (Pravidla 22, 25, 26):
+   - Pokud jsou podkladové materiály v cizím jazyce (např. francouzské Collège pro zkoušky EDN), otázka, nápověda i odpověď jsou v jazyce originálu pro nácvik zkouškových formulací. Pokud jsou podklady v češtině, jazykem je profesionální česká medicínská terminologie.
+   - Každá karta MUSÍ mít na rubu sbalený blok ČESKÉ VRSTVY pro hluboké porozumění:
+     <details style='margin-top:10px; padding:6px 10px; border-left:3px solid #3d7cc9; background:rgba(61,124,201,0.08); font-size:0.92em; border-radius:4px;'>
+       <summary style='cursor:pointer; color:#38bdf8; font-weight:600;'>🇨🇿 Česky — překlad a pojmy</summary>
+       <div style='margin-top:6px;'>
+         <div><strong>Otázka:</strong> [Český překlad otázky a nápovědy, 1–2 věty]</div>
+         <div style='margin-top:4px;'><strong>Odpověď:</strong> [Český překlad principu a hlavních bodů; vedlejší řádky jen stručně]</div>
+         <div style='margin-top:6px; font-size:0.9em; border-top:1px dashed rgba(255,255,255,0.15); padding-top:4px;'>
+           <strong>Pojmy (MKN-10 / Glosář):</strong><br>
+           • <em>odborný termín</em>: české vysvětlení a oficiální český ekvivalent (MKN-10 / DSM-5); ⚠️ upozornění na falešné přátele a reálie.
+         </div>
+       </div>
+     </details>
+   - Česká vrstva POUZE překládá a vysvětluje to, co je na kartě – NEPŘIDÁVÁ žádná nová fakta, která nejsou v originálním jádru karty!
+
+7. PŘESNÉ CITACE (NOTEBOOKLM STANDARD):
+   Každá kartička musí obsahovat přesnou citaci z přiložených podkladů:
+   "source_file": přesný název souboru (např. 'College_Psychiatrie_4e.pdf'),
+   "source_page": číslo strany (např. '29' nebo '141–145'),
+   "source_quote": doslovná citace ze zdroje,
+   "source_ref": souhrnná reference [soubor, s. XY].
+
+8. FORMÁT VÝSTUPU:
+   Vrať VÝHRADNĚ platný JSON formát bez jakéhokoliv doplňkového textu či markdown obalu (žádné ```json na začátku ani na konci).
+   JSON pole objektů:
+   [
+     {
+       "id": 1,
+       "front": "[Rang A] Qu'est-ce que l'athymhormie, et en quoi l'aboulie diffère-t-elle de l'apragmatisme ?<br><small style='color:#a8a29e;'><i>(2 composantes · 1 distinction — l'action est-elle planifiée ?)</i></small>",
+       "back": "<b>Le principe</b> : athymhormie = <b>athymie</b> + <b>aboulie</b><br>• <b>Aboulie</b> : difficulté à <b>initier</b> une action <b>pourtant planifiée</b><br>• <b>Apragmatisme</b> : difficulté à initier une action <b>par défaut de planification</b><br><br><small><i>Pourquoi : Déficit de l'élan vital et de la motivation globale.</i></small><br><br><details style='margin-top:10px; padding:6px 10px; border-left:3px solid #3d7cc9; background:rgba(61,124,201,0.08); font-size:0.92em; border-radius:4px;'><summary style='cursor:pointer; color:#38bdf8; font-weight:600;'>🇨🇿 Česky — překlad a pojmy</summary><div style='margin-top:6px;'><div><strong>Otázka:</strong> Co je athymhormie a čím se liší abulie od apragmatismu? (2 složky · 1 rozlišení — je akce naplánovaná?)</div><div style='margin-top:4px;'><strong>Odpověď:</strong> Princip: athymhormie = vymizení nálady (athymie) + abulie. Abulie: akce je naplánovaná, ale nedaří se ji spustit. Apragmatismus: akce se nespustí, protože chybí plán.</div><div style='margin-top:6px; font-size:0.9em; border-top:1px dashed rgba(255,255,255,0.15); padding-top:4px;'><strong>Pojmy:</strong><br>• <em>athymie</em>: vymizení nálady jako takové — ne smutek, ale nepřítomnost afektivního tónu.<br>• <em>aboulie</em>: porucha vůle a motivace (v češtině abulie).<br>• <em>apragmatisme</em>: porucha plánování a organizace činností.</div></div></details>",
+       "rang": "A",
+       "hint": "2 composantes · 1 distinction — l'action est-elle planifiée ?",
+       "card_type": "logique",
+       "source_file": "College_Psychiatrie.pdf",
+       "source_page": "29",
+       "source_quote": "L'athymhormie associe athymie et aboulie...",
+       "source_ref": "[College_Psychiatrie.pdf, s. 29]"
+     }
+   ]"""
+
+FLASHCARDS_PROMPTS = {
+    "standard": DEFAULT_FLASHCARDS_PROMPT,
+    "advanced": ADVANCED_ANKI_FLASHCARDS_PROMPT,
+}
+
 def clean_and_parse_json(raw_text: str) -> list[dict[str, Any]]:
     cleaned = raw_text.strip()
     # Odstranění markdown bloků ```json ... ```
@@ -1451,6 +2449,49 @@ def build_anki_tsv(cards: list[dict[str, Any]], project: str, question: str, sou
         front = str(resolved.get("front", "")).replace("\t", " ").replace("\n", "<br>")
         back = str(resolved.get("back", "")).replace("\t", " ").replace("\n", "<br>")
         
+        # Podpora pro Rang v hlavičce, pokud ještě není ve front
+        rang = str(resolved.get("rang", "")).strip()
+        if rang and f"[Rang {rang}]" not in front:
+            front = f"[Rang {rang}] " + front
+
+        # Podpora pro nápovědu v závorce, pokud ještě není ve front
+        hint = str(resolved.get("hint", "")).strip()
+        if hint and hint not in front and f"({hint})" not in front:
+            front += f"<br><small style='color:#a8a29e;'><i>({hint})</i></small>"
+
+        # Podpora pro českou vrstvu (cz), pokud ještě není vložena v back
+        cz_data = resolved.get("cz")
+        if cz_data and "<details" not in back:
+            if isinstance(cz_data, dict):
+                cz_q = cz_data.get("q", "")
+                cz_a = cz_data.get("a", "")
+                cz_pojmy = cz_data.get("pojmy", [])
+                pojmy_html = ""
+                if cz_pojmy and isinstance(cz_pojmy, list):
+                    items = []
+                    for p in cz_pojmy:
+                        if isinstance(p, (list, tuple)) and len(p) >= 2:
+                            items.append(f"• <em>{p[0]}</em>: {p[1]}")
+                        elif isinstance(p, dict):
+                            term = p.get("term") or p.get("pojem") or ""
+                            expl = p.get("expl") or p.get("vyznam") or p.get("popis") or ""
+                            items.append(f"• <em>{term}</em>: {expl}")
+                        elif isinstance(p, str):
+                            items.append(f"• {p}")
+                    if items:
+                        pojmy_html = f"<div style='margin-top:6px; font-size:0.9em; border-top:1px dashed rgba(255,255,255,0.15); padding-top:4px;'><strong>Pojmy (MKN-10 / Glosář):</strong><br>{'<br>'.join(items)}</div>"
+
+                cz_block = (
+                    f"<br><br><details class='cz' style='margin-top:10px; padding:6px 10px; border-left:3px solid #3d7cc9; background:rgba(61,124,201,0.08); font-size:0.92em; border-radius:4px; text-align:left;'>"
+                    f"<summary style='cursor:pointer; color:#38bdf8; font-weight:600;'>🇨🇿 Česky — překlad a pojmy</summary>"
+                    f"<div style='margin-top:6px;'>"
+                    f"<div><strong>Otázka:</strong> {cz_q}</div>"
+                    f"<div style='margin-top:4px;'><strong>Odpověď:</strong> {cz_a}</div>"
+                    f"{pojmy_html}"
+                    f"</div></details>"
+                )
+                back += cz_block
+
         src_file = resolved.get("source_file", "")
         src_page = resolved.get("source_page", "")
         src_ref = resolved.get("source_ref", "")
@@ -1568,7 +2609,16 @@ async def internal_generate_flashcards(
 
     context_text, unique_sources, raw_context = await query_rag_context_with_sources(question, project, n_results=25)
 
-    prompt_template = custom_prompt if custom_prompt and custom_prompt.strip() else DEFAULT_FLASHCARDS_PROMPT
+    prompt_template = DEFAULT_FLASHCARDS_PROMPT
+    if custom_prompt and custom_prompt.strip():
+        cp_clean = custom_prompt.strip()
+        cp_lower = cp_clean.lower()
+        if cp_lower in ["advanced", "advanced_anki", "pokrocile_anki", "pokročilé anki", "pokročilé anki kartičky"]:
+            prompt_template = ADVANCED_ANKI_FLASHCARDS_PROMPT
+        elif cp_lower in ["standard", "default"]:
+            prompt_template = DEFAULT_FLASHCARDS_PROMPT
+        else:
+            prompt_template = cp_clean
     sources_summary = "\n".join([f"[{s['id']}] {s['filename']}" for s in unique_sources])
 
     full_user_content = (
@@ -2552,11 +3602,9 @@ async def get_project_stats(project: str = ""):
     try:
         from chat_service import list_lessons, get_project_messages
         all_lessons = list_lessons()
+        lessons_count = len(all_lessons)
         if safe_proj:
-            lessons_count = len([l for l in all_lessons if l.get("project_id") == safe_proj])
             chat_count = len(get_project_messages(safe_proj, limit=1000))
-        else:
-            lessons_count = len(all_lessons)
     except Exception:
         pass
 
@@ -2676,6 +3724,25 @@ async def delete_note(filename: str):
     raise HTTPException(status_code=404, detail="Soubor nenalezen.")
 
 # --- KARTIČKY (ANKI / QUIZLET) ---
+@app.get("/api/flashcards-prompts")
+async def get_flashcards_prompts():
+    return {
+        "presets": [
+            {
+                "id": "standard",
+                "name": "Standardní medicínské kartičky",
+                "description": "Základní klinické kartičky pro internu a medicínské zkoušky (kritéria, léky, diagnostika).",
+                "prompt": DEFAULT_FLASHCARDS_PROMPT,
+            },
+            {
+                "id": "advanced",
+                "name": "Pokročilé Anki Kartičky",
+                "description": "Metodika Anki-konvence (Sorbonne / Collège / Ole): kognitivní odvoditelnost (princip -> fakta), přihrádková nápověda v závorce, Rang A/B, Pourquoi/Piège/Aussi, přehledové karty (dělicí, faux-ami) a rozbalovací česká vrstva (MKN-10).",
+                "prompt": ADVANCED_ANKI_FLASHCARDS_PROMPT,
+            }
+        ]
+    }
+
 @app.post("/api/generate-flashcards")
 async def generate_flashcards_endpoint(payload: dict = Body(...)):
     question = payload.get("question")
@@ -2789,6 +3856,49 @@ async def export_all_flashcards(project: str = ""):
             resolved = resolve_card_source(c, c.get("deck_sources", []), project)
             front = str(resolved.get("front", "")).replace("\t", " ").replace("\n", "<br>")
             back = str(resolved.get("back", "")).replace("\t", " ").replace("\n", "<br>")
+
+            # Podpora pro Rang v hlavičce
+            rang = str(resolved.get("rang", "")).strip()
+            if rang and f"[Rang {rang}]" not in front:
+                front = f"[Rang {rang}] " + front
+
+            # Podpora pro nápovědu v závorce
+            hint = str(resolved.get("hint", "")).strip()
+            if hint and hint not in front and f"({hint})" not in front:
+                front += f"<br><small style='color:#a8a29e;'><i>({hint})</i></small>"
+
+            # Podpora pro českou vrstvu (cz)
+            cz_data = resolved.get("cz")
+            if cz_data and "<details" not in back:
+                if isinstance(cz_data, dict):
+                    cz_q = cz_data.get("q", "")
+                    cz_a = cz_data.get("a", "")
+                    cz_pojmy = cz_data.get("pojmy", [])
+                    pojmy_html = ""
+                    if cz_pojmy and isinstance(cz_pojmy, list):
+                        items = []
+                        for p in cz_pojmy:
+                            if isinstance(p, (list, tuple)) and len(p) >= 2:
+                                items.append(f"• <em>{p[0]}</em>: {p[1]}")
+                            elif isinstance(p, dict):
+                                term = p.get("term") or p.get("pojem") or ""
+                                expl = p.get("expl") or p.get("vyznam") or p.get("popis") or ""
+                                items.append(f"• <em>{term}</em>: {expl}")
+                            elif isinstance(p, str):
+                                items.append(f"• {p}")
+                        if items:
+                            pojmy_html = f"<div style='margin-top:6px; font-size:0.9em; border-top:1px dashed rgba(255,255,255,0.15); padding-top:4px;'><strong>Pojmy (MKN-10 / Glosář):</strong><br>{'<br>'.join(items)}</div>"
+
+                    cz_block = (
+                        f"<br><br><details class='cz' style='margin-top:10px; padding:6px 10px; border-left:3px solid #3d7cc9; background:rgba(61,124,201,0.08); font-size:0.92em; border-radius:4px; text-align:left;'>"
+                        f"<summary style='cursor:pointer; color:#38bdf8; font-weight:600;'>🇨🇿 Česky — překlad a pojmy</summary>"
+                        f"<div style='margin-top:6px;'>"
+                        f"<div><strong>Otázka:</strong> {cz_q}</div>"
+                        f"<div style='margin-top:4px;'><strong>Odpověď:</strong> {cz_a}</div>"
+                        f"{pojmy_html}"
+                        f"</div></details>"
+                    )
+                    back += cz_block
             
             src_file = resolved.get("source_file", "")
             src_page = resolved.get("source_page", "")
@@ -3144,6 +4254,7 @@ async def get_project_planner(project_id: str):
         "examDate": "",
         "startDate": "",
         "revisionDays": 14,
+        "scheduleMode": "sequential",
         "questions": []
     }
 
@@ -3171,6 +4282,7 @@ async def save_project_planner(project_id: str, payload: dict = Body(...)):
         "examDate": str(planner_data.get("examDate", "") or ""),
         "startDate": str(planner_data.get("startDate", "") or ""),
         "revisionDays": int(planner_data.get("revisionDays", 14) or 14),
+        "scheduleMode": str(planner_data.get("scheduleMode", "sequential") or "sequential"),
         "questions": planner_data.get("questions", [])
     }
 
@@ -3215,6 +4327,7 @@ async def save_project_questions(project_id: str, payload: dict = Body(...)):
         "examDate": "",
         "startDate": "",
         "revisionDays": 14,
+        "scheduleMode": "sequential",
         "questions": []
     }
     if os.path.exists(planner_file):
@@ -3237,6 +4350,111 @@ async def save_project_questions(project_id: str, payload: dict = Body(...)):
         await send_log(f"❌ Chyba při ukládání otázek projektu ({safe_proj}): {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/projects/{project_id}/ai-classify-questions")
+async def ai_classify_questions_endpoint(project_id: str, payload: dict = Body(default={})):
+    safe_proj = sanitize_name(project_id)
+    proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
+    planner_file = os.path.join(proj_dir, PLANNER_FILENAME)
+
+    if not os.path.exists(planner_file):
+        raise HTTPException(status_code=404, detail="Pro daný projekt neexistuje plánovač ani seznam otázek.")
+
+    try:
+        with open(planner_file, "r", encoding="utf-8") as f:
+            planner_data = json.load(f)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Chyba při čtení plánovače: {str(e)}")
+
+    questions = planner_data.get("questions", [])
+    if not questions:
+        raise HTTPException(status_code=400, detail="Projekt neobsahuje žádné otázky ke klasifikaci.")
+
+    await send_log(f"🤖 Zahajuji AI klasifikaci {len(questions)} otázek pro projekt '{safe_proj}'...")
+
+    compact_questions = []
+    for idx, q in enumerate(questions):
+        compact_questions.append({
+            "id": q.get("id") or f"pq_{idx+1}",
+            "index": idx + 1,
+            "title": q.get("title", ""),
+            "current_topic": q.get("topic", "Všeobecné")
+        })
+
+    prompt_system = (
+        "Jsi špičkový profesor medicíny a didaktik lékařských fakult. "
+        "Tvým úkolem je každou z následujících zkouškových otázek z medicíny přesně a logicky zařadit do správného lékařského oboru / okruhu.\n\n"
+        "STRIKTNÍ PRAVIDLA:\n"
+        "1. Používej čisté, zavedené české názvy lékařských oborů (např. Kardiologie, Pneumologie, Gastroenterologie, Hematologie, Nefrologie, Endokrinologie, Revmatologie, Infektologie, Neurologie, Onkologie, Akutní medicína, Všeobecné vnitřní lékařství, Chirurgie apod.).\n"
+        "2. Pokud je otázka složená z více témat (např. 'a) Astma bronchiale, b) Nehodgkinské lymfomy'), zvol obor prvního/dominantního tématu nebo nejvýstižnější obor.\n"
+        "3. Vyhni se obecným nicneříkajícím názvům jako 'Lístek 1' nebo 'Otázka'.\n"
+        "4. Výstup musí být striktní JSON pole objektů s klíči 'id' a 'topic'. Pokud text otázky obsahuje číslo lístku nebo otázky, můžeš doplnit i 'number'.\n"
+        "Příklad:\n"
+        '[{"id": "pq_1", "topic": "Pneumologie", "number": "1"}]'
+    )
+
+    prompt_user = (
+        f"Zde je seznam otázek k didaktickému zařazení do lékařských oborů:\n"
+        f"{json.dumps(compact_questions, ensure_ascii=False, indent=1)}"
+    )
+
+    gemini_model = payload.get("gemini_model") or "gemini-3.6-flash"
+    try:
+        response_text = await call_gemini_with_retries(
+            model=gemini_model,
+            contents=[prompt_user],
+            system_instruction=prompt_system,
+            temperature=0.1,
+            response_mime_type="application/json"
+        )
+
+        classified = clean_and_parse_json(response_text)
+        if not isinstance(classified, list) or len(classified) == 0:
+            match = re.search(r"\[\s*\{.*\}\s*\]", response_text, re.DOTALL)
+            if match:
+                classified = json.loads(match.group(0), strict=False)
+
+        topic_map = {}
+        number_map = {}
+        for item in (classified or []):
+            if isinstance(item, dict) and "id" in item:
+                if item.get("topic"):
+                    topic_map[str(item["id"])] = str(item["topic"]).strip()
+                if item.get("number"):
+                    number_map[str(item["id"])] = str(item["number"]).strip()
+
+        updated_count = 0
+        categories_set = set()
+        for idx, q in enumerate(questions):
+            q_id = str(q.get("id") or f"pq_{idx+1}")
+            if q_id in topic_map:
+                q["topic"] = topic_map[q_id]
+                updated_count += 1
+            elif idx < len(classified) and isinstance(classified[idx], dict) and classified[idx].get("topic"):
+                q["topic"] = str(classified[idx]["topic"]).strip()
+                updated_count += 1
+
+            if q_id in number_map and not q.get("number"):
+                q["number"] = number_map[q_id]
+
+            categories_set.add(q.get("topic") or "Všeobecné")
+
+        planner_data["questions"] = questions
+        with open(planner_file, "w", encoding="utf-8") as f:
+            json.dump(planner_data, f, ensure_ascii=False, indent=2)
+
+        categories_list = sorted(list(categories_set))
+        await send_log(f"✅ AI úspěšně překategorizovala {updated_count} otázek do {len(categories_list)} oborů: {', '.join(categories_list[:5])}...")
+        return {
+            "status": "success",
+            "project": safe_proj,
+            "questions": questions,
+            "categories": categories_list,
+            "updated_count": updated_count
+        }
+    except Exception as e:
+        await send_log(f"❌ Chyba při AI klasifikaci otázek: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chyba AI klasifikace: {str(e)}")
+
 # --- 2. VÝUKOVÁ LEKCE OD A DO Z (EDUCATIONAL LECTURE GENERATOR) ---
 @app.post("/api/lessons/generate")
 async def generate_lesson_endpoint(
@@ -3253,20 +4471,20 @@ async def generate_lesson_endpoint(
     if not files:
         raise HTTPException(status_code=400, detail="Musíte nahrát alespoň jeden soubor.")
 
-    # Pokud není explicitně zadán název projektu, vygenerujeme ho z názvu lekce
-    raw_proj = project_name.strip() if (project_name and project_name.strip()) else f"lekce_{title}"
-    safe_proj = sanitize_name(raw_proj)
+    # Samostatný identifikátor lekce, ukládaný mimo prostor projektů (nepřidává se do projektů)
+    raw_lesson_id = f"lekce_{title}"
+    safe_lesson_id = sanitize_name(raw_lesson_id)
 
-    # 1. Založení nového izolovaného projektu/složky
-    proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
-    os.makedirs(proj_dir, exist_ok=True)
-    await send_log(f"🎓 Zahajuji tvorbu výukové lekce od A do Z: '{title}' (Projekt: {safe_proj})")
+    # 1. Založení dedikované složky lekce v LESSONS_DIR (mimo uploads/)
+    lesson_dir = os.path.join(LESSONS_DIR, safe_lesson_id)
+    os.makedirs(lesson_dir, exist_ok=True)
+    await send_log(f"🎓 Zahajuji tvorbu výukové lekce od A do Z: '{title}' (ID: {safe_lesson_id})")
 
-    # 2. Uložení nahraných souborů na disk
+    # 2. Uložení nahraných souborů na disk do složky lekce
     saved_file_tuples: List[Tuple[str, str]] = []
     for file in files:
         safe_fname = "".join([c for c in file.filename if c.isalnum() or c in (" ", ".", "_", "-")]).strip()
-        fpath = os.path.join(proj_dir, safe_fname)
+        fpath = os.path.join(lesson_dir, safe_fname)
         with open(fpath, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         saved_file_tuples.append((fpath, safe_fname))
@@ -3277,7 +4495,7 @@ async def generate_lesson_endpoint(
 
     try:
         lesson_result = await generate_lesson_package(
-            project_id=safe_proj,
+            project_id=safe_lesson_id,
             lesson_title=title,
             target_language=target_language,
             file_paths=saved_file_tuples,
@@ -3310,10 +4528,43 @@ async def get_lesson_endpoint(project_id: str):
 
 @app.delete("/api/lessons/{project_id}")
 async def delete_lesson_endpoint(project_id: str):
-    safe_proj = sanitize_name(project_id)
-    success = delete_lesson(safe_proj)
-    await send_log(f"🗑️ Výuková lekce '{safe_proj}' smazána z databáze.")
-    return {"status": "success", "project": safe_proj}
+    safe_id = sanitize_name(project_id)
+    from chat_service import delete_lesson_records
+    delete_lesson_records(safe_id)
+
+    # 1. Smazání dedikované složky lekce z LESSONS_DIR a UPLOAD_DIR
+    for base_dir in [LESSONS_DIR, UPLOAD_DIR]:
+        p = os.path.join(base_dir, safe_id)
+        if os.path.exists(p):
+            try:
+                shutil.rmtree(p, ignore_errors=True)
+            except Exception as e:
+                print(f"⚠️ Chyba při mazání složky lekce {p}: {e}")
+
+    # 2. Smazání ChromaDB kolekce lekce
+    try:
+        chroma_client.delete_collection(name=f"proj_{safe_id}")
+    except Exception:
+        pass
+
+    # 3. Smazání generovaného audia lekce
+    for fname in os.listdir(AUDIO_DIR):
+        if fname.startswith(f"{safe_id}_"):
+            try:
+                os.remove(os.path.join(AUDIO_DIR, fname))
+            except Exception:
+                pass
+
+    # 4. Smazání poznámek lekce
+    for fname in os.listdir(NOTES_DIR):
+        if fname.startswith(f"{safe_id}_"):
+            try:
+                os.remove(os.path.join(NOTES_DIR, fname))
+            except Exception:
+                pass
+
+    await send_log(f"🗑️ Výuková lekce '{safe_id}' a veškerá její data byla úspěšně smazána.")
+    return {"status": "success", "project": safe_id}
 
 
 # =========================================================================
@@ -3452,8 +4703,12 @@ async def medulingo_generate_pack_endpoint(payload: dict = Body(...)):
                 gemini_call_fn=call_gemini_with_retries,
                 log_fn=send_log,
                 categories=[q_topic],
+                question_id=target_q.get("id") if target_q else question_id,
             )
             results["test"] = {"status": "ok", "filename": t_file, "count": len(test_data.get("questions", []))}
+            if target_q:
+                target_q["testsStatus"] = "Done"
+                target_q["test_file"] = t_file
         except Exception as e:
             await send_log(f"⚠️ [Medulingo] Chyba generování testu: {e}")
             results["test"] = {"status": "error", "error": str(e)}
@@ -3515,6 +4770,7 @@ async def get_settings():
         "elevenlabs_masked": mask(e_key),
         "user_data_dir": USER_DATA_DIR,
         "is_desktop": IS_FROZEN,
+        "pomodoro_settings": cfg.get("pomodoro_settings", {}),
     }
 
 
@@ -3534,9 +4790,11 @@ async def save_settings(payload: dict[str, Any] = Body(...)):
         val = str(payload["elevenlabs_api_key"]).strip()
         if "..." not in val:
             cfg["elevenlabs_api_key"] = val
+    if "pomodoro_settings" in payload and isinstance(payload["pomodoro_settings"], dict):
+        cfg["pomodoro_settings"] = payload["pomodoro_settings"]
 
     save_user_config(cfg)
-    await send_log("⚙️ Nastavení API klíčů bylo úspěšně uloženo.")
+    await send_log("⚙️ Nastavení API klíčů a preferencí bylo úspěšně uloženo.")
     return {"status": "success", "message": "Nastavení bylo úspěšně uloženo."}
 
 
@@ -3939,10 +5197,13 @@ async def view_print_preview_page(doc_id: str):
 
 
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+app.mount("/lessons-data", StaticFiles(directory=LESSONS_DIR), name="lessons-data")
 app.mount("/audio", StaticFiles(directory=AUDIO_DIR), name="audio")
 app.mount("/notes-files", StaticFiles(directory=NOTES_DIR), name="notes-files")
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False)
+    host = os.getenv("HOST", "127.0.0.1")
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run("main:app", host=host, port=port, reload=False)

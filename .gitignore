@@ -29,6 +29,8 @@ user_config.json
 # Generated Application Data & Runtime Storage
 # ==============================================================================
 uploads/
+lessons_data/
+lessons/
 generated_audio/
 generated_notes/
 generated_tests/

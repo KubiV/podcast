@@ -14,6 +14,14 @@ Aplikace běží **100% lokálně na počítači uživatele** na bázi modelu **
   - Fulltextové vyhledávání a filtrování podle okruhů.
   - **Přepínač řazení naučených otázek:** Režim ON automaticky odsouvá projité otázky na konec seznamu.
   - Hromadný import otázek z CSV/TXT i prostého textu.
+- **🦉 Medulingo™ (Integrovaná studijní cesta pro medicínu):**
+  - Duolingo-style křivolaká mapa otázek rozdělených do klinických kategorií s pacingem a sledováním denní série (streak).
+  - 5kroková cesta k ovládnutí každé otázky: Studijní text, Minipodcast, Kartičky, AI Asistent a Finální test.
+- **🍅 Pomodoro časovač & Centrum soustředění:**
+  - Samostatný modul řízeného soustředění (25 min práce / 5 min pauza / 15 min dlouhá pauza po 4 cyklech).
+  - Volitelná integrace do Medulingo – asistent soustředění při studiu otázky s 1-klik zapnutím/vypnutím a možností volby.
+  - Globální mini-časovač v záhlaví aplikace umožňující sledovat odpočet i při procházení poznámek, kartiček či testů.
+  - Generování příjemných zvukových signálů přes Web Audio API bez nutnosti externích souborů.
 - **🎙️ Podcast Studio:** tvorba 10–15minutových výkladových audio/video podcastů s titulky SRT/MP4, možnost dávkového zpracování celých sad otázek na pozadí.
 - **📝 Poznámky z materiálů:** generování vysoce strukturovaných medicínských textů bez "wall of text" (Otvírák, Definice, Klinický obraz, Diagnostika, Léčba, Chytáky a Red Flags) s **citacemi zdrojů v horním indexu (např. <sup>[1]</sup>)**, podpora dávkového generování pro více otázek současně, export do Markdownu a tisk/PDF.
 - **🗂️ Kartičky (Anki / Quizlet):** generování sérií high-yield kartiček s volbou předvoleb i **zcela libovolného počtu unikátních otázek (až do 500 ks)**, automatické členění do klinických sérií bez halucinací a duplicit, 3D otáčení v prohlížeči, export pro Anki (`.txt`/`.tsv` s tabulátory a HTML) a 1-klik kopírováním pro Quizlet.
@@ -63,6 +71,22 @@ Vytvoří spustitelnou desktopovou aplikaci pro distribuci koncovým uživatelů
   scripts\build_desktop.bat
   ```
   *Výsledná aplikace:* `dist\AIMedStudio\AIMedStudio.exe`.
+
+### 4. Domácí server / Docker (Raspberry Pi, HomeLab, Synology NAS)
+Pro nepřetržitý provoz (24/7) v Dockeru s přístupem ze všech zařízení (iPad, mobil, notebook) i přes internet (Cloudflare Tunnel):
+```bash
+# Na Raspberry Pi (ve složce /srv/compose/podcast):
+docker compose up -d
+```
+- **Rychlý vývoj a aktualizace z Macu přes SSH:**
+  ```bash
+  ./deploy.sh          # Synchronizace změn z Macu na Pi a přebudování kontejneru
+  ./deploy.sh --logs   # Živé sledování logů na serveru
+  ./deploy.sh --status # Kontrola stavu a healthchecku
+  ```
+- **Zpřístupnění přes Cloudflare Tunnel:** viz samostatný průvodce v [CLOUDFLARE_GUIDE.md](CLOUDFLARE_GUIDE.md).
+- **Kompletní serverová dokumentace:** viz [DOCKER_GUIDE.md](DOCKER_GUIDE.md).
+
 
 ---
 

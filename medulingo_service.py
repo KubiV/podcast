@@ -93,6 +93,7 @@ class MedulingoService:
                 "examDate": "",
                 "startDate": "",
                 "revisionDays": 14,
+                "scheduleMode": "sequential",
                 "questions": []
             }
         try:
@@ -103,6 +104,7 @@ class MedulingoService:
                 "examDate": "",
                 "startDate": "",
                 "revisionDays": 14,
+                "scheduleMode": "sequential",
                 "questions": []
             }
 
@@ -151,22 +153,55 @@ class MedulingoService:
         # 4. Tests
         tests_list = []
         if os.path.exists(self.tests_dir):
+            files = []
             for f in os.listdir(self.tests_dir):
                 if f.endswith(".json") and (not safe_proj or f.startswith(f"{safe_proj}_") or safe_proj_norm in normalize_name(f)):
                     fpath = os.path.join(self.tests_dir, f)
                     try:
-                        with open(fpath, "r", encoding="utf-8") as fl:
-                            tdata = json.load(fl)
-                            t_title = tdata.get("title", "")
-                            t_qs = tdata.get("questions", [])
-                            tests_list.append({
-                                "filename": f,
-                                "title": t_title,
-                                "questions": tdata.get("original_questions") or [t_title],
-                                "item_count": len(t_qs)
-                            })
+                        mtime = os.path.getmtime(fpath)
                     except Exception:
-                        pass
+                        mtime = 0
+                    files.append((f, fpath, mtime))
+            # Sort newest tests first so recently generated ones take priority
+            files.sort(key=lambda x: x[2], reverse=True)
+
+            for f, fpath, mtime in files:
+                try:
+                    with open(fpath, "r", encoding="utf-8") as fl:
+                        tdata = json.load(fl)
+                        t_title = tdata.get("title", "")
+                        t_qs = tdata.get("questions", [])
+                        t_topics = tdata.get("topics") or []
+                        t_orig_qs = tdata.get("original_questions") or []
+                        t_item_topics = [q.get("topic") for q in t_qs if isinstance(q, dict) and q.get("topic")]
+
+                        all_topics = set()
+                        if t_title:
+                            all_topics.add(t_title)
+                        if tdata.get("question_title"):
+                            all_topics.add(str(tdata.get("question_title")))
+                        for it in t_topics:
+                            if it:
+                                all_topics.add(str(it))
+                        for it in t_orig_qs:
+                            if it:
+                                all_topics.add(str(it))
+                        for it in t_item_topics:
+                            if it:
+                                all_topics.add(str(it))
+
+                        tests_list.append({
+                            "filename": f,
+                            "title": t_title,
+                            "question_id": str(tdata.get("question_id") or ""),
+                            "question_title": str(tdata.get("question_title") or ""),
+                            "questions": list(all_topics),
+                            "topics": t_topics,
+                            "item_count": len(t_qs),
+                            "mtime": mtime
+                        })
+                except Exception:
+                    pass
 
         return {
             "notes": notes_list,
@@ -224,12 +259,56 @@ class MedulingoService:
         # Match Test
         has_test = False
         test_file = None
-        for tf in assets["tests"]:
-            t_norm = normalize_name(tf["title"])
-            if q_norm and (q_norm in t_norm or any(q_norm in normalize_name(str(x)) for x in tf["questions"])):
+
+        # 1. Přímá reference na test_file uložená u otázky
+        if q.get("test_file"):
+            candidate = str(q.get("test_file"))
+            cand_path = os.path.join(self.tests_dir, candidate)
+            if os.path.exists(cand_path):
                 has_test = True
-                test_file = tf["filename"]
-                break
+                test_file = candidate
+
+        # 2. Vyhledání v indexovaných testech projektu
+        if not has_test:
+            qid = str(q.get("id") or "")
+            for tf in assets.get("tests", []):
+                # Shoda podle explicitního question_id
+                if qid and tf.get("question_id") and tf.get("question_id") == qid:
+                    has_test = True
+                    test_file = tf["filename"]
+                    break
+
+                # Shoda podle názvu testu
+                t_norm = normalize_name(tf.get("title", ""))
+                if q_norm and (q_norm in t_norm or (len(t_norm) >= 6 and t_norm in q_norm)):
+                    has_test = True
+                    test_file = tf["filename"]
+                    break
+
+                # Shoda podle question_title metadata
+                qt_norm = normalize_name(tf.get("question_title", ""))
+                if q_norm and qt_norm and (q_norm in qt_norm or qt_norm in q_norm):
+                    has_test = True
+                    test_file = tf["filename"]
+                    break
+
+                # Shoda v tématech a podotázkách testu
+                matched_sub = False
+                for x in tf.get("questions", []):
+                    x_str = str(x).strip()
+                    if not x_str:
+                        continue
+                    x_norm = normalize_name(x_str)
+                    if not x_norm:
+                        continue
+                    if q_norm in x_norm or (len(x_norm) >= 6 and x_norm in q_norm):
+                        matched_sub = True
+                        break
+
+                if matched_sub:
+                    has_test = True
+                    test_file = tf["filename"]
+                    break
 
         is_completed = bool(q.get("completedDate"))
 

@@ -1,0 +1,36 @@
+# Git a IDE
+.git/
+.gitignore
+.DS_Store
+.env
+.idea/
+.vscode/
+
+# Virtuální prostředí a Python cache
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Lokální uživatelská data (budou v perzistentním volume)
+uploads/
+lessons_data/
+lessons/
+generated_audio/
+generated_flashcards/
+generated_notes/
+generated_tests/
+chroma_db/
+chat_history.db*
+user_config.json
+lessons_meta/
+data/
+
+# Build a scratch
+build/
+dist/
+*.spec
+scratch/
+tests/

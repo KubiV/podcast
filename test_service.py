@@ -45,10 +45,12 @@ STRIKTNÍ PSYCHOMETRICKÁ PRAVIDLA PRO TESTOVÉ POLOŽKY (PubMed 40504491):
    - Realistická klinická viněta: Věk, pohlaví pacienta, časový průběh (např. potíže trvající několik týdnů), klíčová anamnéza, fyzikální nález a iniciální laboratorní/zobrazovací výsledky.
    - Klinický zvrat ("The Twist"): Zařazení neočekávaného zvratu, náhlého zhoršení stavu, atypického sekundárního laboratorního výsledku nebo kontraindikace standardního postupu, což nutí studenta k hlubšímu diferenčně diagnostickému úsudku.
 
-4. KONTROLA KVALITY MOŽNOSTÍ (DISTRAKTORŮ):
-   - Všech 4 až 5 nabízených možností (A, B, C, D případně E) MUSÍ mít stejnou délku, gramatickou strukturu, podobnou úroveň detailu a vysokou klinickou věrohodnost (plauzibilitu).
+4. KONTROLA KVALITY MOŽNOSTÍ (DISTRAKTORŮ) A PŘÍSNÁ DÉLKOVÁ SYMETRIE (PubMed 40504491):
+   - PŘÍSNÝ ZÁKAZ DELŠÍCH SPRÁVNÝCH ODPOVĚDÍ: Správná odpověď NESMÍ BÝT DELŠÍ ani detailnější než distraktory! Častou chybou AI je, že správnou možnost popíše s veškerou péčí, podmínkami a dovětky, zatímco distraktory zůstanou kratší. TOTO JE NEPŘÍPUSTNÉ.
+   - STRIKTNÍ DÉLKOVÁ A GRAMATICKÁ SYMETRIE: Všech 4 až 5 nabízených možností (A, B, C, D případně E) MUSÍ mít přibližně STEJNOU DÉLKU (rozdíl v počtu znaků max. ±15 %), stejnou gramatickou formu (všechny začínají infinitivem, nebo všechny podstatným jménem) a stejnou úroveň medicínského detailu. Pokud je správná odpověď stručná, distraktory musí být stejně stručné. Pokud je správná volba souvětí, všechny distraktory musí být souvětí o stejné délce s reálnými klinickými parametry.
+   - NÁHODNÁ POZICE SPRÁVNÉ ODPOVĚDI: Správná odpověď NESMÍ BÝT VŽDY NA POZICI A! Rozptyl správnou možnost rovnoměrně a náhodně mezi písmena A, B, C a D (např. u jedné otázky je správně C, u další B, u další D, u další A). Písmeno v 'correct_answers' i v 'explanation' MUSÍ přesně odpovídat této pozici!
    - Žádný distraktor nesmí být očividně absurdní nebo do očí bijící nesmysl. Distraktory musí představovat reálné diferenciální diagnózy nebo běžné klinické omyly.
-   - Správná odpověď nesmí být identifikovatelná pouze délkou textu či přítomností nápovědních slov.
+   - Správná odpověď nesmí být identifikovatelná délkou textu, gramatickou odlišností ani nápovědními slovy.
 
 5. TYPY OTÁZEK (generuj pouze povolené typy: {ALLOWED_TYPES}):
    - 'single_choice' (SBA / ABCD - jedna nejlepší správná): 4 nebo 5 možností (A, B, C, D, E). Přesně JEDNA je správná.
@@ -76,15 +78,15 @@ STRIKTNÍ PSYCHOMETRICKÁ PRAVIDLA PRO TESTOVÉ POLOŽKY (PubMed 40504491):
        "scenario": "Text klinické viněty s věkem, anamnézou, nálezy a zvratem (Twist), nebo prázdný řetězec",
        "question": "Jasný kmen otázky (např. 'Jaký je nejvhodnější další diagnostický krok?' nebo 'Které z následujících tvrzení je správné?')",
        "options": [
-         {"id": "A", "text": "Možnost A"},
-         {"id": "B", "text": "Možnost B"},
-         {"id": "C", "text": "Možnost C"},
-         {"id": "D", "text": "Možnost D"}
+         {"id": "A", "text": "Možnost A (přesně stejná délka a styl jako ostatní)"},
+         {"id": "B", "text": "Možnost B (přesně stejná délka a styl jako ostatní)"},
+         {"id": "C", "text": "Možnost C (přesně stejná délka a styl jako ostatní)"},
+         {"id": "D", "text": "Možnost D (přesně stejná délka a styl jako ostatní)"}
        ],
-       "correct_answers": ["A"],
+       "correct_answers": ["C"],
        "model_answer": "Stručná vzorová odpověď",
        "key_points": ["klíčový pojem 1", "klíčový pojem 2"],
-       "explanation": "Didaktické zdůvodnění správné volby a vyloučení jednotlivých distraktorů.",
+       "explanation": "Didaktické zdůvodnění správné volby C a vyloučení jednotlivých distraktorů A, B, D.",
        "difficulty": "normal",
        "source_file": "nazev_souboru.pdf",
        "source_page": "45",
@@ -499,25 +501,6 @@ class TestStorageManager:
         return False
 
 
-async def generate_practice_test(
-    project: str,
-    questions: List[str],
-    count: int = 10,
-    question_types: Optional[List[str]] = None,
-    difficulty: str = "normal",
-    mode: str = "instant",
-    custom_prompt: str = "",
-    gemini_model: str = "gemini-3.6-flash",
-    tests_dir: str = "",
-    rag_query_fn = None,
-    gemini_call_fn = None,
-    log_fn = None,
-    categories: Optional[List[str]] = None,
-    categories_map: Optional[Dict[str, List[str]]] = None,
-) -> Tuple[Dict[str, Any], str]:
-    """
-    Vygeneruje kompletní procvičovací test na základě zadaných otázek, kategorií a materiálů v RAG.
-    """
 def calculate_batch_sizes(total: int, max_per_batch: int = 6) -> List[int]:
     """Rozdělí celkový počet otázek do bezpečných dávek, aby nedošlo k useknutí tokenového limitu modelu."""
     if total <= max_per_batch:
@@ -543,6 +526,7 @@ async def generate_practice_test(
     log_fn = None,
     categories: Optional[List[str]] = None,
     categories_map: Optional[Dict[str, List[str]]] = None,
+    question_id: Optional[str] = None,
 ) -> Tuple[Dict[str, Any], str]:
     """
     Vygeneruje kompletní procvičovací test na základě zadaných otázek, kategorií a materiálů v RAG.
@@ -655,6 +639,9 @@ async def generate_practice_test(
             f"POČET POŽADOVANÝCH OTÁZEK PRO TUTO DÁVKU: {b_count}\n"
             f"POVOLENÉ TYPY OTÁZEK: {allowed_types_str}\n"
             f"POŽADOVANÁ OBTÍŽNOST: {difficulty}\n\n"
+            f"DŮRAZNÁ KONTROLA PŘED VYGENEROVÁNÍM KAŽDÉ OTÁZKY:\n"
+            f"1. DÉLKA MOŽNOSTÍ: Správná odpověď nesmí být delší ani upovídanější než distraktory (všechny možnosti A-D musí mít symetrickou délku a formu)!\n"
+            f"2. NÁHODNÁ POZICE: Neumisťuj správnou odpověď automaticky na A! Náhodně střídej písmena správné odpovědi (např. C, B, D, A) a v poli 'explanation' uveď odpovídající písmeno.\n\n"
             f"SEZNAM PŘIŘAZENÝCH ZDROJŮ PRO CITACE:\n{sources_summary if sources_summary else 'Využij odborné medicínské standardy.'}\n\n"
             f"=== ÚRYVKY ZE STUDIJNÍCH MATERIÁLŮ ===\n"
             f"{context_text if context_text else 'Učební podklady nejsou dostupné, generuj z medicínských znalostních standardů.'}\n"
@@ -705,7 +692,9 @@ async def generate_practice_test(
         q["id"] = idx
         q["round"] = 1
 
-    if categories:
+    if questions and len(questions) == 1:
+        test_title = f"Test: {questions[0]}"
+    elif categories:
         if len(categories) == 1:
             test_title = f"Vlákno: {categories[0]}"
         elif len(categories) <= 3:
@@ -723,6 +712,8 @@ async def generate_practice_test(
         "id": f"test_{int(time.time())}_{uuid.uuid4().hex[:6]}",
         "project": project,
         "title": test_title,
+        "question_id": question_id or (questions[0] if (questions and len(questions) == 1) else None),
+        "question_title": questions[0] if (questions and len(questions) == 1) else None,
         "created_at": datetime.now().isoformat(),
         "updated_at": datetime.now().isoformat(),
         "difficulty": difficulty,
@@ -886,6 +877,9 @@ async def generate_more_test_questions(
             f"POČET DALŠÍCH OTÁZEK PRO TUTO DÁVKU: {b_count}\n"
             f"POŽADOVANÁ OBTÍŽNOST: {new_difficulty} (posun: {difficulty_shift})\n"
             f"POVOLENÉ TYPY: {allowed_types_str}\n\n"
+            f"DŮRAZNÁ KONTROLA PŘED VYGENEROVÁNÍM KAŽDÉ OTÁZKY:\n"
+            f"1. DÉLKA MOŽNOSTÍ: Správná odpověď nesmí být delší ani upovídanější než distraktory (všechny možnosti A-D musí mít symetrickou délku a formu)!\n"
+            f"2. NÁHODNÁ POZICE: Neumisťuj správnou odpověď automaticky na A! Náhodně střídej písmena správné odpovědi (např. C, B, D, A) a v poli 'explanation' uveď odpovídající písmeno.\n\n"
             f"SEZNAM ZDROJŮ:\n{sources_summary}\n\n"
             f"=== ÚRYVKY Z MATERIÁLŮ ===\n{context_text}\n=========================="
         )

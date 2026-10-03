@@ -19,7 +19,7 @@ load_dotenv()
 def get_user_data_dir() -> str:
     """Vrací absolutní cestu k perzistentní složce s uživatelskými daty aplikace."""
     if "AIMEDSTUDIO_DATA_DIR" in os.environ and os.environ["AIMEDSTUDIO_DATA_DIR"]:
-        return os.environ["AIMEDSTUDIO_DATA_DIR"]
+        return os.path.abspath(os.environ["AIMEDSTUDIO_DATA_DIR"])
     if getattr(sys, "frozen", False):
         exe_dir = os.path.dirname(sys.executable)
         portable_data_dir = os.path.join(exe_dir, "data")
@@ -86,8 +86,10 @@ def get_ai_client() -> genai.Client:
 
 
 def get_db_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA busy_timeout=30000;")
     return conn
 
 
@@ -590,14 +592,25 @@ def clear_project_messages(project_id: str) -> bool:
 
 
 def delete_project_records(project_id: str) -> None:
-    """Kompletně smaže všechny záznamy projektu z databáze SQLite (chat, vlákna, lekce, FTS i metadata chunků)."""
+    """Kompletně smaže všechny záznamy projektu z databáze SQLite (chat, vlákna, FTS i metadata chunků)."""
     safe_proj = sanitize_project_name(project_id)
     with get_db_connection() as conn:
         conn.execute("DELETE FROM chat_messages WHERE project_id = ?", (safe_proj,))
         conn.execute("DELETE FROM chat_threads WHERE project_id = ?", (safe_proj,))
-        conn.execute("DELETE FROM lessons WHERE project_id = ?", (safe_proj,))
         conn.execute("DELETE FROM project_chunks_fts WHERE project_id = ?", (safe_proj,))
         conn.execute("DELETE FROM project_chunks_meta WHERE project_id = ?", (safe_proj,))
+        conn.commit()
+
+
+def delete_lesson_records(lesson_id: str) -> None:
+    """Kompletně smaže všechny záznamy výukové lekce z databáze SQLite (lekce, chat zprávy, vlákna, FTS i metadata chunků)."""
+    safe_id = sanitize_project_name(lesson_id)
+    with get_db_connection() as conn:
+        conn.execute("DELETE FROM lessons WHERE project_id = ?", (safe_id,))
+        conn.execute("DELETE FROM chat_messages WHERE project_id = ?", (safe_id,))
+        conn.execute("DELETE FROM chat_threads WHERE project_id = ?", (safe_id,))
+        conn.execute("DELETE FROM project_chunks_fts WHERE project_id = ?", (safe_id,))
+        conn.execute("DELETE FROM project_chunks_meta WHERE project_id = ?", (safe_id,))
         conn.commit()
 
 
@@ -608,10 +621,142 @@ def rename_project_records(old_project_id: str, new_project_id: str) -> None:
     with get_db_connection() as conn:
         conn.execute("UPDATE chat_messages SET project_id = ? WHERE project_id = ?", (new_proj, old_proj))
         conn.execute("UPDATE chat_threads SET project_id = ? WHERE project_id = ?", (new_proj, old_proj))
-        conn.execute("UPDATE lessons SET project_id = ? WHERE project_id = ?", (new_proj, old_proj))
         conn.execute("UPDATE project_chunks_meta SET project_id = ? WHERE project_id = ?", (new_proj, old_proj))
         conn.execute("UPDATE project_chunks_fts SET project_id = ? WHERE project_id = ?", (new_proj, old_proj))
         conn.commit()
+
+
+def export_project_sqlite_data(project_id: str) -> Dict[str, Any]:
+    """Vyexportuje všechny SQLite záznamy projektu (chunky, FTS, chatová vlákna a zprávy) do přenositelného slovníku."""
+    safe_proj = sanitize_project_name(project_id)
+    with get_db_connection() as conn:
+        meta_rows = [
+            dict(r)
+            for r in conn.execute(
+                "SELECT chunk_id, source, page, created_at FROM project_chunks_meta WHERE project_id = ?",
+                (safe_proj,),
+            ).fetchall()
+        ]
+        fts_rows = [
+            dict(r)
+            for r in conn.execute(
+                "SELECT chunk_id, source, page, content FROM project_chunks_fts WHERE project_id = ?",
+                (safe_proj,),
+            ).fetchall()
+        ]
+        thread_rows = [
+            dict(r)
+            for r in conn.execute(
+                "SELECT id, title, is_pinned, created_at, updated_at FROM chat_threads WHERE project_id = ?",
+                (safe_proj,),
+            ).fetchall()
+        ]
+        msg_rows = [
+            dict(r)
+            for r in conn.execute(
+                "SELECT role, content, sources_json, created_at, thread_id FROM chat_messages WHERE project_id = ?",
+                (safe_proj,),
+            ).fetchall()
+        ]
+    return {
+        "project_chunks_meta": meta_rows,
+        "project_chunks_fts": fts_rows,
+        "chat_threads": thread_rows,
+        "chat_messages": msg_rows,
+    }
+
+
+def import_project_sqlite_data(
+    target_project_id: str, data: Dict[str, Any], overwrite: bool = False
+) -> Dict[str, int]:
+    """Naimportuje SQLite záznamy projektu (chunky, FTS, chatová vlákna a zprávy) pod cílovým project_id."""
+    safe_proj = sanitize_project_name(target_project_id)
+    with get_db_connection() as conn:
+        if overwrite:
+            conn.execute("DELETE FROM project_chunks_meta WHERE project_id = ?", (safe_proj,))
+            conn.execute("DELETE FROM project_chunks_fts WHERE project_id = ?", (safe_proj,))
+            conn.execute("DELETE FROM chat_threads WHERE project_id = ?", (safe_proj,))
+            conn.execute("DELETE FROM chat_messages WHERE project_id = ?", (safe_proj,))
+
+        # 1. Chat Threads
+        threads = data.get("chat_threads") or []
+        for t in threads:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO chat_threads (id, project_id, title, is_pinned, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    t["id"],
+                    safe_proj,
+                    t.get("title", "Konverzace"),
+                    t.get("is_pinned", 0),
+                    t.get("created_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                    t.get("updated_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                ),
+            )
+
+        # 2. Chat Messages
+        messages = data.get("chat_messages") or []
+        for m in messages:
+            conn.execute(
+                """
+                INSERT INTO chat_messages (project_id, role, content, sources_json, created_at, thread_id)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    safe_proj,
+                    m.get("role", "user"),
+                    m.get("content", ""),
+                    m.get("sources_json"),
+                    m.get("created_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                    m.get("thread_id"),
+                ),
+            )
+
+        # 3. Project Chunks Meta
+        meta_chunks = data.get("project_chunks_meta") or []
+        for c in meta_chunks:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO project_chunks_meta (chunk_id, project_id, source, page, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    c["chunk_id"],
+                    safe_proj,
+                    c.get("source", ""),
+                    c.get("page", "1"),
+                    c.get("created_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                ),
+            )
+
+        # 4. Project Chunks FTS
+        fts_chunks = data.get("project_chunks_fts") or []
+        for f in fts_chunks:
+            conn.execute(
+                """
+                INSERT INTO project_chunks_fts (project_id, chunk_id, source, page, content)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    safe_proj,
+                    f["chunk_id"],
+                    f.get("source", ""),
+                    f.get("page", "1"),
+                    f.get("content", ""),
+                ),
+            )
+
+        conn.commit()
+
+    return {
+        "threads": len(threads),
+        "messages": len(messages),
+        "meta_chunks": len(meta_chunks),
+        "fts_chunks": len(fts_chunks),
+    }
+
 
 
 def export_thread_chat_markdown(thread_id: str) -> str:

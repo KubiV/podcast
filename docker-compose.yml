@@ -1,0 +1,37 @@
+services:
+  medstudio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: aimedstudio:latest
+    container_name: aimedstudio
+    restart: unless-stopped
+    ports:
+      # Port aplikace na serveru (např. http://192.168.1.50:8000 nebo http://synology.local:8000)
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - AIMEDSTUDIO_DATA_DIR=/app/data
+      # VOLITELNÉ: Heslo pro ochranu přístupu z lokální sítě (nebo přes internet)
+      # Pokud odkomentujete, aplikace bude při vstupu vyžadovat toto heslo:
+      # - APP_PASSWORD=zvoltesiheslo
+
+      # VOLITELNÉ: API klíče lze nastavit buď zde, nebo pohodlně přímo v rozhraní aplikace (BYOK)
+      # - GEMINI_API_KEY=vas_gemini_klic
+      # - OPENAI_API_KEY=vas_openai_klic
+      # - ELEVENLABS_API_KEY=vas_elevenlabs_klic
+    volumes:
+      # Perzistentní úložiště pro všechny vaše materiály, databázi, podcasty a konfiguraci.
+      # Výchozí: ./data:/app/data (na Raspberry Pi: /srv/compose/podcast/data)
+      # Alternativně lze mapovat přímo do centrálního /srv/data na Pi:
+      # - /srv/data/podcast:/app/data
+      - ./data:/app/data
+
+# VOLITELNÉ: Připojení k existující síti Cloudflare Tunnel nebo Nginx Proxy Manager (NPM)
+# Pokud máte cloudflared nebo npm ve společné síti (např. 'cloudflared_default' nebo 'proxy_net'):
+# networks:
+#   default:
+#     name: cloudflared_default
+#     external: true
+

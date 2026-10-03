@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="primary-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+  </defs>
+  <!-- Background rounded squircle -->
+  <rect width="512" height="512" rx="115" fill="url(#bg-grad)" />
+  <rect width="504" height="504" x="4" y="4" rx="111" fill="none" stroke="#34d399" stroke-width="4" stroke-opacity="0.35" />
+  
+  <!-- Medical Cross / Pulse Symbol -->
+  <g transform="translate(256, 256) scale(0.72) translate(-256, -256)">
+    <!-- Shield / Stethoscope / Pulse Heart -->
+    <circle cx="256" cy="256" r="160" fill="#047857" fill-opacity="0.2" />
+    
+    <!-- Pulse Line with Cross -->
+    <path d="M 80 256 L 160 256 L 195 160 L 235 340 L 275 200 L 305 285 L 330 256 L 432 256" 
+          fill="none" 
+          stroke="url(#primary-grad)" 
+          stroke-width="26" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" />
+    
+    <!-- Top badge cross -->
+    <g transform="translate(256, 115)">
+      <circle cx="0" cy="0" r="28" fill="#10b981" />
+      <path d="M -12 0 L 12 0 M 0 -12 L 0 12" stroke="#ffffff" stroke-width="6" stroke-linecap="round" />
+    </g>
+    
+    <!-- Stethoscope bell icon indicator at bottom -->
+    <circle cx="256" cy="385" r="22" fill="#34d399" />
+    <circle cx="256" cy="385" r="12" fill="#0f172a" />
+  </g>
+</svg>
