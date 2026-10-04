@@ -3,18 +3,23 @@
 .gitignore
 .DS_Store
 .env
+.env.*
+*.env
+.deploy.env
 .idea/
 .vscode/
 
 # Virtuální prostředí a Python cache
 venv/
+.venv/
 env/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.ruff_cache/
 
-# Lokální uživatelská data (budou v perzistentním volume)
+# Lokální uživatelská data a databáze (budou v perzistentním volume)
 uploads/
 lessons_data/
 lessons/
@@ -23,14 +28,23 @@ generated_flashcards/
 generated_notes/
 generated_tests/
 chroma_db/
+*.db
+*.db*
+*.sqlite
+*.sqlite3
+auth.db*
 chat_history.db*
 user_config.json
 lessons_meta/
 data/
 
-# Build a scratch
+# Dočasné skripty, zálohy a testy
 build/
 dist/
 *.spec
+*.bak
+patch.py
+otazky.csv
+poznamky.txt
 scratch/
 tests/

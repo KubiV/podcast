@@ -135,18 +135,21 @@ Veškerá data vytvořená uživatelem jsou izolována od kódu aplikace, což z
 
 ```text
 .
+├── main.py                  # Štíhlý orchestrátor FastAPI, Auth middleware a montování routerů
 ├── desktop_app.py           # Vstupní spouštěč desktopové aplikace (Uvicorn + pywebview)
-├── main.py                  # FastAPI backend, logika RAG, generování a BYOK endpointy
 ├── medstudio.spec           # PyInstaller konfigurace pro sestavení desktopové aplikace
 ├── requirements.txt         # Seznam Python závislostí
+├── core/                    # Sdílená infrastruktura (config, clients, security, logger, utils)
+├── routers/                 # Modulární HTTP vrstva (projects, files, podcast, notes, cards, chat...)
+├── services/                # Zapouzdřené doménové služby (ai, rag, notes, cards, podcast, auth...)
+├── prompts/                 # Izolované systémové a uživatelské šablony promptů
+├── tests/                   # Automatizované testy (bezpečnost, integrita API, služby)
+├── docs/                    # Architektonická a integrační dokumentace (ARCHITECTURE.md)
 ├── static/
 │   └── index.html           # Kompletní frontendové rozhraní (SPA)
 ├── scripts/
 │   ├── build_desktop.sh     # Sestavovací skript pro macOS a Linux
 │   └── build_desktop.bat    # Sestavovací skript pro Windows
-├── chat_service.py          # Služba pro konverzační asistent s citacemi ze zdrojů
-├── lesson_service.py        # Služba pro generování autonomních výukových lekcí
-├── test_service.py          # Služba pro generování a vyhodnocování cvičných testových otázek
 ├── uploads/                 # Nahrané studijní materiály (ve vývoji)
 ├── chroma_db/               # Vektorová databáze ChromaDB (ve vývoji)
 ├── generated_audio/         # Vygenerované audio/video podcasty
@@ -154,6 +157,17 @@ Veškerá data vytvořená uživatelem jsou izolována od kódu aplikace, což z
 ├── generated_flashcards/    # Vygenerované kartičky pro Anki / Quizlet
 └── generated_tests/         # Vygenerované testové sady a výsledky testů
 ```
+
+---
+
+## 🧪 Testování a integrita
+
+Projekt obsahuje automatizovanou testovací sadu pro ověření bezpečnosti, integrity všech API endpointů a odolnosti AI služeb:
+
+```bash
+python -m unittest discover tests
+```
+
 
 ---
 

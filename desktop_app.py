@@ -5,13 +5,13 @@ Spouští lokální Uvicorn server v samostatném vlákně a otevírá nativní 
 Pokud pywebview není k dispozici nebo selže, automaticky otevře výchozí webový prohlížeč.
 """
 
-import os
-import sys
-import time
-import socket
-import logging
 import argparse
+import logging
+import os
+import socket
+import sys
 import threading
+import time
 import webbrowser
 
 # Potlačení zbytečných hlášek uvicornu při startu
@@ -38,9 +38,16 @@ def find_available_port(preferred_port: int = 8000, max_attempts: int = 50) -> i
 
 def run_desktop_app():
     parser = argparse.ArgumentParser(description="AI MedStudio Desktop")
-    parser.add_argument("--browser", action="store_true", help="Otevřít v systémovém webovém prohlížeči místo nativního okna")
+    parser.add_argument(
+        "--browser", action="store_true", help="Otevřít v systémovém webovém prohlížeči místo nativního okna"
+    )
     parser.add_argument("--port", type=int, default=8000, help="Preferovaný port pro lokální server (výchozí: 8000)")
-    parser.add_argument("--server", type=str, default=os.getenv("AIMEDSTUDIO_SERVER_URL", ""), help="URL vzdáleného serveru (např. http://nas.local:8000)")
+    parser.add_argument(
+        "--server",
+        type=str,
+        default=os.getenv("AIMEDSTUDIO_SERVER_URL", ""),
+        help="URL vzdáleného serveru (např. http://nas.local:8000)",
+    )
     args, _ = parser.parse_known_args()
 
     remote_mode = bool(args.server.strip())
@@ -56,6 +63,7 @@ def run_desktop_app():
 
         # Import až zde, aby se správně uplatnila cesty MEIPASS před načtením modulů
         import uvicorn
+
         from main import app
 
         config = uvicorn.Config(
@@ -94,7 +102,7 @@ def run_desktop_app():
     try:
         import webview
 
-        window = webview.create_window(
+        webview.create_window(
             title="AI MedStudio",
             url=url,
             width=1280,

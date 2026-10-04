@@ -39,6 +39,11 @@ RUN mkdir -p /app/data
 # Definice perzistentního svazku
 VOLUME ["/app/data"]
 
+# Bezpečnost: běh jako non-root uživatel
+RUN groupadd -r medstudio && useradd -r -g medstudio -d /app medstudio \
+    && chown -R medstudio:medstudio /app /app/data
+USER medstudio
+
 # Exponovaný port aplikace
 EXPOSE 8000
 
@@ -47,5 +52,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Spuštění aplikace přes uvicorn na všech síťových rozhraních (včetně podpory reverse proxy / Cloudflare)
+# BEZPEČNOST: V produkci omezit --forwarded-allow-ips na IP reverse proxy (např. 172.17.0.1).
+# Výchozí '*' je vhodné pro Cloudflare Tunnel / NPM, kde proxy běží ve stejné Docker síti.
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]
 
