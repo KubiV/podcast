@@ -23,15 +23,18 @@ services:
       # - ELEVENLABS_API_KEY=vas_elevenlabs_klic
     volumes:
       # Perzistentní úložiště pro všechny vaše materiály, databázi, podcasty a konfiguraci.
-      # Výchozí: ./data:/app/data (na Raspberry Pi: /srv/compose/podcast/data)
+      # Výchozí: ./data:/app/data (na Raspberry Pi: /srv/compose/medstudio/data)
       # Alternativně lze mapovat přímo do centrálního /srv/data na Pi:
       # - /srv/data/podcast:/app/data
       - ./data:/app/data
+    networks:
+      - default
+      - proxy_net
 
-# VOLITELNÉ: Připojení k existující síti Cloudflare Tunnel nebo Nginx Proxy Manager (NPM)
-# Pokud máte cloudflared nebo npm ve společné síti (např. 'cloudflared_default' nebo 'proxy_net'):
-# networks:
-#   default:
-#     name: cloudflared_default
-#     external: true
+# Propojení se společnou sítí Nginx Proxy Manageru (NPM)
+networks:
+  default:
+  proxy_net:
+    name: proxy_net
+    external: true
 
