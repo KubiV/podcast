@@ -671,7 +671,7 @@ Commit: `e45a017` – `refactor(batch): Share one batch skeleton across podcast,
 
 ## 3.5a Smoke testy frontendu v prohlížeči (Playwright)
 
-Commit: `test(frontend): Add opt-in Playwright smoke tests` (hash doplní další krok)
+Commit: `a9654eb` – `test(frontend): Add opt-in Playwright smoke tests`
 
 Příprava pro krok 3.5. Kód aplikace se nemění.
 
@@ -685,3 +685,30 @@ Příprava pro krok 3.5. Kód aplikace se nemění.
 
 **Zjištěná chyba (zapsáno, neopraveno, ve smoke testu vedená jako známá):**
 - **ID chat vlákna si volí klient** (`POST /api/chat/threads` s `id`) a server ho neověřuje. ID s `/` (např. `thread_x');…;//`) pak nejde načíst, protože `/api/chat/threads/{id}` vrací 404. Frontend vlákno automaticky vybírá po načtení seznamu a zaloguje chybu. Navrhuji ID vláken generovat jen na serveru, nebo je validovat (`thread_[0-9a-f]{12}`).
+
+## 3.5 Rozdělení `static/js/app.js` po sekcích
+
+**Odchylka od plánu (technická, k odsouhlasení):** plán zněl „app.js → ES moduly podle sekcí, funkce volané z HTML dočasně exportovat na `window`“. Skutečný převod na ES moduly by vyžadoval přepsat tisíce odkazů, protože ~95 sdílených top-level `let` proměnných (`currentProject`, `questions`, `currentDeck`…) by v modulech nebyly sdílené. To odporuje zásadě malých kroků bez změny chování. Proto `app.js` dělím na **klasické skripty po sekcích, načítané v původním pořadí**:
+- top-level funkce (window) i `let`/`const`/`class` (globální lexikální scope) zůstávají sdílené,
+- inline handlery fungují beze změny,
+- převod na skutečné ES moduly je smysluplný až po přechodu na delegované listenery (krok 4.8).
+
+**Proč je dělení bezpečné:** analýza top-level příkazů parserem TypeScriptu (587 příkazů: 472 funkcí, 109 proměnných, 1 třída, 5 výrazů).
+- Při načtení se vykonává jen registrace listenerů (`DOMContentLoaded`, `resize`, `keydown`, změna jazyka) a přepis `window.fetch`. Jediné volání funkce je `getCurrentLanguage()` (ř. 11452/11457, obojí v hlavním souboru).
+- Inicializace aplikace běží v `DOMContentLoaded`, tedy až po načtení všech skriptů.
+- Rozdělení souvislého souboru na po sobě jdoucí úseky proto zachovává pořadí vykonávání. Jediné riziko, hoisting funkce volané při načtení z pozdějšího souboru, tu nenastává.
+
+Každá sekce = jeden commit. Kontroly po každém kroku:
+- spojení souborů musí dát bajtově původní `app.js`,
+- `node --check` každého souboru,
+- smoke testy v Chromiu (`AIMEDSTUDIO_FRONTEND_SMOKE=1`), které hlídají existenci všech funkcí volaných z handlerů ve všech `static/js/*.js` (313 jmen), průchod sekcemi a loadery,
+- běžná sada testů.
+
+### 3.5.1 Pomodoro → `static/js/pomodoro.js`
+
+Commit: `refactor(frontend): Move Pomodoro section into pomodoro.js` (hash doplní další krok)
+
+- Řádky 14167–15107 původního `app.js` (banner, stav a 40+ funkcí Pomodora, konec souboru) se přesunuly beze změny, včetně odsazení, do `static/js/pomodoro.js` s krátkou hlavičkou. `app.js` 15 107 → 14 166 ř.
+- `index.html`: `<script src="/js/pomodoro.js">` hned za `app.js`, cache-busting `?v=2.7`.
+- Smoke test teď hledá jména handlerů ve všech `static/js/*.js`.
+- **Ověření:** `app.js` + `pomodoro.js` bez hlavičky == původní `app.js` (`cmp`). `node --check` OK. Smoke 4/4 OK (313 funkcí z handlerů existuje, `initPomodoro()` i průchod sekcí Pomodoro bez chyb). Běžná sada 148 OK (4 přeskočené smoke).
