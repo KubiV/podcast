@@ -715,8 +715,16 @@ Commit: `e268ee2` – `refactor(frontend): Move Pomodoro section into pomodoro.j
 
 ### 3.5.2 Medulingo → `static/js/medulingo.js`
 
-Commit: `refactor(frontend): Move Medulingo section into medulingo.js` (hash doplní další krok)
+Commit: `309a9d0` – `refactor(frontend): Move Medulingo section into medulingo.js`
 
 - Řádky 12665–14166 původního `app.js` (Medulingo: stav, přehled, otázky, kroky studijní cesty, mini-test, chat, kartičky) se přesunuly beze změny do `static/js/medulingo.js` s krátkou hlavičkou. `app.js` 14 166 → 12 664 ř.
 - `index.html`: pořadí `app.js` → `medulingo.js` → `pomodoro.js`, takže pořadí vykonávání odpovídá původnímu souboru. Cache-busting `app.js`/`medulingo.js` `?v=2.8`.
 - **Ověření:** `app.js` + `medulingo.js` + `pomodoro.js` (bez hlaviček) == **původní** `app.js` před krokem 3.5 (`cmp`). `node --check` OK u všech tří. Smoke 4/4 OK (`loadMedulingo()` i průchod sekcí bez chyb, všechny funkce z handlerů existují). Běžná sada 148 OK (4 přeskočené smoke).
+
+### 3.5.3 Authentication → `static/js/auth.js`
+
+Commit: `refactor(frontend): Move Authentication section into auth.js` (hash doplní další krok)
+
+- Řádky 11479–12664 původního `app.js` (1186 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/auth.js` s krátkou hlavičkou. `app.js` 12664 → 11478 ř.
+- `index.html`: `auth.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`auth.js` `?v=2.9`.
+- **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
