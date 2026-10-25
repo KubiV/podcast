@@ -183,10 +183,13 @@ async def call_gemini_with_resilience(
     step_name: str = "generating",
     step_pct: int = 30,
     wait_intervals: list[int] | None = None,
+    get_fallback: Callable[[str], str | None] = get_fallback_model,
 ) -> Any:
     """
-    Zpětně kompatibilní wrapper pro generování lekcí v lesson_service.
-    Vrací přímo instanci response z ai_client.models.generate_content.
+    Spolehlivé volání Gemini API s automatickými retries při přetížení (HTTP 503 / 429),
+    progresivním čekáním, průběžnými notifikacemi pro uživatele a záložním modelem (fallback).
+    Vrací přímo response z ai_client.models.generate_content; konfiguraci předává beze změny.
+    `get_fallback` určuje mapu záložních modelů (lekce mají vlastní, viz lesson_service).
     """
     if wait_intervals is None:
         wait_intervals = [6, 12, 25, 45, 60]
@@ -206,16 +209,22 @@ async def call_gemini_with_resilience(
             return resp
         except Exception as e:
             if is_retryable_gemini_error(e):
-                err_detail = extract_gemini_error_detail(e)
+                err_detail = str(e)
+                try:
+                    err_detail = extract_gemini_error_detail(e)
+                except Exception:
+                    pass
+
+                # Pokud primární model selhává opakovaně (od 3. pokusu), zkusíme záložní model
                 if attempt >= 2 and not fallback_used:
-                    fallback = get_fallback_model(current_model)
+                    fallback = get_fallback(current_model)
                     if fallback and fallback != current_model:
                         fallback_used = True
                         if report_fn:
                             await report_fn(
                                 step_name,
                                 step_pct,
-                                f"⚠️ Model {current_model} je přetížen ({err_detail}). Přepínám na záložní model {fallback}...",
+                                f"⚠️ Model {current_model} je na straně Googlu dočasně přetížen ({err_detail}). Přepínám na záložní model {fallback}...",
                             )
                         current_model = fallback
                         await asyncio.sleep(4)
@@ -227,7 +236,7 @@ async def call_gemini_with_resilience(
                         await report_fn(
                             step_name,
                             step_pct,
-                            f"⚠️ Gemini API je přetížené ({err_detail}). Pokus {attempt + 1}/{max_attempts}, čekám {wait_time} s...",
+                            f"⚠️ Gemini API je dočasně přetížené ({err_detail}). Pokus {attempt + 1}/{max_attempts}, čekám {wait_time} s...",
                         )
                     await asyncio.sleep(wait_time)
                 else:

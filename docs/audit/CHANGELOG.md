@@ -847,7 +847,7 @@ Commit: `1353a3d` – `refactor(frontend): Move Project transfer section into pr
 
 ### 4.1 Nepoužívané importy (F401) a zapnutí pravidla
 
-Commit: `refactor: Remove unused imports and enable ruff F401` (hash doplní další krok)
+Commit: `113f24f` – `refactor: Remove unused imports and enable ruff F401`
 
 - `ruff check --select F401 --fix`: odstraněno 124 nepoužívaných importů ve 24 souborech. Nejvíc v `main.py` (49 pozůstatků z doby před rozdělením do routerů), dále v `routers/*`, `services/*`, `core/clients.py`, `core/context.py`, `desktop_app.py` a `tests/test_frontend_smoke.py`.
 - `pyproject.toml`: F401 odstraněno z `ignore`, takže pravidlo platí.
@@ -861,4 +861,17 @@ Commit: `refactor: Remove unused imports and enable ruff F401` (hash doplní dal
   - import všech 53 modulů v `core`/`services`/`routers`/`prompts` i kořenových shimů OK;
   - celé OpenAPI schéma `app.openapi()` je bajtově shodné s HEAD;
   - běžná sada 148 OK (4 přeskočené), smoke 4/4 OK, `py_compile desktop_app.py` OK.
+
+### 4.2 Jedna implementace `call_gemini_with_resilience` (R2, R3)
+
+Commit: `refactor(ai): Share one call_gemini_with_resilience implementation` (hash doplní další krok)
+
+- Mrtvá kopie v `services/ai_service.py` (aplikace ji nevolala, jen test 2.4) je nahrazená živou variantou z `services/lesson_service.py`. Jsou to tytéž texty hlášek a totéž ošetření `extract_gemini_error_detail` s návratem na `str(e)`. Nový parametr `get_fallback` (výchozí `ai_service.get_fallback_model`) určuje mapu záložních modelů.
+- `lesson_service.call_gemini_with_resilience` je teď tenký wrapper se stejnou signaturou a výchozím krokem `generating_markdown`. Předává **vlastní mapu fallbacků lekcí** (`lesson_service.get_fallback_model`, neznámý model → žádný fallback). Chování lekcí se tedy nemění.
+- Mapy fallbacků zůstávají dvě. Jejich sjednocení by změnilo chování (R3, AI6) a vyžaduje tvůj souhlas.
+- Rozdíly, které zmizely jen u dosud mrtvé verze v `ai_service`: texty hlášek („je přetížen“ → „je na straně Googlu dočasně přetížen“, „je přetížené“ → „je dočasně přetížené“) a ochrana `extract_gemini_error_detail` přes try/except.
+- **Testy:** `tests/test_ai_resilience.py` dostal novou třídu `TestLessonResilienceMessages`, která přesně fixuje hlášky lekcí, plán čekání a modely pro fallback i pro neznámý model.
+  - Hodnoty byly zachycené na kódu před změnou. Testy procházejí na původním i novém kódu.
+  - Mutační kontrola: wrapper bez `get_fallback=…` → 2 selhání. Výchozí krok `generating` místo `generating_markdown` → 2 selhání.
+- **Ověření:** `ruff check` / `ruff format --check` OK. Běžná sada 150 OK (4 přeskočené smoke), smoke 4/4 OK, celé OpenAPI schéma bajtově shodné s HEAD, golden master služeb beze změny.
 

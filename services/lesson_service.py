@@ -1,4 +1,3 @@
-import asyncio
 import json
 import os
 import re
@@ -11,6 +10,7 @@ from mutagen.mp3 import MP3
 
 from core.utils import is_retryable_gemini_error  # noqa: F401 – re-export pro zpětnou kompatibilitu
 from prompts.lesson import STAGE_A_STUDY_MATERIAL_PROMPT, STAGE_B_LECTURE_SCRIPT_PROMPT
+from services import ai_service
 from services.chat_service import (
     get_ai_client,
     get_chroma_client,
@@ -311,64 +311,18 @@ async def call_gemini_with_resilience(
     step_pct: int = 30,
     wait_intervals: list[int] | None = None,
 ) -> Any:
-    """
-    Spolehlivé volání Gemini API s automatickými retries při přetížení (HTTP 503 / 429),
-    progresivním čekáním, průběžnými notifikacemi pro uživatele a záložním modelem (fallback).
-    """
-    if wait_intervals is None:
-        wait_intervals = [6, 12, 25, 45, 60]
-
-    current_model = model
-    fallback_used = False
-    max_attempts = len(wait_intervals) + 1
-
-    for attempt in range(max_attempts):
-        try:
-            resp = await asyncio.to_thread(
-                ai_client.models.generate_content,
-                model=current_model,
-                contents=contents,
-                config=config,
-            )
-            return resp
-        except Exception as e:
-            if is_retryable_gemini_error(e):
-                err_detail = str(e)
-                try:
-                    from core.utils import extract_gemini_error_detail
-
-                    err_detail = extract_gemini_error_detail(e)
-                except Exception:
-                    pass
-
-                # Pokud primární model selhává opakovaně (od 3. pokusu), zkusíme záložní model
-                if attempt >= 2 and not fallback_used:
-                    fallback = get_fallback_model(current_model)
-                    if fallback and fallback != current_model:
-                        fallback_used = True
-                        if report_fn:
-                            await report_fn(
-                                step_name,
-                                step_pct,
-                                f"⚠️ Model {current_model} je na straně Googlu dočasně přetížen ({err_detail}). Přepínám na záložní model {fallback}...",
-                            )
-                        current_model = fallback
-                        await asyncio.sleep(4)
-                        continue
-
-                if attempt < max_attempts - 1:
-                    wait_time = wait_intervals[attempt]
-                    if report_fn:
-                        await report_fn(
-                            step_name,
-                            step_pct,
-                            f"⚠️ Gemini API je dočasně přetížené ({err_detail}). Pokus {attempt + 1}/{max_attempts}, čekám {wait_time} s...",
-                        )
-                    await asyncio.sleep(wait_time)
-                else:
-                    raise
-            else:
-                raise
+    """Sdílená `ai_service.call_gemini_with_resilience` s mapou záložních modelů lekcí (`get_fallback_model` výše)."""
+    return await ai_service.call_gemini_with_resilience(
+        ai_client,
+        model,
+        contents,
+        config,
+        report_fn=report_fn,
+        step_name=step_name,
+        step_pct=step_pct,
+        wait_intervals=wait_intervals,
+        get_fallback=get_fallback_model,
+    )
 
 
 async def generate_lesson_package(

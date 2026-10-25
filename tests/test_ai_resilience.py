@@ -1,7 +1,7 @@
 """
 Charakterizace volání Gemini s opakováním a záložním modelem (krok 2.4):
-`services.ai_service.call_gemini_with_retries` a obě kopie `call_gemini_with_resilience`
-(`services.ai_service` a `services.lesson_service`), které krok 4.2 sloučí.
+`services.ai_service.call_gemini_with_retries` a `call_gemini_with_resilience` – sdílená implementace
+v `services.ai_service` a wrapper `services.lesson_service` s vlastní mapou záložních modelů (sloučeno v kroku 4.2).
 
 `asyncio.sleep` je nahrazený záznamníkem, takže testy nečekají a zaznamenají plán čekání.
 """
@@ -199,7 +199,7 @@ class TestCallGeminiWithRetries(_Base):
 
 
 class TestCallGeminiWithResilience(_Base):
-    """Obě kopie `call_gemini_with_resilience` – rozdíly zdokumentované pro sloučení v kroku 4.2."""
+    """`call_gemini_with_resilience` přímo z `ai_service` a přes wrapper `lesson_service` (liší se mapou fallbacků a krokem)."""
 
     IMPLEMENTATIONS = (
         ("ai_service", ai_service, "generating"),
@@ -265,6 +265,59 @@ class TestCallGeminiWithResilience(_Base):
                     ),
                 )
                 self.assertEqual((result.text, rec.sleeps), ("OK", [1]))
+
+
+class TestLessonResilienceMessages(_Base):
+    """Přesné hlášky a plán čekání lekcí – zachycené na kódu před sloučením v kroku 4.2."""
+
+    E503_DETAIL = "HTTP 503 (Model Googlu je přetížený): The model is overloaded. Please try again later."
+    E429_DETAIL = "HTTP 429 (Vyčerpán limit požadavků / RPM / TPM)"
+
+    def run_lesson(self, responses, model):
+        return self.run_with(
+            responses,
+            lambda fake, rec: lesson_service.call_gemini_with_resilience(
+                fake, model, ["x"], types.GenerateContentConfig(), report_fn=rec.report
+            ),
+        )
+
+    def test_fallback_messages(self):
+        fake, rec, result = self.run_lesson([e503(), e503(), e503(), "OK"], MODEL)
+        self.assertEqual(result.text, "OK")
+        self.assertEqual(
+            rec.logs,
+            [
+                (
+                    "generating_markdown",
+                    30,
+                    f"⚠️ Gemini API je dočasně přetížené ({self.E503_DETAIL}). Pokus 1/6, čekám 6 s...",
+                ),
+                (
+                    "generating_markdown",
+                    30,
+                    f"⚠️ Gemini API je dočasně přetížené ({self.E503_DETAIL}). Pokus 2/6, čekám 12 s...",
+                ),
+                (
+                    "generating_markdown",
+                    30,
+                    f"⚠️ Model {MODEL} je na straně Googlu dočasně přetížen ({self.E503_DETAIL}). "
+                    "Přepínám na záložní model gemini-flash-latest...",
+                ),
+            ],
+        )
+
+    def test_unknown_model_never_falls_back(self):
+        fake, rec, result = self.run_lesson([e429()], "neznamy-model")
+        self.assertIsInstance(result, Exception)
+        self.assertEqual(self.models(fake), ["neznamy-model"] * 6)
+        self.assertEqual(rec.sleeps, [6, 12, 25, 45, 60])
+        self.assertEqual(
+            [m for _, _, m in rec.logs],
+            [
+                f"⚠️ Gemini API je dočasně přetížené ({self.E429_DETAIL}). Pokus {i}/6, čekám {w} s..."
+                for i, w in zip(range(1, 6), [6, 12, 25, 45, 60])
+            ],
+        )
 
 
 if __name__ == "__main__":
