@@ -276,7 +276,7 @@ Commit: `5858b6a` – `fix(security): Pin CDN assets with SRI and add Content-Se
 
 ## 1.9 ⚠ Omezení pokusů o přihlášení, atomický setup admina, důvěryhodné proxy (nálezy S8, S9, S10)
 
-Commit: `fix(security): Rate-limit logins, make admin setup atomic, restrict trusted proxies` (hash doplní další krok)
+Commit: `10e6448` – `fix(security): Rate-limit logins, make admin setup atomic, restrict trusted proxies`
 
 **Zabezpečeno:**
 - Nový `core/rate_limit.py`: počítá neúspěšné pokusy v paměti, bez závislostí, v klouzavém okně 15 minut. Limity jsou 10 neúspěchů na dvojici IP + uživatel a 30 na IP. Blokace jen podle uživatelského jména záměrně chybí, aby útočník nemohl zamknout cizí účet z jiné adresy.
@@ -308,3 +308,28 @@ Commit: `fix(security): Rate-limit logins, make admin setup atomic, restrict tru
 **Poznámky:**
 - Limity jsou v paměti procesu. Po restartu se vynulují a nesdílí se mezi více workery. Aplikace dnes běží jako jeden proces uvicornu.
 - Za zablokovaný pokus se počítá i správné heslo k účtu čekajícímu na schválení nebo zablokovanému účtu, protože `authenticate` vrací neúspěch.
+
+## 1.10 ⚠ Allowlist modelů při sdílených klíčích, limit systémového promptu (nález S11)
+
+Commit: `fix(security): Restrict model choice on shared API keys` (hash doplní další krok)
+
+**Odchylka od plánu (k odsouhlasení):** plán zněl „allowlist `gemini_model` z konfigurace; `custom_system_prompt` jen pro admina, nebo ho jen připojovat“. Upravil jsem to podle zjištění v kódu:
+- **Allowlist platí jen pro ne-adminy v režimu sdílených API klíčů.** Frontend má pole pro vlastní název modelu (`*ModelCustomInput`). Uživatel s vlastním klíčem (per-user BYOK) si model platí sám a funkce mu zůstává. Admin může zadat cokoli. Výchozí allowlist obsahuje přesně modely nabízené v UI (`gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.8-flash`, `gemini-flash-latest`, `gemini-pro-latest`), takže výběr z menu funguje beze změny.
+- **Vlastní systémový prompt zůstává, jen má limit 20 000 znaků.** Medulingo chat si systémový prompt skládá ve frontendu (`app.js`, funkce chatu Medulinga) a posílá ho jako `system_prompt`. Omezení na admina by Medulingo chat běžným uživatelům rozbilo a připojování by změnilo chování modelu. Nákladové riziko pokrývá allowlist modelů a „obejít grounding“ jde i obyčejným dotazem.
+
+**Zabezpečeno:**
+- `core/config.py`: `DEFAULT_GEMINI_MODEL`, `ALLOWED_GEMINI_MODELS` (lze přepsat proměnnou `AIMEDSTUDIO_ALLOWED_MODELS`, čárkami oddělený seznam) a `MAX_CUSTOM_SYSTEM_PROMPT_CHARS`.
+- `core/clients.py`: `require_allowed_model(model)` vrací 400 s výčtem povolených modelů, pokud se platí sdíleným klíčem, uživatel není admin a model není v allowlistu.
+- Kontrola je na všech 12 místech, kde klient volí model, a vždy před plánováním dávky nebo voláním AI. Jde o poznámky, kartičky, scénář podcastu, testy (2×), Medulingo pack, AI klasifikaci otázek, dávky (3×), chat a výukovou lekci.
+- Chat (`/api/chat/completions`): `system_prompt` delší než limit vrací 400.
+
+**Změna chování (záměrná):** v režimu sdílených klíčů běžný uživatel s vlastním modelem mimo allowlist dostane 400. Výběr z menu, admin a režim vlastních klíčů jsou beze změny.
+
+**Testy:** nový `tests/test_model_policy.py` (5 testů, 10 endpointů).
+- Před změnou prošly charakterizační testy: modely z UI pro uživatele, vlastní model pro admina a vlastní model s vlastním klíčem.
+- Před změnou selhaly: zamítnutí vlastního modelu na všech 10 endpointech a limit systémového promptu.
+- Po změně prochází vše.
+
+**Ověření vůči baseline:** 88/88 testů OK, `ruff check` beze změny (2× UP038), F401 130, `ruff format` OK, seznam OpenAPI cest identický.
+
+**Mimo rozsah:** endpoint `/api/settings/test-key` dál přijímá libovolný model (10 tokenů, jen test klíče). Vlastní šablony promptů u poznámek, kartiček a testů (`prompt`) zůstávají bez limitu. Jde o funkci aplikace, ne o tento nález.

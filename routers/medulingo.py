@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import APIRouter, Body, HTTPException, Request
 
 from core.authz import require_project_access
+from core.clients import require_allowed_model
 from core.config import TESTS_DIR, USER_DATA_DIR
 from core.context import current_user_var
 from core.logger import send_log
@@ -61,6 +62,7 @@ async def medulingo_generate_pack_endpoint(request: Request, payload: dict = Bod
     if not project or (not question_id and not question_title):
         raise HTTPException(status_code=400, detail="Chybí identifikátor otázky nebo projekt.")
     require_project_access(project, write=True)
+    require_allowed_model(gemini_model)
 
     safe_proj = sanitize_name(project)
     service = MedulingoService(USER_DATA_DIR)

@@ -61,3 +61,16 @@ def save_user_config(cfg: dict[str, Any]) -> None:
 
 PLANNER_FILENAME = "exam_planner.json"
 APP_PASSWORD = os.getenv("APP_PASSWORD", "").strip()
+
+# Modely Gemini, které smí zvolit běžný uživatel, když se platí sdíleným klíčem serveru
+# (admin a uživatelé s vlastním klíčem mohou zadat libovolný model). Výchozí = modely nabízené v UI.
+DEFAULT_GEMINI_MODEL = "gemini-3.6-flash"
+ALLOWED_GEMINI_MODELS = tuple(
+    m.strip()
+    for m in os.getenv(
+        "AIMEDSTUDIO_ALLOWED_MODELS",
+        "gemini-3.6-flash,gemini-3.5-flash,gemini-3.8-flash,gemini-flash-latest,gemini-pro-latest",
+    ).split(",")
+    if m.strip()
+)
+MAX_CUSTOM_SYSTEM_PROMPT_CHARS = 20_000

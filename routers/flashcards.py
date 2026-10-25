@@ -6,6 +6,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Body, HTTPException, Response
 
 from core.authz import filter_accessible_output_files, require_output_file_access, require_project_access
+from core.clients import require_allowed_model
 from core.config import FLASHCARDS_DIR
 from core.logger import send_log
 from core.security import safe_filename, safe_join
@@ -58,6 +59,7 @@ async def generate_flashcards_endpoint(payload: dict = Body(...)):
     if not question or not project:
         raise HTTPException(status_code=400, detail="Chybí znění otázky nebo projekt.")
     require_project_access(project, write=True)
+    require_allowed_model(gemini_model)
 
     try:
         deck_data, filename = await internal_generate_flashcards(

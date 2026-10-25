@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import APIRouter, Body, HTTPException
 
 from core.authz import filter_accessible_output_files, require_output_file_access, require_project_access
+from core.clients import require_allowed_model
 from core.config import AUDIO_DIR
 from core.logger import send_log
 from core.security import safe_filename, safe_join
@@ -57,6 +58,7 @@ async def generate_script(payload: dict = Body(...)):
     if not question or not custom_prompt or not project:
         raise HTTPException(status_code=400, detail="Chybí parametry dotazu.")
     require_project_access(project, write=True)
+    require_allowed_model(gemini_model)
 
     try:
         script, context = await internal_generate_script(question, custom_prompt, provider, project, gemini_model)

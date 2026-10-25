@@ -5,7 +5,7 @@ import chromadb
 from fastapi import HTTPException
 from google import genai
 
-from core.config import DB_DIR, load_user_config
+from core.config import ALLOWED_GEMINI_MODELS, DB_DIR, load_user_config
 from core.context import current_user_var
 from services.auth_service import AuthService
 
@@ -71,6 +71,23 @@ def get_elevenlabs_api_key(user: dict[str, Any] | None = None) -> str:
             return (cfg.get("elevenlabs_api_key") or os.getenv("ELEVENLABS_API_KEY") or "").strip()
 
     return ""
+
+
+def require_allowed_model(model: str, user: dict[str, Any] | None = None) -> str:
+    """
+    Ve sdíleném režimu API klíčů (náklady nese server) smí běžný uživatel volit jen modely z allowlistu.
+    Admin a uživatel s vlastním klíčem (per-user BYOK) mohou zadat libovolný model.
+    """
+    auth_srv = AuthService.get_instance()
+    target_user = user or current_user_var.get()
+    uses_shared_key = not auth_srv or auth_srv.is_shared_api_keys()
+    is_admin = bool(target_user and target_user.get("role") == "admin")
+    if uses_shared_key and not is_admin and model not in ALLOWED_GEMINI_MODELS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Model '{model}' není na tomto serveru povolen. Povolené modely: {', '.join(ALLOWED_GEMINI_MODELS)}.",
+        )
+    return model
 
 
 def get_gemini_client(user: dict[str, Any] | None = None) -> genai.Client:

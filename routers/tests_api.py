@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import APIRouter, Body, File, Form, HTTPException, Request, Response, UploadFile
 
 from core.authz import filter_accessible_output_files, require_output_file_access, require_project_access
+from core.clients import require_allowed_model
 from core.config import TESTS_DIR
 from core.logger import send_log
 from core.utils import sanitize_name
@@ -44,6 +45,7 @@ async def generate_test_endpoint(payload: dict = Body(...)):
     if not project:
         raise HTTPException(status_code=400, detail="Chybí název projektu.")
     require_project_access(project, write=True)
+    require_allowed_model(gemini_model)
     if isinstance(questions, str):
         questions = [questions] if questions.strip() else []
     if isinstance(categories, str):
@@ -84,6 +86,7 @@ async def generate_more_tests_endpoint(payload: dict = Body(...)):
     if not previous_test_id or not project:
         raise HTTPException(status_code=400, detail="Chybí identifikátor testu nebo projekt.")
     require_project_access(project, write=True)
+    require_allowed_model(gemini_model)
     _require_test_access(previous_test_id)
 
     try:

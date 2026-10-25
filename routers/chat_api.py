@@ -9,10 +9,11 @@ from fastapi import APIRouter, Body, File, Form, HTTPException, Request, Respons
 from fastapi.responses import StreamingResponse
 
 from core.authz import can_access_chat_project, require_project_access, require_thread_access
-from core.clients import get_chroma_client
+from core.clients import get_chroma_client, require_allowed_model
 from core.config import (
     AUDIO_DIR,
     LESSONS_DIR,
+    MAX_CUSTOM_SYSTEM_PROMPT_CHARS,
     NOTES_DIR,
     PLANNER_FILENAME,
     TESTS_DIR,
@@ -58,6 +59,11 @@ async def chat_completions_endpoint(payload: dict = Body(...)):
     require_project_access(project, write=True)
     if thread_id:
         require_thread_access(thread_id, write=True)
+    require_allowed_model(model)
+    if len(custom_sys or "") > MAX_CUSTOM_SYSTEM_PROMPT_CHARS:
+        raise HTTPException(
+            status_code=400, detail=f"Vlastní systémový prompt je delší než {MAX_CUSTOM_SYSTEM_PROMPT_CHARS} znaků."
+        )
 
     safe_proj = sanitize_name(project)
     await send_log(f"💬 Chat dotaz ({safe_proj}): '{message[:50]}...'")
@@ -328,6 +334,7 @@ async def ai_classify_questions_endpoint(project_id: str, request: Request, payl
             status_code=403, detail="Režim pozorovatele: Nemáte oprávnění provádět AI klasifikaci otázek."
         )
     require_project_access(project_id, write=True)
+    require_allowed_model(payload.get("gemini_model") or "gemini-3.6-flash")
     safe_proj = sanitize_name(project_id)
     proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
     planner_file = os.path.join(proj_dir, PLANNER_FILENAME)
@@ -449,6 +456,7 @@ async def generate_lesson_endpoint(
 ):
     if not title.strip():
         raise HTTPException(status_code=400, detail="Chybí název lekce.")
+    require_allowed_model(gemini_model)
     if not files:
         raise HTTPException(status_code=400, detail="Musíte nahrát alespoň jeden soubor.")
 
