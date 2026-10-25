@@ -388,7 +388,7 @@ Testy: 18 → 90. Lint: beze změny proti baseline (2× UP038), F401 132 → 130
 
 ## 2.1 Testovací infrastruktura: offline AI, embeddingy, blokace sítě
 
-Commit: `test: Add offline AI test support and network guard` (hash doplní další krok)
+Commit: `135d320` – `test: Add offline AI test support and network guard`
 
 Krok mění jen testy, kód aplikace beze změny.
 
@@ -414,3 +414,27 @@ Krok mění jen testy, kód aplikace beze změny.
 - Telemetrie ChromaDB 1.5.9 (`Posthog.capture`) je no-op, takže žádný nález.
 
 **Ověření vůči baseline:** 96/96 testů OK. Celá sada běží se zapnutou síťovou pojistkou bez jediného pokusu o síť. Původní testy z baseline (`test_api_integrity`, `test_security`, `test_services`) prochází (19 = 18 + 1 přidaný v kroku 1.1). `ruff check` beze změny (2× UP038), F401 130, `ruff format` OK.
+
+## 2.2 Charakterizační testy CRUD endpointů
+
+Commit: `test: Add characterization tests for CRUD endpoints` (hash doplní další krok)
+
+Krok mění jen testy, kód aplikace beze změny.
+
+- Nový `tests/test_routers_crud.py` (13 testů). Očekávané hodnoty vycházejí ze sondy skutečných odpovědí na nezměněném kódu, ne z předpokladů.
+  - **Projekty:** vytvoření se sanitizací názvu a vlastníkem, výpis. Přejmenování přesune složku, poznámky, kartičky, testy (vč. `project`/`filename` v JSON), audio, chat vlákna a plánovač. Okrajové případy přejmenování: beze změny, prázdné, existující, neexistující. Výběrové `clear-data` (chat, poznámky, otázky; ostatní zůstane, planner si nechá datum). Smazání s počty výstupů, odstraněním vláken a 404 při opakování.
+  - **Soubory:** výpis jen povolených typů, `view` (obsah, content-type, disposition), `preview` (sekce, stránky) a smazání.
+  - **Poznámky:** výpis s titulkem z METADATA a pořadím podle mtime, detail s/bez metadat, smazání.
+  - **Kartičky:** výpis, detail s dořešenými zdroji, `export-all` (sloučení duplicitního líce, hlavička Anki TSV), smazání.
+  - **Testy:** výpis, detail podle souboru i podle id, uložení výsledku, smazání. Audio: výpis a smazání. Statistiky a `export-info`.
+  - **Plánovač a otázky:** výchozí plánovač, uložení (`revisionDays` "7" → 7), uložení otázek se zachováním ostatních polí.
+  - **Chat vlákna:** vytvoření, zprávy se zdroji, výpis (`message_count`, `last_snippet`, `last_role`), fulltext `q`, detail, přejmenování, pin/unpin, export vlákna i projektu do Markdownu, smazání.
+- **Mutační kontrola testů** (dočasné rozbití chování v paměti, bez změn na disku): rozbití přejmenování chat záznamů, pinu vláken, normalizace líce kartiček, názvu souboru plánovače, mazání a čištění chat historie i čtení METADATA poznámek testy zachytí, 8 z 8.
+- **Postřeh pro fázi 3:** routery importují funkce služeb jménem a `projects.py`/`files.py` přes kořenový shim `chat_service`. Mock nebo patch tedy musí mířit na místo použití (např. `routers.chat_api.toggle_thread_pin`, `chat_service.clear_project_messages`). Platí to i pro rozdělení `chat_service` v kroku 3.1.
+
+**Zjištěné chyby (zapsáno, neopraveno – charakterizační testy je zachycují, jak jsou):**
+- **Smíšená časová pásma v chatu:** `chat_threads.created_at` se ukládá v místním čase (`datetime.now()`), `updated_at` a časy zpráv v UTC (`CURRENT_TIMESTAMP` SQLite). V Česku se tak liší o 1–2 hodiny.
+- **Nekonzistentní výpis souborů:** `export-info` počítá všechny soubory složky projektu (včetně `.md`), kdežto `/api/files` jen povolené typy.
+- **Dohledání testu podle id hledá podřetězec** v názvech souborů všech projektů a vrátí první shodu podle pořadí `os.listdir` (`TestStorageManager.get_test`). Krátké id (např. `t1`) může vrátit test jiného projektu. U cizího privátního projektu to po kroku 1.1 skončí 403.
+
+**Ověření vůči baseline:** 109/109 testů OK ve dvou po sobě jdoucích bězích. `ruff check` beze změny (2× UP038), F401 130, `ruff format` OK.
