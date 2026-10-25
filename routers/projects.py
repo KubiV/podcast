@@ -12,6 +12,7 @@ from fastapi import APIRouter, BackgroundTasks, Body, File, Form, HTTPException,
 from fastapi.responses import FileResponse, JSONResponse
 from starlette.background import BackgroundTask
 
+from core import uploads as upload_limits
 from core.authz import filter_accessible_output_files, require_project_access
 from core.clients import get_chroma_client
 from core.config import (
@@ -26,6 +27,7 @@ from core.config import (
 from core.context import current_user_var
 from core.logger import send_log
 from core.security import safe_filename, safe_join
+from core.uploads import copy_with_limit, is_within, validate_import_archive
 from core.utils import sanitize_name
 from services.auth_service import AuthService
 from services.chat_service import list_lessons
@@ -365,6 +367,28 @@ async def clear_project_data(project_id: str, payload: dict = Body(...)):
     return {"status": "cleared", "project": safe_proj, "cleared_categories": cleared}
 
 
+ALLOWED_IMPORT_SOURCE_EXTS = (".pdf", ".docx", ".pptx", ".txt")
+ALLOWED_IMPORT_OUTPUT_EXTS = {
+    "notes": (".md",),
+    "flashcards": (".json",),
+    "tests": (".json",),
+    "audio": (".mp3", ".mp4", ".srt"),
+}
+
+
+def _max_import_bytes() -> int:
+    return upload_limits.MAX_IMPORT_ARCHIVE_BYTES
+
+
+def _imported_output_name(zip_name: str, orig_proj: str, final_proj: str, kind: str) -> str | None:
+    """Bezpečný název výstupu z archivu (přejmenovaný na cílový projekt), nebo None pro nepovolený typ."""
+    fname = os.path.basename(zip_name)
+    if not fname.lower().endswith(ALLOWED_IMPORT_OUTPUT_EXTS[kind]):
+        return None
+    rest = fname[len(orig_proj) + 1 :] if fname.startswith(f"{orig_proj}_") else fname
+    return safe_filename(f"{final_proj}_{rest}") or None
+
+
 def cleanup_temp_file(path: str):
     """Pomocná funkce pro bezpečné smazání dočasného souboru po odeslání odpovědi."""
     try:
@@ -668,13 +692,13 @@ async def inspect_project_import(file: UploadFile = File(...)):
         tmp_inspect_path = tf.name
 
     try:
-        with open(tmp_inspect_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        copy_with_limit(file.file, tmp_inspect_path, _max_import_bytes(), "Balíček projektu")
 
         if not zipfile.is_zipfile(tmp_inspect_path):
             raise HTTPException(status_code=400, detail="Nahraný soubor není platný archiv ZIP / .medproj.")
 
         with zipfile.ZipFile(tmp_inspect_path, "r") as zf:
+            validate_import_archive(zf)
             namelist = zf.namelist()
             manifest = {}
             if "manifest.json" in namelist:
@@ -751,13 +775,13 @@ async def import_project(
         tmp_import_path = tf.name
 
     try:
-        with open(tmp_import_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        copy_with_limit(file.file, tmp_import_path, _max_import_bytes(), "Balíček projektu")
 
         if not zipfile.is_zipfile(tmp_import_path):
             raise HTTPException(status_code=400, detail="Nahraný soubor není platný archiv ZIP / .medproj.")
 
         with zipfile.ZipFile(tmp_import_path, "r") as zf:
+            validate_import_archive(zf)
             namelist = set(zf.namelist())
             manifest = {}
             if "manifest.json" in namelist:
@@ -795,11 +819,17 @@ async def import_project(
 
             # 1. Extrakce zdrojových souborů z uploads/
             imported_source_files = []
+            skipped_files = []
             for n in namelist:
                 if n.startswith("uploads/") and not n.endswith("/"):
                     rel_p = n[len("uploads/") :]
+                    base_name = os.path.basename(rel_p)
+                    if base_name != PLANNER_FILENAME and not base_name.lower().endswith(ALLOWED_IMPORT_SOURCE_EXTS):
+                        skipped_files.append(rel_p)
+                        continue
                     dest_p = os.path.abspath(os.path.join(target_dir, rel_p))
-                    if not dest_p.startswith(os.path.abspath(target_dir)):
+                    if not is_within(target_dir, dest_p):
+                        skipped_files.append(rel_p)
                         continue
                     os.makedirs(os.path.dirname(dest_p), exist_ok=True)
                     with zf.open(n) as sf, open(dest_p, "wb") as df:
@@ -875,10 +905,11 @@ async def import_project(
             if include_outputs:
                 for n in namelist:
                     if n.startswith("generated/notes/") and not n.endswith("/"):
-                        fname = os.path.basename(n)
-                        rest = fname[len(orig_proj) + 1 :] if fname.startswith(f"{orig_proj}_") else fname
-                        new_fname = f"{final_proj}_{rest}"
-                        dest = os.path.join(NOTES_DIR, new_fname)
+                        new_fname = _imported_output_name(n, orig_proj, final_proj, "notes")
+                        if not new_fname:
+                            skipped_files.append(n)
+                            continue
+                        dest = safe_join(NOTES_DIR, new_fname)
                         text = zf.read(n).decode("utf-8", errors="replace")
                         text = re.sub(
                             r"<!-- METADATA\s*({.*?})\s*-->",
@@ -894,10 +925,11 @@ async def import_project(
                         imported_outputs["notes"] += 1
 
                     elif n.startswith("generated/flashcards/") and not n.endswith("/"):
-                        fname = os.path.basename(n)
-                        rest = fname[len(orig_proj) + 1 :] if fname.startswith(f"{orig_proj}_") else fname
-                        new_fname = f"{final_proj}_{rest}"
-                        dest = os.path.join(FLASHCARDS_DIR, new_fname)
+                        new_fname = _imported_output_name(n, orig_proj, final_proj, "flashcards")
+                        if not new_fname:
+                            skipped_files.append(n)
+                            continue
+                        dest = safe_join(FLASHCARDS_DIR, new_fname)
                         try:
                             fc_data = json.loads(zf.read(n).decode("utf-8"))
                             if isinstance(fc_data, dict):
@@ -910,10 +942,11 @@ async def import_project(
                         imported_outputs["flashcards"] += 1
 
                     elif n.startswith("generated/tests/") and not n.endswith("/"):
-                        fname = os.path.basename(n)
-                        rest = fname[len(orig_proj) + 1 :] if fname.startswith(f"{orig_proj}_") else fname
-                        new_fname = f"{final_proj}_{rest}"
-                        dest = os.path.join(TESTS_DIR, new_fname)
+                        new_fname = _imported_output_name(n, orig_proj, final_proj, "tests")
+                        if not new_fname:
+                            skipped_files.append(n)
+                            continue
+                        dest = safe_join(TESTS_DIR, new_fname)
                         try:
                             t_data = json.loads(zf.read(n).decode("utf-8"))
                             if isinstance(t_data, dict):
@@ -929,14 +962,19 @@ async def import_project(
             if include_audio:
                 for n in namelist:
                     if n.startswith("generated/audio/") and not n.endswith("/"):
-                        fname = os.path.basename(n)
-                        rest = fname[len(orig_proj) + 1 :] if fname.startswith(f"{orig_proj}_") else fname
-                        new_fname = f"{final_proj}_{rest}"
-                        dest = os.path.join(AUDIO_DIR, new_fname)
+                        new_fname = _imported_output_name(n, orig_proj, final_proj, "audio")
+                        if not new_fname:
+                            skipped_files.append(n)
+                            continue
+                        dest = safe_join(AUDIO_DIR, new_fname)
                         with zf.open(n) as sf, open(dest, "wb") as df:
                             shutil.copyfileobj(sf, df)
                         imported_outputs["audio"] += 1
 
+            if skipped_files:
+                await send_log(
+                    f"⚠️ Import přeskočil {len(skipped_files)} nepovolených nebo neplatných souborů z balíčku."
+                )
             await send_log(
                 f"🎉 Projekt '{final_proj}' byl úspěšně importován (včetně {len(imported_source_files)} podkladů a {imported_chunks} vektorových chunků)."
             )

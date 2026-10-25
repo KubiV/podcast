@@ -149,9 +149,9 @@ Commit: `ed02958` – `fix(security): Sanitize print preview HTML and harden pri
 
 ## 1.6 ⚠ Escapování inline handlerů a vykreslovaných hodnot (nálezy F2, F3, F6)
 
-Commit: `fix(security): Escape interpolated values in inline handlers and HTML` (hash doplní další krok)
+Commit: `527bec2` – `fix(security): Escape interpolated values in inline handlers and HTML`
 
-**Odchylka od plánu (k odsouhlasení):** plán počítal s přepisem inline handlerů na `data-*` a delegované listenery. Zvolil jsem **escapování podle kontextu** se stejným bezpečnostním účinkem:
+**Odchylka od plánu (schválena uživatelem po kroku 1.6):** plán počítal s přepisem inline handlerů na `data-*` a delegované listenery. Zvolil jsem **escapování podle kontextu** se stejným bezpečnostním účinkem:
 - pro JS řetězec v `on*="…('…')"` slouží `escapeJsStringAttr` (nejdřív JS, pak HTML escapování),
 - pro atributy a text slouží `escapeHtml`.
 
@@ -187,3 +187,48 @@ Důvod: pro běžné hodnoty se výstup nemění a nemusí se sahat na logiku ud
 - V `app.js` je dál 219× `innerHTML`. Prošel jsem místa s daty od jiných uživatelů, z AI a z importu, která uvádí audit. Hodnoty z `t()` (překlady) a čísla jsem nechal beze změny.
 - Funkce `t()` interpoluje parametry bez escapování (F7 z auditu, podezření). Ty jsou dnes převážně čísla a data, nezměněno.
 - Funkce `escapeQuotes` po kroku už nemá žádné volání. Smaže se v kroku 4.6 (mrtvý kód), aby tento krok zůstal čistě bezpečnostní.
+
+## 1.7 ⚠ Limity importu a uploadu, path traversal v úložišti testů (nálezy S6b–d, S7, S15)
+
+Commit: `fix(security): Limit and validate project imports and uploads` (hash doplní další krok)
+
+**Zabezpečeno:**
+- Nový `core/uploads.py`:
+  - `copy_with_limit` kopíruje proud po 1 MB. Při překročení limitu smaže rozepsaný soubor a vrátí 413.
+  - `validate_import_archive` kontroluje počet položek, celkovou nekomprimovanou velikost a podezřelý poměr komprese (> 200 : 1 u položek ≥ 10 MB, zip bomb).
+  - `is_within` ověřuje umístění po celých složkách.
+- Výchozí limity jdou změnit proměnnými prostředí (v MB):
+
+  | Limit | Proměnná | Výchozí |
+  |---|---|---|
+  | Upload jednoho souboru | `AIMEDSTUDIO_MAX_UPLOAD_MB` | 200 MB |
+  | Balíček importu (komprimovaný) | `AIMEDSTUDIO_MAX_IMPORT_MB` | 2048 MB |
+  | Balíček importu (rozbalený) | `AIMEDSTUDIO_MAX_IMPORT_UNCOMPRESSED_MB` | 4096 MB |
+  | Počet položek v archivu | – | 20 000 |
+
+  Proměnné doplní krok 1.11 do `.env.example`.
+- `routers/projects.py`, import a inspect `.medproj`:
+  - Archiv se nahrává s limitem a ověří se dřív, než se cokoli smaže nebo vytvoří.
+  - Do `uploads/` se rozbalí jen `.pdf/.docx/.pptx/.txt` a `exam_planner.json`, ostatní se přeskočí a zaloguje.
+  - Kontrola cílové cesty je `is_within` místo `startswith` bez oddělovače. Dřív šlo přes `uploads/../{projekt}2/…` zapsat do sousedního projektu (ověřeno testem před změnou).
+  - Výstupy: poznámky jen `.md`, kartičky a testy jen `.json`, audio jen `.mp3/.mp4/.srt`. Název prochází `safe_filename` a cesta `safe_join`.
+  - Zdrojové soubory se nepřejmenovávají, protože na jejich názvy odkazují importované vektory v ChromaDB.
+- `routers/files.py`, upload: nejdřív se zkontrolují velikosti všech souborů v dávce, aby se při 413 neuložila jen část. Pak se kopíruje s limitem.
+- `services/test_service.py`: `TestStorageManager._file_path` používá `safe_join`. Dřív `os.path.join` připouštěl `../` a absolutní cesty.
+
+**Změna chování (záměrná):**
+- Příliš velký upload nebo balíček vrátí 413, zip bomb vrátí 400.
+- Import přeskočí soubory nepovolených typů (např. `.DS_Store`, `.html`, `.svg`).
+- Výstupy s neobvyklými znaky v názvu se uloží pod sanitizovaným názvem. Názvy, které aplikace sama generuje, se nemění (ověřeno round-trip testem).
+- Úložiště testů vrátí 400 pro cestu mimo svou složku.
+
+**Testy:** nový `tests/test_import_upload.py` (12 testů).
+- Před změnou prošly charakterizační testy: round-trip export → import s planner, poznámkou, sadou, testem a audiem, běžný upload a běžné použití úložiště testů.
+- Před změnou selhalo všech 8 bezpečnostních testů: allowlist, únik do sousedního projektu, názvy výstupů, zip bomb, počet položek, velikost balíčku i inspect, velikost uploadu a traversal v úložišti testů.
+- Po změně prochází vše, včetně nového testu na dávku s jedním příliš velkým souborem.
+
+**Ověření vůči baseline:** 70/70 testů OK, `ruff check` beze změny (2× UP038), F401 130, `ruff format` OK, seznam OpenAPI cest identický.
+
+**Zjištěné chyby (zapsáno, neopraveno):**
+- Upload vytvoří složku projektu (`os.makedirs`) ještě před kontrolou souborů, takže při odmítnutí může zůstat prázdná složka nového projektu. Chyba existovala už dřív.
+- Import dál načítá `chroma_vectors.json` a `database.json` celé do paměti. Strop teď dává jen limit rozbalené velikosti archivu.

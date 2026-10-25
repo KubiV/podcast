@@ -11,11 +11,13 @@ import pdfplumber
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
 
+from core import uploads as upload_limits
 from core.authz import require_project_access
 from core.clients import get_chroma_client
 from core.config import UPLOAD_DIR
 from core.logger import send_log
 from core.security import safe_filename, safe_join
+from core.uploads import copy_with_limit
 from core.utils import sanitize_name
 from services.rag_service import extract_sections_from_file, index_file_to_chroma
 
@@ -49,6 +51,15 @@ async def upload_files(
     allowed_exts = (".pdf", ".docx", ".pptx", ".txt")
     saved_files = []
 
+    # Nejdřív zkontrolujeme velikosti všech souborů, aby se při chybě neuložila jen část dávky
+    max_bytes = upload_limits.MAX_UPLOAD_FILE_BYTES
+    for file in files:
+        if file.size is not None and file.size > max_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Soubor {file.filename} překračuje povolenou velikost {max_bytes // (1024 * 1024)} MB.",
+            )
+
     for file in files:
         if not file.filename or not file.filename.lower().endswith(allowed_exts):
             await send_log(f"⚠️ Přeskočen soubor {file.filename}: Nepodporovaný formát.")
@@ -56,8 +67,7 @@ async def upload_files(
 
         clean_fn = safe_filename(file.filename)
         file_path = safe_join(proj_dir, clean_fn)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        copy_with_limit(file.file, file_path, max_bytes, f"Soubor {clean_fn}")
 
         saved_files.append(clean_fn)
         await send_log(f"📥 Soubor {clean_fn} nahrán. Řadím do fronty pro vektorizaci...")

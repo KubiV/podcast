@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
+from core.security import safe_join
 from prompts.test import DEFAULT_TEST_PROMPT_SYSTEM
 
 
@@ -320,7 +321,7 @@ class TestStorageManager:
         os.makedirs(self.tests_dir, exist_ok=True)
 
     def _file_path(self, filename: str) -> str:
-        return os.path.join(self.tests_dir, filename)
+        return safe_join(self.tests_dir, filename)
 
     def save_test(self, test_data: dict[str, Any]) -> str:
         project = test_data.get("project", "default")
