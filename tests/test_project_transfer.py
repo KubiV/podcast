@@ -249,18 +249,65 @@ class TestInspectAndImport(TransferTestCase):
         source_count = get_chroma_client().get_collection(f"proj_{self.project}").count()
         self.assertEqual(body["chunks_count"], source_count)
         self.assertEqual(get_chroma_client().get_collection(f"proj_{target}").count(), source_count)
-        # CHYBA (zapsáno v CHANGELOG 3.2): import zachová ID vláken a chunků (INSERT OR REPLACE), takže kopie
-        # na stejném serveru si původní vlákno „přivlastní“ (zprávy obou projektů sdílí thread_id)
-        # a původní projekt přijde o vlákno i o metadata FTS chunků.
+        # Kopie pod jiným názvem dostane vlastní vlákno; původní projekt o své vlákno nepřijde (oprava 3.2a)
         threads = self.client.get("/api/chat/threads", params={"project_id": target}).json()["threads"]
-        self.assertEqual([(t["title"], t["message_count"]) for t in threads], [("Vlákno", 2)])
+        self.assertEqual([(t["title"], t["message_count"]) for t in threads], [("Vlákno", 1)])
+        original = self.client.get("/api/chat/threads", params={"project_id": self.project}).json()["threads"]
+        self.assertEqual([(t["title"], t["message_count"]) for t in original], [("Vlákno", 1)])
+        self.assertNotEqual(threads[0]["id"], original[0]["id"])
         self.assertEqual(
-            self.client.get("/api/chat/threads", params={"project_id": self.project}).json(), {"threads": []}
+            [m["content"] for m in self.client.get(f"/api/chat/threads/{threads[0]['id']}").json()["messages"]],
+            ["Ahoj"],
         )
         planner = self.client.get(f"/api/projects/{target}/planner").json()["planner"]
         self.assertEqual((planner["project"], len(planner["questions"])), (target, 2))
         with open(os.path.join(NOTES_DIR, f"{target}_Q1.md"), encoding="utf-8") as f:
             self.assertIn(f'"project": "{target}"', f.read())
+
+    def test_copy_import_keeps_original_searchable(self):
+        """Oprava 3.2a: kopie nepřevezme FTS metadata originálu; vyhledávání funguje v obou projektech."""
+        from services.chat_service import get_db_connection
+        from services.rag_service import query_rag_context_with_sources
+
+        def meta_ids(project):
+            with get_db_connection() as conn:
+                rows = conn.execute(
+                    "SELECT chunk_id FROM project_chunks_meta WHERE project_id = ?", (project,)
+                ).fetchall()
+            return {r[0] for r in rows}
+
+        # Pozn.: metadata chunků stejnojmenného souboru patří prvnímu projektu, který ho zaindexoval
+        # (samostatná chyba, CHANGELOG 3.2a) – proto se porovnává stav originálu před a po importu.
+        data = self.export().fp.getvalue()
+        original_before = meta_ids(self.project)
+        target = f"{self.project}_kopie"
+        self.assertEqual(self.import_bytes(data, project_name=target).status_code, 200)
+        self.assertEqual(meta_ids(self.project), original_before)
+        copy_ids = meta_ids(target)
+        self.assertTrue(copy_ids)
+        self.assertTrue(all(cid.startswith(f"{target}::") for cid in copy_ids))
+
+        from core.clients import get_chroma_client
+
+        self.assertEqual(set(get_chroma_client().get_collection(f"proj_{target}").get()["ids"]), copy_ids)
+        for project in (self.project, target):
+            with self.subTest(project=project):
+                _, sources, raw = asyncio.run(query_rag_context_with_sources("digoxin fibrilace", project, n_results=5))
+                self.assertIn("Digoxin", raw)
+                self.assertEqual([s["filename"] for s in sources], ["kapitola.txt"])
+
+    def test_import_under_same_name_keeps_ids(self):
+        """Import pod původním názvem (jiný server / po smazání originálu) ID vláken a chunků zachovává."""
+        data = self.export().fp.getvalue()
+        thread_id = self.client.get("/api/chat/threads", params={"project_id": self.project}).json()["threads"][0]["id"]
+        from core.clients import get_chroma_client
+
+        chunk_ids = set(get_chroma_client().get_collection(f"proj_{self.project}").get()["ids"])
+        self.assertEqual(self.client.delete(f"/api/projects/{self.project}").status_code, 200)
+        self.assertEqual(self.import_bytes(data).status_code, 200)
+        threads = self.client.get("/api/chat/threads", params={"project_id": self.project}).json()["threads"]
+        self.assertEqual([t["id"] for t in threads], [thread_id])
+        self.assertEqual(set(get_chroma_client().get_collection(f"proj_{self.project}").get()["ids"]), chunk_ids)
 
     def test_import_conflict_and_overwrite(self):
         data = self.export().fp.getvalue()

@@ -402,9 +402,35 @@ def export_project_sqlite_data(project_id: str) -> dict[str, Any]:
     }
 
 
-def import_project_sqlite_data(target_project_id: str, data: dict[str, Any], overwrite: bool = False) -> dict[str, int]:
-    """Naimportuje SQLite záznamy projektu (chunky, FTS, chatová vlákna a zprávy) pod cílovým project_id."""
+def imported_chunk_id(chunk_id: str, project_id: str) -> str:
+    """
+    ID chunku pro kopii projektu importovanou pod novým názvem. Původní ID (`{soubor}_chunk_{i}`) nejsou
+    vázaná na projekt a `project_chunks_meta.chunk_id` je globální klíč – bez přemapování by kopie
+    převzala metadata originálu. Stejnou funkci používá import vektorů do ChromaDB, aby ID seděla.
+    """
+    return f"{sanitize_project_name(project_id)}::{chunk_id}"
+
+
+def import_project_sqlite_data(
+    target_project_id: str, data: dict[str, Any], overwrite: bool = False, new_ids: bool = False
+) -> dict[str, int]:
+    """
+    Naimportuje SQLite záznamy projektu (chunky, FTS, chatová vlákna a zprávy) pod cílovým project_id.
+
+    `new_ids=True` (import kopie pod jiným názvem) přidělí vláknům nová ID a chunkům ID z `imported_chunk_id`,
+    aby kopie na stejném serveru nepřepsala vlákna a FTS metadata originálu.
+    """
     safe_proj = sanitize_project_name(target_project_id)
+    thread_id_map: dict[str, str] = {}
+
+    def map_thread_id(old_id: str | None) -> str | None:
+        if not new_ids or not old_id:
+            return old_id
+        return thread_id_map.setdefault(old_id, generate_thread_id())
+
+    def map_chunk_id(old_id: str) -> str:
+        return imported_chunk_id(old_id, safe_proj) if new_ids else old_id
+
     with get_db_connection() as conn:
         if overwrite:
             conn.execute("DELETE FROM project_chunks_meta WHERE project_id = ?", (safe_proj,))
@@ -421,7 +447,7 @@ def import_project_sqlite_data(target_project_id: str, data: dict[str, Any], ove
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    t["id"],
+                    map_thread_id(t["id"]),
                     safe_proj,
                     t.get("title", "Konverzace"),
                     t.get("is_pinned", 0),
@@ -444,7 +470,7 @@ def import_project_sqlite_data(target_project_id: str, data: dict[str, Any], ove
                     m.get("content", ""),
                     m.get("sources_json"),
                     m.get("created_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                    m.get("thread_id"),
+                    map_thread_id(m.get("thread_id")),
                 ),
             )
 
@@ -457,7 +483,7 @@ def import_project_sqlite_data(target_project_id: str, data: dict[str, Any], ove
                 VALUES (?, ?, ?, ?, ?)
                 """,
                 (
-                    c["chunk_id"],
+                    map_chunk_id(c["chunk_id"]),
                     safe_proj,
                     c.get("source", ""),
                     c.get("page", "1"),
@@ -475,7 +501,7 @@ def import_project_sqlite_data(target_project_id: str, data: dict[str, Any], ove
                 """,
                 (
                     safe_proj,
-                    f["chunk_id"],
+                    map_chunk_id(f["chunk_id"]),
                     f.get("source", ""),
                     f.get("page", "1"),
                     f.get("content", ""),

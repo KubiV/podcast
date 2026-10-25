@@ -389,6 +389,8 @@ async def import_archive(
 
     target_dir = os.path.join(UPLOAD_DIR, final_proj)
     require_project_access(final_proj, write=True)
+    # Kopie pod jiným názvem než v balíčku (typicky na stejném serveru) dostane nová ID vláken a chunků
+    new_ids = final_proj != orig_proj
     if os.path.exists(target_dir):
         if not overwrite:
             raise HTTPException(
@@ -455,6 +457,10 @@ async def import_archive(
             batch_size = 500
             for i in range(0, total, batch_size):
                 b_ids = ids[i : i + batch_size]
+                if new_ids:
+                    from chat_service import imported_chunk_id
+
+                    b_ids = [imported_chunk_id(cid, final_proj) for cid in b_ids]
                 b_docs = docs[i : i + batch_size]
                 b_metas = metas[i : i + batch_size]
                 b_embs = embs[i : i + batch_size] if (embs and len(embs) == total) else None
@@ -479,7 +485,7 @@ async def import_archive(
                 db_data["chat_messages"] = []
             from chat_service import import_project_sqlite_data
 
-            import_project_sqlite_data(final_proj, db_data, overwrite=overwrite)
+            import_project_sqlite_data(final_proj, db_data, overwrite=overwrite, new_ids=new_ids)
         except Exception as dbe:
             print(f"[import] SQLite import error: {dbe}")
 

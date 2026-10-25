@@ -32,6 +32,7 @@ from services.chat.repository import (  # noqa: F401
     get_thread,
     get_thread_messages,
     import_project_sqlite_data,
+    imported_chunk_id,
     list_lessons,
     list_threads,
     rename_project_records,

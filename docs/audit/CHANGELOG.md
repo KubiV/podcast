@@ -556,7 +556,7 @@ Commit: `7fd7022` – `refactor(chat): Split chat_service into services/chat pac
 
 ## 3.2 Export/import projektu do `services/projects/transfer.py` (nález A3)
 
-Commit: `refactor(projects): Move project export/import into services/projects` (hash doplní další krok)
+Commit: `057d593` – `refactor(projects): Move project export/import into services/projects`
 
 Čistý refaktoring, bez změny chování.
 
@@ -577,9 +577,36 @@ Commit: `refactor(projects): Move project export/import into services/projects` 
 
 **Ověření vůči baseline:** 138/138 testů OK ve dvou bězích, seznam OpenAPI cest identický. `ruff check` beze změny (2× UP038), F401 127 jako před krokem, `ruff format` OK.
 
-**Zjištěná chyba – závažná, zapsáno, neopraveno (test ji zachycuje s komentářem „CHYBA“):**
+**Zjištěná chyba – závažná (opravena v kroku 3.2a na pokyn uživatele):**
 - **Import kopie projektu na stejný server poškodí původní projekt.** `import_project_sqlite_data` zachovává původní ID chat vláken a FTS chunků (`INSERT OR REPLACE INTO chat_threads (id, project_id, …)`, totéž u `project_chunks_meta`). Sondou ověřené dopady:
   - Vlákno se z původního projektu **přesune** do kopie. Původní projekt pak nemá žádné vlákno a jeho zpráva zůstane osiřelá. Kopie ukazuje ve vlákně zprávy obou projektů (`message_count` 2 místo 1).
   - Metadata FTS chunků původního projektu se přepíšou na kopii (`project_chunks_meta` původního projektu 1 → 0), což může zhoršit fulltextové vyhledávání v originálu.
   - Tento scénář aplikace sama nabízí: `inspect` navrhne název `{projekt}_2`.
 - **Navrhuji opravit samostatným krokem** (mimo čistý refaktoring): při importu pod jiným názvem, než je v manifestu, generovat nová ID vláken a chunků a přemapovat na ně zprávy.
+
+## 3.2a Oprava: import kopie projektu přebíral vlákna a FTS metadata originálu
+
+Commit: `fix(projects): Give copy imports their own thread and chunk IDs` (hash doplní další krok)
+
+Samostatná oprava chyby z kroku 3.2 na pokyn uživatele. Není to refaktoring, chování se mění záměrně.
+
+**Oprava:**
+- `services/chat/repository.py`:
+  - Nová funkce `imported_chunk_id(chunk_id, projekt)` vrací `"{projekt}::{chunk_id}"`.
+  - `import_project_sqlite_data(..., new_ids=False)`: při `new_ids=True` dostanou vlákna nová ID (`generate_thread_id`) a zprávy se na ně přemapují. Chunky v `project_chunks_meta` i v `project_chunks_fts` dostanou ID z `imported_chunk_id`.
+- `services/projects/transfer.py`: `import_archive` zapne `new_ids`, když se cílový název liší od názvu v balíčku (kopie, typicky na stejném serveru). Stejně přemapuje i ID vektorů při `upsert` do ChromaDB, takže hybridní vyhledávání (dense + FTS, párování přes ID) v kopii funguje.
+- Import pod **stejným** názvem (jiný server, obnova po smazání, přepsání) ID zachovává, takže se chování nemění.
+- `services/chat_service.py` (fasáda) re-exportuje `imported_chunk_id`.
+
+**Testy** (`tests/test_project_transfer.py`):
+- Test kopie už nečeká chybu: kopie má vlastní vlákno s jednou zprávou a originál si vlákno ponechá, s jiným ID.
+- Nový test: import kopie metadata originálu **nezmění**. Chunky kopie mají předponu `{kopie}::`, ID v ChromaDB a v SQLite se shodují a RAG vyhledávání najde text v originálu i v kopii.
+- Nový charakterizační test: import pod stejným názvem zachová ID vláken i chunků.
+- Bez opravy (ověřeno přes `git stash`) selžou 2 ze 3 testů, s opravou prochází vše.
+
+**Ověření:** 140/140 testů OK ve dvou bězích, seznam OpenAPI cest identický. `ruff check` beze změny (2× UP038), F401 127, `ruff format` OK.
+
+**Nová související chyba (zapsáno, neopraveno, mimo rozsah zadání):**
+- **Kolize metadat chunků mezi projekty se stejnojmenným souborem.** ID chunku `{soubor}_chunk_{i}` (`services/rag_service.py:197`) nezávisí na projektu a `project_chunks_meta.chunk_id` je globální primární klíč. `index_chunks_to_fts` při konfliktu (`ON CONFLICT(chunk_id) DO UPDATE SET source, page`) `project_id` nezmění, takže metadata patří **prvnímu** projektu, který daný název souboru zaindexoval. Druhý projekt má řádky FTS, ale žádná metadata. `sync_project_fts` pak pro něj chunky považuje za chybějící a při každé synchronizaci je maže a znovu vkládá do FTS.
+- Přímý dopad na výsledky vyhledávání jsem nezjistil, protože FTS i dense hledání filtrují podle projektu. Jde o zbytečnou práci a nekonzistentní data.
+- Správná oprava je primární klíč `(project_id, chunk_id)` s migrací tabulky. Navrhuji ji jako samostatný krok.
