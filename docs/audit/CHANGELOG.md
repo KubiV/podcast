@@ -524,7 +524,7 @@ Testy: 90 → 131, celá sada běží offline (síťová pojistka). Kód aplikac
 
 ## 3.1 Rozdělení `services/chat_service.py` (1 641 ř.) do balíčku `services/chat/` (nález A1)
 
-Commit: `refactor(chat): Split chat_service into services/chat package` (hash doplní další krok)
+Commit: `7fd7022` – `refactor(chat): Split chat_service into services/chat package`
 
 Čistý refaktoring, bez změny chování.
 
@@ -553,3 +553,33 @@ Commit: `refactor(chat): Split chat_service into services/chat package` (hash do
 **Incident při ověřování:** kontrola záložní cesty běžela bez `AIMEDSTUDIO_DATA_DIR`, takže import `storage` přes `init_db()` vytvořil v pracovním stromu `services/chat_history.db` a prázdnou `services/chroma_db/`. Obojí jsem ověřil (jen prázdné schéma, 0 záznamů) a smazal. Tento vedlejší efekt importu existoval i před refaktoringem a je to přesně nález A8.
 
 **Neověřeno:** PyInstaller build. Nový balíček `services.chat` by měla statická analýza najít přes importy fasády, ale `medstudio.spec` jsem nespouštěl.
+
+## 3.2 Export/import projektu do `services/projects/transfer.py` (nález A3)
+
+Commit: `refactor(projects): Move project export/import into services/projects` (hash doplní další krok)
+
+Čistý refaktoring, bez změny chování.
+
+**Nejdřív charakterizace:** nový `tests/test_project_transfer.py` (7 testů) prošel na původním kódu. Doplňuje round-trip a bezpečnostní testy z 1.7 o:
+- obsah archivu a manifestu (statistiky, vektory s embeddingy, chat v `database.json`),
+- přepínače exportu `include_audio`/`include_chat`/`include_outputs`/`include_progress` (reset průběhu v plánovači),
+- `inspect` (navržený název `_2`, počty), neplatný soubor nebo ZIP (400), konflikt (409) a přepsání vlastního projektu,
+- přenos vektorů ChromaDB, chat vláken a plánovače při importu kopie.
+
+**Přesunuto** z `routers/projects.py` (1 021 → 554 ř.) do nového `services/projects/transfer.py` (579 ř.):
+- `get_export_info`, `build_export_archive`, `inspect_archive`, `import_archive`,
+- konstanty a pomocníci allowlistu importu, `max_import_bytes` (dříve `_max_import_bytes`), `cleanup_temp_file`.
+- Bloky vyřízl skript podle řádků a jen je posunul v odsazení. **AST všech přesunutých těl i pomocníků je identický s originálem.** Jediná mechanická záměna je `chroma_client.X` → `get_chroma_client().X`, protože proxy `_ChromaClientProxy` v routeru dělala při každém přístupu totéž.
+- V routeru zůstala HTTP vrstva: oprávnění a 404 u exportu, dočasný soubor, upload s limitem, kontrola a validace ZIP, `FileResponse` a logování a chyby exportu.
+- `require_project_access` u importu zůstává uvnitř `import_archive`, protože cílový projekt vyplývá až z obsahu archivu. Pořadí kontrol se nezměnilo.
+- Lokální importy přes kořenový shim `chat_service` jsou ponechané beze změny. Přesměruje je krok 4.5.
+- V routeru zůstalo 5 nepoužitých importů, které tam byly už před krokem. Odstraní je krok 4.1, aby tento krok zůstal čistý.
+
+**Ověření vůči baseline:** 138/138 testů OK ve dvou bězích, seznam OpenAPI cest identický. `ruff check` beze změny (2× UP038), F401 127 jako před krokem, `ruff format` OK.
+
+**Zjištěná chyba – závažná, zapsáno, neopraveno (test ji zachycuje s komentářem „CHYBA“):**
+- **Import kopie projektu na stejný server poškodí původní projekt.** `import_project_sqlite_data` zachovává původní ID chat vláken a FTS chunků (`INSERT OR REPLACE INTO chat_threads (id, project_id, …)`, totéž u `project_chunks_meta`). Sondou ověřené dopady:
+  - Vlákno se z původního projektu **přesune** do kopie. Původní projekt pak nemá žádné vlákno a jeho zpráva zůstane osiřelá. Kopie ukazuje ve vlákně zprávy obou projektů (`message_count` 2 místo 1).
+  - Metadata FTS chunků původního projektu se přepíšou na kopii (`project_chunks_meta` původního projektu 1 → 0), což může zhoršit fulltextové vyhledávání v originálu.
+  - Tento scénář aplikace sama nabízí: `inspect` navrhne název `{projekt}_2`.
+- **Navrhuji opravit samostatným krokem** (mimo čistý refaktoring): při importu pod jiným názvem, než je v manifestu, generovat nová ID vláken a chunků a přemapovat na ně zprávy.
