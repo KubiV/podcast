@@ -72,6 +72,12 @@ class TestServices(unittest.TestCase):
             self.assertEqual(status, "approved")
             self.assertIn("odblokován", msg)
 
+    def test_audio_filename_for(self):
+        from services.podcast_service import audio_filename_for
+
+        self.assertEqual(audio_filename_for("Moje otázka 1!"), "Moje_otázka_1.mp3")
+        self.assertEqual(audio_filename_for("kardio_q1"), "kardio_q1.mp3")
+
     def test_is_terminal_auth_error(self):
         from core.utils import is_terminal_auth_error
 

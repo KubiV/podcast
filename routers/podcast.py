@@ -3,11 +3,13 @@ from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException
 
+from core.authz import filter_accessible_output_files, require_output_file_access, require_project_access
 from core.config import AUDIO_DIR
 from core.logger import send_log
 from core.security import safe_filename, safe_join
 from core.utils import sanitize_name
 from services.podcast_service import (
+    audio_filename_for,
     create_srt_for_audio,
     internal_generate_audio,
     internal_generate_script,
@@ -18,11 +20,14 @@ router = APIRouter()
 
 @router.get("/api/outputs")
 async def list_outputs(project: str = ""):
+    if project:
+        require_project_access(project)
     try:
         files = [f for f in os.listdir(AUDIO_DIR) if f.endswith((".mp3", ".mp4", ".srt"))]
         if project:
             safe_proj = sanitize_name(project)
             files = [f for f in files if f.startswith(f"{safe_proj}_")]
+        files = filter_accessible_output_files(files)
 
         files.sort(key=lambda x: os.path.getmtime(os.path.join(AUDIO_DIR, x)), reverse=True)
         return {"files": files}
@@ -32,6 +37,7 @@ async def list_outputs(project: str = ""):
 
 @router.delete("/api/outputs/{filename}")
 async def delete_output(filename: str):
+    require_output_file_access(safe_filename(filename), write=True)
     file_path = safe_join(AUDIO_DIR, safe_filename(filename))
     if os.path.exists(file_path):
         os.remove(file_path)
@@ -50,6 +56,7 @@ async def generate_script(payload: dict = Body(...)):
 
     if not question or not custom_prompt or not project:
         raise HTTPException(status_code=400, detail="Chybí parametry dotazu.")
+    require_project_access(project, write=True)
 
     try:
         script, context = await internal_generate_script(question, custom_prompt, provider, project, gemini_model)
@@ -67,6 +74,7 @@ async def generate_audio(payload: dict = Body(...)):
     voice = payload.get("voice", "onyx")
     output_format = payload.get("format", "mp3")
     question_title = payload.get("question_title", filename)
+    require_output_file_access(safe_filename(audio_filename_for(str(filename))), write=True)
 
     await send_log(f"🔊 Spouštím TTS syntézu přes {provider}...")
     try:
@@ -83,6 +91,7 @@ async def generate_audio(payload: dict = Body(...)):
 async def generate_subtitles_endpoint(payload: dict = Body(...)):
     script = payload.get("script")
     filename = payload.get("filename")
+    require_output_file_access(safe_filename(str(filename or "")), write=True)
 
     success = await create_srt_for_audio(script, filename)
     if success:

@@ -3,6 +3,7 @@ from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException, Request
 
+from core.authz import require_project_access
 from core.config import TESTS_DIR, USER_DATA_DIR
 from core.context import current_user_var
 from core.logger import send_log
@@ -27,6 +28,7 @@ router = APIRouter()
 async def medulingo_overview_endpoint(project: str = ""):
     if not project:
         raise HTTPException(status_code=400, detail="Chybí parametr projektu.")
+    require_project_access(project)
     safe_proj = sanitize_name(project)
     service = MedulingoService(USER_DATA_DIR)
     return service.get_medulingo_overview(safe_proj)
@@ -36,6 +38,7 @@ async def medulingo_overview_endpoint(project: str = ""):
 async def medulingo_question_detail_endpoint(question_id: str, project: str = ""):
     if not project:
         raise HTTPException(status_code=400, detail="Chybí parametr projektu.")
+    require_project_access(project)
     safe_proj = sanitize_name(project)
     service = MedulingoService(USER_DATA_DIR)
     return service.get_question_path_content(safe_proj, question_id)
@@ -57,6 +60,7 @@ async def medulingo_generate_pack_endpoint(request: Request, payload: dict = Bod
 
     if not project or (not question_id and not question_title):
         raise HTTPException(status_code=400, detail="Chybí identifikátor otázky nebo projekt.")
+    require_project_access(project, write=True)
 
     safe_proj = sanitize_name(project)
     service = MedulingoService(USER_DATA_DIR)
@@ -203,6 +207,7 @@ async def medulingo_complete_endpoint(request: Request, payload: dict = Body(...
 
     if not project or not question_id:
         raise HTTPException(status_code=400, detail="Chybí projekt nebo question_id.")
+    require_project_access(project, write=True)
 
     safe_proj = sanitize_name(project)
     service = MedulingoService(USER_DATA_DIR)

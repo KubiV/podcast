@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Body, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import StreamingResponse
 
+from core.authz import can_access_chat_project, require_project_access, require_thread_access
 from core.clients import get_chroma_client
 from core.config import (
     AUDIO_DIR,
@@ -30,7 +31,6 @@ from services.chat_service import (
     export_thread_chat_markdown,
     get_lesson,
     get_project_messages,
-    get_thread,
     get_thread_messages,
     list_lessons,
     list_threads,
@@ -55,6 +55,9 @@ async def chat_completions_endpoint(payload: dict = Body(...)):
 
     if not project or not message:
         raise HTTPException(status_code=400, detail="Chybí projekt nebo text zprávy.")
+    require_project_access(project, write=True)
+    if thread_id:
+        require_thread_access(thread_id, write=True)
 
     safe_proj = sanitize_name(project)
     await send_log(f"💬 Chat dotaz ({safe_proj}): '{message[:50]}...'")
@@ -82,7 +85,11 @@ async def chat_completions_endpoint(payload: dict = Body(...)):
 @router.get("/api/chat/threads")
 async def get_chat_threads_endpoint(project_id: str | None = None, q: str | None = None):
     safe_proj = sanitize_name(project_id) if project_id and project_id != "__all__" else None
-    threads = list_threads(project_id=safe_proj, search_query=q)
+    if safe_proj:
+        require_project_access(safe_proj)
+    threads = [
+        t for t in list_threads(project_id=safe_proj, search_query=q) if can_access_chat_project(t["project_id"])
+    ]
     return {"threads": threads}
 
 
@@ -93,6 +100,9 @@ async def create_chat_thread_endpoint(payload: dict = Body(...)):
         raise HTTPException(status_code=400, detail="Chybí identifikátor projektu.")
     title = payload.get("title")
     thread_id = payload.get("id")
+    require_project_access(project, write=True)
+    if thread_id:
+        require_thread_access(thread_id, write=True)
     safe_proj = sanitize_name(project)
     thread = create_thread(project_id=safe_proj, title=title, thread_id=thread_id)
     return {"status": "success", "thread": thread}
@@ -100,7 +110,7 @@ async def create_chat_thread_endpoint(payload: dict = Body(...)):
 
 @router.get("/api/chat/threads/{thread_id}")
 async def get_chat_thread_detail_endpoint(thread_id: str):
-    thread = get_thread(thread_id)
+    thread = require_thread_access(thread_id)
     if not thread:
         raise HTTPException(status_code=404, detail="Konverzace nenalezena.")
     messages = get_thread_messages(thread_id)
@@ -109,6 +119,7 @@ async def get_chat_thread_detail_endpoint(thread_id: str):
 
 @router.patch("/api/chat/threads/{thread_id}")
 async def update_chat_thread_endpoint(thread_id: str, payload: dict = Body(...)):
+    require_thread_access(thread_id, write=True)
     title = payload.get("title")
     is_pinned = payload.get("is_pinned")
     updated = update_thread(thread_id, title=title, is_pinned=is_pinned)
@@ -119,6 +130,7 @@ async def update_chat_thread_endpoint(thread_id: str, payload: dict = Body(...))
 
 @router.post("/api/chat/threads/{thread_id}/pin")
 async def toggle_chat_thread_pin_endpoint(thread_id: str):
+    require_thread_access(thread_id, write=True)
     updated = toggle_thread_pin(thread_id)
     if not updated:
         raise HTTPException(status_code=404, detail="Konverzace nenalezena.")
@@ -127,13 +139,14 @@ async def toggle_chat_thread_pin_endpoint(thread_id: str):
 
 @router.delete("/api/chat/threads/{thread_id}")
 async def delete_chat_thread_endpoint(thread_id: str):
+    require_thread_access(thread_id, write=True)
     success = delete_thread(thread_id)
     return {"status": "success", "deleted": success}
 
 
 @router.get("/api/chat/threads/{thread_id}/export")
 async def export_chat_thread_endpoint(thread_id: str):
-    thread = get_thread(thread_id)
+    thread = require_thread_access(thread_id)
     if not thread:
         raise HTTPException(status_code=404, detail="Konverzace nenalezena.")
     md_content = export_thread_chat_markdown(thread_id)
@@ -149,6 +162,9 @@ async def export_chat_thread_endpoint(thread_id: str):
 
 @router.get("/api/projects/{project_id}/messages")
 async def get_project_chat_messages(project_id: str, thread_id: str | None = None):
+    require_project_access(project_id)
+    if thread_id:
+        require_thread_access(thread_id)
     safe_proj = sanitize_name(project_id)
     messages = get_project_messages(safe_proj, thread_id=thread_id)
     return {"project": safe_proj, "messages": messages}
@@ -156,6 +172,7 @@ async def get_project_chat_messages(project_id: str, thread_id: str | None = Non
 
 @router.delete("/api/projects/{project_id}/messages")
 async def clear_project_chat(project_id: str):
+    require_project_access(project_id, write=True)
     safe_proj = sanitize_name(project_id)
     clear_project_messages(safe_proj)
     await send_log(f"🗑️ Historie chatu pro projekt '{safe_proj}' byla vyčištěna.")
@@ -164,6 +181,9 @@ async def clear_project_chat(project_id: str):
 
 @router.get("/api/projects/{project_id}/chat/export")
 async def export_chat_history(project_id: str, thread_id: str | None = None):
+    require_project_access(project_id)
+    if thread_id:
+        require_thread_access(thread_id)
     safe_proj = sanitize_name(project_id)
     md_content = export_project_chat_markdown(safe_proj, thread_id=thread_id)
     filename = f"chat_{safe_proj}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
@@ -178,6 +198,7 @@ async def export_chat_history(project_id: str, thread_id: str | None = None):
 # --- SPRÁVA PLÁNOVAČE ZKOUŠKY (EXAM PLANNER) ---
 @router.get("/api/projects/{project_id}/planner")
 async def get_project_planner(project_id: str):
+    require_project_access(project_id)
     safe_proj = sanitize_name(project_id)
     proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
     planner_file = os.path.join(proj_dir, PLANNER_FILENAME)
@@ -207,6 +228,7 @@ async def save_project_planner(project_id: str, request: Request, payload: dict 
     user = getattr(request.state, "user", None) or current_user_var.get()
     if user and user.get("role") == "viewer":
         raise HTTPException(status_code=403, detail="Režim pozorovatele: Nemáte oprávnění ukládat plánovač zkoušky.")
+    require_project_access(project_id, write=True)
 
     safe_proj = sanitize_name(project_id)
     proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
@@ -237,6 +259,7 @@ async def save_project_planner(project_id: str, request: Request, payload: dict 
 
 @router.get("/api/projects/{project_id}/questions")
 async def get_project_questions(project_id: str):
+    require_project_access(project_id)
     safe_proj = sanitize_name(project_id)
     proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
     planner_file = os.path.join(proj_dir, PLANNER_FILENAME)
@@ -258,6 +281,7 @@ async def save_project_questions(project_id: str, request: Request, payload: dic
     user = getattr(request.state, "user", None) or current_user_var.get()
     if user and user.get("role") == "viewer":
         raise HTTPException(status_code=403, detail="Režim pozorovatele: Nemáte oprávnění upravovat otázky projektu.")
+    require_project_access(project_id, write=True)
 
     safe_proj = sanitize_name(project_id)
     proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
@@ -303,6 +327,7 @@ async def ai_classify_questions_endpoint(project_id: str, request: Request, payl
         raise HTTPException(
             status_code=403, detail="Režim pozorovatele: Nemáte oprávnění provádět AI klasifikaci otázek."
         )
+    require_project_access(project_id, write=True)
     safe_proj = sanitize_name(project_id)
     proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
     planner_file = os.path.join(proj_dir, PLANNER_FILENAME)

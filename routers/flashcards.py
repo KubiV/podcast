@@ -5,6 +5,7 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Body, HTTPException, Response
 
+from core.authz import filter_accessible_output_files, require_output_file_access, require_project_access
 from core.config import FLASHCARDS_DIR
 from core.logger import send_log
 from core.security import safe_filename, safe_join
@@ -56,6 +57,7 @@ async def generate_flashcards_endpoint(payload: dict = Body(...)):
 
     if not question or not project:
         raise HTTPException(status_code=400, detail="Chybí znění otázky nebo projekt.")
+    require_project_access(project, write=True)
 
     try:
         deck_data, filename = await internal_generate_flashcards(
@@ -74,11 +76,14 @@ async def generate_flashcards_endpoint(payload: dict = Body(...)):
 
 @router.get("/api/flashcards")
 async def list_flashcards(project: str = ""):
+    if project:
+        require_project_access(project)
     try:
         files = [f for f in os.listdir(FLASHCARDS_DIR) if f.endswith(".json")]
         if project:
             safe_proj = sanitize_name(project)
             files = [f for f in files if f.startswith(f"{safe_proj}_")]
+        files = filter_accessible_output_files(files)
 
         files.sort(key=lambda x: os.path.getmtime(os.path.join(FLASHCARDS_DIR, x)), reverse=True)
         results = []
@@ -111,11 +116,14 @@ async def list_flashcards(project: str = ""):
 
 @router.get("/api/flashcards/export-all")
 async def export_all_flashcards(project: str = ""):
+    if project:
+        require_project_access(project)
     try:
         files = [f for f in os.listdir(FLASHCARDS_DIR) if f.endswith(".json")]
         if project:
             safe_proj = sanitize_name(project)
             files = [f for f in files if f.startswith(f"{safe_proj}_")]
+        files = filter_accessible_output_files(files)
 
         files.sort(key=lambda x: os.path.getmtime(os.path.join(FLASHCARDS_DIR, x)))
         all_cards = []
@@ -258,6 +266,7 @@ async def export_all_flashcards(project: str = ""):
 @router.get("/api/flashcards/{filename}")
 async def get_flashcard_deck(filename: str):
     clean_fn = safe_filename(filename)
+    require_output_file_access(clean_fn)
     file_path = safe_join(FLASHCARDS_DIR, clean_fn)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Sada kartiček nenalezena.")
@@ -277,6 +286,7 @@ async def get_flashcard_deck(filename: str):
 @router.delete("/api/flashcards/{filename}")
 async def delete_flashcards(filename: str):
     clean_fn = safe_filename(filename)
+    require_output_file_access(clean_fn, write=True)
     file_path = safe_join(FLASHCARDS_DIR, clean_fn)
     if os.path.exists(file_path):
         os.remove(file_path)

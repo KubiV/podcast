@@ -11,6 +11,7 @@ import pdfplumber
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
 
+from core.authz import require_project_access
 from core.clients import get_chroma_client
 from core.config import UPLOAD_DIR
 from core.logger import send_log
@@ -23,6 +24,7 @@ router = APIRouter()
 
 @router.get("/api/files")
 async def list_files(project: str):
+    require_project_access(project)
     safe_proj = sanitize_name(project)
     proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
     if not os.path.exists(proj_dir):
@@ -39,6 +41,7 @@ async def list_files(project: str):
 async def upload_files(
     background_tasks: BackgroundTasks, project: str = Form(...), files: list[UploadFile] = File(...)
 ):
+    require_project_access(project, write=True)
     safe_proj = sanitize_name(project)
     proj_dir = safe_join(UPLOAD_DIR, safe_proj)
     os.makedirs(proj_dir, exist_ok=True)
@@ -68,6 +71,7 @@ _preview_cache: dict[str, dict] = {}
 
 @router.delete("/api/files/{filename}")
 async def delete_file(filename: str, project: str):
+    require_project_access(project, write=True)
     safe_proj = sanitize_name(project)
     file_path = safe_join(UPLOAD_DIR, safe_proj, safe_filename(filename))
     if os.path.exists(file_path):
@@ -116,6 +120,7 @@ def get_file_mime_type(filename: str) -> str:
 @router.get("/api/files/{project}/{filename}/view")
 async def view_project_file(project: str, filename: str):
     """Servíruje nahraný soubor (PDF, TXT apod.) pro přímé zobrazení v prohlížeči (inline disposition)."""
+    require_project_access(project)
     safe_proj = sanitize_name(project)
     clean_fn = safe_filename(filename)
     file_path = safe_join(UPLOAD_DIR, safe_proj, clean_fn)
@@ -131,6 +136,7 @@ async def view_project_file(project: str, filename: str):
 @router.get("/api/files/{project}/{filename}/preview")
 async def preview_project_file(project: str, filename: str):
     """Vrací strukturovaný obsah a metadata souboru pro náhled v rozhraní (podporuje DOCX, PPTX, TXT, PDF)."""
+    require_project_access(project)
     safe_proj = sanitize_name(project)
     clean_fn = safe_filename(filename)
     file_path = safe_join(UPLOAD_DIR, safe_proj, clean_fn)
@@ -212,6 +218,7 @@ async def preview_project_file(project: str, filename: str):
 @router.post("/api/projects/{project}/reindex")
 async def reindex_project_files(project: str, background_tasks: BackgroundTasks):
     """Smaže stávající index v ChromaDB a znovu hloubkově zaindexuje všechny nahrané soubory s novým sémantickým chunkingem a metadaty stran."""
+    require_project_access(project, write=True)
     safe_proj = sanitize_name(project)
     proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
     if not os.path.exists(proj_dir):

@@ -181,11 +181,17 @@ async def create_mp4_with_subtitles(audio_filename: str, question_title: str) ->
         return False
 
 
+def audio_filename_for(filename: str) -> str:
+    """Název výsledného MP3 souboru odvozený z požadovaného názvu (sdíleno s kontrolou oprávnění v routeru)."""
+    safe_title = "".join([c for c in filename if c.isalnum() or c in (" ", "_", "-")]).strip().replace(" ", "_")
+    return f"{safe_title}.mp3"
+
+
 async def internal_generate_audio(
     script: str, filename: str, provider: str, voice: str, output_format: str, question_title: str
 ) -> tuple[str, str, str]:
-    safe_title = "".join([c for c in filename if c.isalnum() or c in (" ", "_", "-")]).strip().replace(" ", "_")
-    audio_filename = f"{safe_title}.mp3"
+    audio_filename = audio_filename_for(filename)
+    safe_title = audio_filename.removesuffix(".mp3")
     audio_path = safe_join(AUDIO_DIR, safe_filename(audio_filename))
     temporary_audio_path = f"{audio_path}.part"
 

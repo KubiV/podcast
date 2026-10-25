@@ -12,6 +12,7 @@ from fastapi import APIRouter, BackgroundTasks, Body, File, Form, HTTPException,
 from fastapi.responses import FileResponse, JSONResponse
 from starlette.background import BackgroundTask
 
+from core.authz import filter_accessible_output_files, require_project_access
 from core.clients import get_chroma_client
 from core.config import (
     AUDIO_DIR,
@@ -286,6 +287,7 @@ async def rename_project(project_id: str, request: Request, payload: dict = Body
 @router.post("/api/projects/{project_id}/clear-data")
 async def clear_project_data(project_id: str, payload: dict = Body(...)):
     """Selektivní vyčištění generovaných dat projektu se zachováním nahraných zdrojových podkladů."""
+    require_project_access(project_id, write=True)
     safe_proj = sanitize_name(project_id)
     if not safe_proj:
         raise HTTPException(status_code=400, detail="Neplatný název projektu.")
@@ -375,6 +377,7 @@ def cleanup_temp_file(path: str):
 @router.get("/api/projects/{project_id}/export-info")
 async def get_project_export_info(project_id: str):
     """Vrací statistiky a souhrn dat projektu před zahájením exportu."""
+    require_project_access(project_id)
     safe_proj = sanitize_name(project_id)
     proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
     if not os.path.exists(proj_dir):
@@ -477,6 +480,7 @@ async def export_project(
     include_progress: bool = True,
 ):
     """Zabalí kompletní studijní projekt do jednoho souboru balíčku .medproj (ZIP) pro snadný přenos na jiný počítač bez nutnosti re-indexace."""
+    require_project_access(project_id)
     safe_proj = sanitize_name(project_id)
     proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
     if not os.path.exists(proj_dir):
@@ -769,6 +773,7 @@ async def import_project(
                 raise HTTPException(status_code=400, detail="Neplatný název cílového projektu.")
 
             target_dir = os.path.join(UPLOAD_DIR, final_proj)
+            require_project_access(final_proj, write=True)
             if os.path.exists(target_dir):
                 if not overwrite:
                     raise HTTPException(
@@ -952,6 +957,8 @@ async def import_project(
 
 @router.get("/api/stats")
 async def get_project_stats(project: str = ""):
+    if project:
+        require_project_access(project)
     safe_proj = sanitize_name(project) if project else ""
 
     # Materiály
@@ -966,21 +973,25 @@ async def get_project_stats(project: str = ""):
     audio_files = [f for f in os.listdir(AUDIO_DIR) if f.endswith((".mp3", ".mp4"))]
     if safe_proj:
         audio_files = [f for f in audio_files if f.startswith(f"{safe_proj}_")]
+    audio_files = filter_accessible_output_files(audio_files)
 
     # Poznámky
     notes_files = [f for f in os.listdir(NOTES_DIR) if f.endswith(".md")]
     if safe_proj:
         notes_files = [f for f in notes_files if f.startswith(f"{safe_proj}_")]
+    notes_files = filter_accessible_output_files(notes_files)
 
     # Kartičky
     flashcards_files = [f for f in os.listdir(FLASHCARDS_DIR) if f.endswith(".json")]
     if safe_proj:
         flashcards_files = [f for f in flashcards_files if f.startswith(f"{safe_proj}_")]
+    flashcards_files = filter_accessible_output_files(flashcards_files)
 
     # Testové otázky
     tests_files = [f for f in os.listdir(TESTS_DIR) if f.endswith(".json")]
     if safe_proj:
         tests_files = [f for f in tests_files if f.startswith(f"{safe_proj}_")]
+    tests_files = filter_accessible_output_files(tests_files)
 
     # Výukové lekce a chat
     lessons_count = 0

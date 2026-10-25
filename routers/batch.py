@@ -6,6 +6,7 @@ from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Body, HTTPException
 
+from core.authz import require_project_access
 from core.logger import BatchState, active_batches, send_batch_event, send_log
 from core.utils import friendly_api_error, is_terminal_auth_error, sanitize_name
 from services.flashcards_service import internal_generate_flashcards
@@ -23,6 +24,7 @@ router = APIRouter()
 @router.post("/api/cancel-batch")
 async def cancel_batch(payload: dict = Body(...)):
     project = sanitize_name(payload.get("project", ""))
+    require_project_access(project, write=True)
     batch = active_batches.get(project)
     if not batch:
         return {"status": "not_running"}
@@ -215,6 +217,7 @@ async def process_batch(background_tasks: BackgroundTasks, payload: dict = Body(
 
     if not questions or not custom_prompt or not project:
         raise HTTPException(status_code=400, detail="Chybí otázky, prompt nebo projekt.")
+    require_project_access(project, write=True)
 
     if project in active_batches:
         raise HTTPException(
@@ -409,6 +412,7 @@ async def process_notes_batch(background_tasks: BackgroundTasks, payload: dict =
 
     if not questions or not project:
         raise HTTPException(status_code=400, detail="Chybí otázky nebo projekt.")
+    require_project_access(project, write=True)
 
     if project in active_batches:
         raise HTTPException(
@@ -602,6 +606,7 @@ async def process_flashcards_batch(background_tasks: BackgroundTasks, payload: d
 
     if not questions or not project:
         raise HTTPException(status_code=400, detail="Chybí otázky nebo projekt.")
+    require_project_access(project, write=True)
 
     if project in active_batches:
         raise HTTPException(
