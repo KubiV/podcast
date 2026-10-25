@@ -1,15 +1,15 @@
-"""Infrastruktura chatu: datové cesty, SQLite připojení, schéma a migrace, klienti ChromaDB a Gemini."""
+"""Infrastruktura chatu: datové cesty, SQLite připojení, schéma a migrace; klienti ChromaDB a Gemini z core.clients."""
 
-import json
 import os
 import re
 import sqlite3
 import sys
 from datetime import datetime
 
-import chromadb
 from dotenv import load_dotenv
 from google import genai
+
+from core import clients as core_clients
 
 load_dotenv()
 
@@ -35,46 +35,19 @@ DB_PATH = os.path.join(USER_DATA_DIR, "chat_history.db")
 CHROMA_DIR = os.path.join(USER_DATA_DIR, "chroma_db")
 os.makedirs(CHROMA_DIR, exist_ok=True)
 
-# Lazy-initialized clients
-_chroma_client = None
-_ai_client = None
-
-
-def get_chroma_client() -> chromadb.PersistentClient:
-    global _chroma_client
-    if _chroma_client is None:
-        _chroma_client = chromadb.PersistentClient(path=CHROMA_DIR)
-    return _chroma_client
-
-
-def get_gemini_api_key() -> str:
-    """Načte Google Gemini API klíč z uživatelské konfigurace (BYOK) nebo ze systémových proměnných."""
-    config_file = os.path.join(get_user_data_dir(), "user_config.json")
-    if os.path.exists(config_file):
-        try:
-            with open(config_file, encoding="utf-8") as f:
-                cfg = json.load(f)
-                key = (cfg.get("gemini_api_key") or "").strip()
-                if key:
-                    return key
-        except Exception:
-            pass
-    return (os.getenv("GEMINI_API_KEY") or "").strip()
+# Klienti ChromaDB a Gemini jsou sdílení s core.clients: jeden PersistentClient na proces (R5)
+# a klíč Gemini podle režimu API klíčů včetně per-user BYOK (R4).
+get_chroma_client = core_clients.get_chroma_client
+get_gemini_api_key = core_clients.get_gemini_api_key
 
 
 def get_ai_client() -> genai.Client:
-    """Vrací inicializovaného klienta Gemini se zadaným API klíčem."""
-    global _ai_client
-    current_key = get_gemini_api_key()
-    if not current_key:
+    """Vrací klienta Gemini s klíčem aktuálního uživatele (sdílený klíč serveru nebo vlastní klíč – BYOK)."""
+    if not get_gemini_api_key():
         raise ValueError(
             "Není nastaven Google Gemini API klíč. Přejděte v horní liště do 'Nastavení ⚙️' a zadejte svůj API klíč."
         )
-    cached_key = getattr(_ai_client, "_cached_api_key", None) if _ai_client else None
-    if _ai_client is None or cached_key != current_key:
-        _ai_client = genai.Client(api_key=current_key)
-        setattr(_ai_client, "_cached_api_key", current_key)
-    return _ai_client
+    return core_clients.get_gemini_client()
 
 
 def get_db_connection() -> sqlite3.Connection:

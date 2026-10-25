@@ -864,7 +864,7 @@ Commit: `113f24f` – `refactor: Remove unused imports and enable ruff F401`
 
 ### 4.2 Jedna implementace `call_gemini_with_resilience` (R2, R3)
 
-Commit: `refactor(ai): Share one call_gemini_with_resilience implementation` (hash doplní další krok)
+Commit: `df5e535` – `refactor(ai): Share one call_gemini_with_resilience implementation`
 
 - Mrtvá kopie v `services/ai_service.py` (aplikace ji nevolala, jen test 2.4) je nahrazená živou variantou z `services/lesson_service.py`. Jsou to tytéž texty hlášek a totéž ošetření `extract_gemini_error_detail` s návratem na `str(e)`. Nový parametr `get_fallback` (výchozí `ai_service.get_fallback_model`) určuje mapu záložních modelů.
 - `lesson_service.call_gemini_with_resilience` je teď tenký wrapper se stejnou signaturou a výchozím krokem `generating_markdown`. Předává **vlastní mapu fallbacků lekcí** (`lesson_service.get_fallback_model`, neznámý model → žádný fallback). Chování lekcí se tedy nemění.
@@ -874,4 +874,30 @@ Commit: `refactor(ai): Share one call_gemini_with_resilience implementation` (ha
   - Hodnoty byly zachycené na kódu před změnou. Testy procházejí na původním i novém kódu.
   - Mutační kontrola: wrapper bez `get_fallback=…` → 2 selhání. Výchozí krok `generating` místo `generating_markdown` → 2 selhání.
 - **Ověření:** `ruff check` / `ruff format --check` OK. Běžná sada 150 OK (4 přeskočené smoke), smoke 4/4 OK, celé OpenAPI schéma bajtově shodné s HEAD, golden master služeb beze změny.
+
+### 4.3 Chat a lekce používají klienty z `core.clients` (R4, R5) – ⚠ změna chování (oprava chyby)
+
+Commit: `fix(ai): Use per-user BYOK key for chat and lessons` (hash doplní další krok)
+
+**Mění chování v privátním režimu API klíčů (per-user BYOK).** Je to záměrná oprava chyby R4 a podle plánu má samostatný commit.
+- **Dříve:** chat (`stream_grounded_chat`) a výukové lekce (`generate_lesson_package`) braly klíč Gemini přes `services/chat/storage.get_ai_client`. Ta četla vždy globální klíč serveru (`user_config.json`, pak `GEMINI_API_KEY`) a režim API klíčů ignorovala. V privátním režimu tak:
+  - uživatel s vlastním klíčem platil chat a lekce ze serverového klíče;
+  - uživatel bez klíče je mohl používat na náklady serveru.
+- **Nově:** stejná pravidla jako u ostatního generování (`core.clients.get_gemini_api_key`):
+  - sdílený režim → klíč serveru;
+  - privátní režim → vlastní klíč uživatele;
+  - admin bez vlastního klíče → klíč serveru;
+  - ostatní bez klíče → chyba.
+- **Beze změny zůstává:**
+  - text i typ chyby při chybějícím klíči (`ValueError` s původní zprávou chatu a lekcí, ne `HTTPException` z `core.clients`, které by v detailu lekce přidalo „400: “);
+  - chování ve sdíleném režimu;
+  - signatura `get_ai_client()`;
+  - jména exportovaná fasádou `services.chat_service`. `get_gemini_api_key` je teď funkce z `core.clients` s volitelným parametrem `user`.
+- **R5:** `storage.get_chroma_client` je teď `core.clients.get_chroma_client`. V procesu je tedy jediný `chromadb.PersistentClient`, ne dva nad týmž adresářem (`CHROMA_DIR` == `DB_DIR`, protože `core.config` nastavuje `AIMEDSTUDIO_DATA_DIR`).
+- Odstraněno: vlastní cache Gemini klienta a duplicitní čtení konfigurace v `services/chat/storage.py`.
+- **Testy:** nový `tests/test_byok_clients.py` (7 testů). `genai.Client` nahrazuje záznamník klíčů, takže se nikam nevolá. Konfigurace serveru, klíče uživatelů i režim se po testu obnoví.
+  - Pokryté případy: sdílený režim, vlastní klíč v privátním režimu, uživatel bez klíče (původní chyba), admin bez klíče (klíč serveru), jediný Chroma klient.
+  - Dva testy jdou přes endpointy: stream `/api/chat/completions` jako Alice vezme Alicin klíč (ověřuje i propagaci `current_user_var` do streamovací odpovědi) a `/api/lessons/generate` bez klíče vrátí 500 s původní zprávou.
+  - **Na kódu před změnou testy selhaly:** chat použil `test-server-config-key` místo Alicina klíče, lekce bez klíče pokračovala na klíč serveru a spadla až na OpenAI TTS a Chroma klienti byli dva. Klíče v testu jsou fiktivní řetězce.
+- **Ověření:** `ruff check` / `ruff format --check` OK. Běžná sada 157 OK (4 přeskočené smoke), smoke 4/4 OK, celé OpenAPI schéma bajtově shodné s HEAD, golden mastery beze změny.
 
