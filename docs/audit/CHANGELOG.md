@@ -1165,7 +1165,7 @@ Commit: `34622f2` – `docs: Move deployment guides to docs/deployment and corre
 
 ### 5.3 `docs/ARCHITECTURE.md` podle nové struktury, nový `docs/SECURITY.md` (D2)
 
-Commit: `docs: Update architecture overview and add security model` (hash doplní další krok)
+Commit: `d188262` – `docs: Update architecture overview and add security model`
 
 - **`docs/ARCHITECTURE.md` přepsán podle současného kódu:**
   - diagram s middleware, `ProjectStaticFiles`, fasádami a balíčky `services/chat/`, `services/practice_tests/`, `services/projects/`, `services/batch.py` a novými moduly `core/` (`authz`, `html_sanitizer`, `uploads`, `rate_limit`, `request_models`, `AISettings`);
@@ -1196,4 +1196,21 @@ Commit: `docs: Update architecture overview and add security model` (hash dopln�
   - struktura `docs/`.
 - `DOCKER_GUIDE`/`CLOUDFLARE_GUIDE`: odkaz na `SECURITY.md` v sekci rolí.
 - **Ověření:** skript prošel všechny relativní odkazy a kotvy v `README.md`, `docs/*.md` a `docs/deployment/*.md` (0 problémů). Kód se nemění.
+
+### 5.4 CI: GitHub Actions (D5) – se souhlasem
+
+Commit: `ci: Add GitHub Actions workflow for ruff and unit tests` (hash doplní další krok)
+
+- Schváleno: matice Python 3.11 + 3.14, ruff 0.16.10 pinnutý ve workflow (bez změny `requirements-dev.txt`), frontend smoke jen ručně.
+- **`.github/workflows/ci.yml`:**
+  - spouští se při push do `main`, pull requestu a ručně (`workflow_dispatch` s volbou `frontend_smoke`); má `permissions: contents: read`; nový běh na stejné ref zruší starší;
+  - `lint`: `ruff check --output-format=github .` a `ruff format --check .` (Python 3.14);
+  - `tests`: `pip install -r requirements.txt` a `python -m unittest discover -s tests -t . -v` pro Python 3.11 i 3.14 (`fail-fast: false`, pip cache);
+  - `frontend-smoke`: jen ručně se zaškrtnutou volbou; `requirements-dev.txt` + `playwright install --with-deps chromium` + `AIMEDSTUDIO_FRONTEND_SMOKE=1`.
+- **Ověření před přidáním:**
+  - YAML se načte (3 joby, 3 triggery);
+  - `ruff check --output-format=github` a `ruff format --check` lokálně OK;
+  - `ruff check --target-version py311` nenašel nepodporovanou syntaxi;
+  - testy v čistém checkoutu HEAD (git worktree, jako v CI) 173 OK (6 přeskočených), v kořeni nevznikla žádná data.
+- **Neověřeno:** běh na GitHubu, zejména Python 3.11 (lokálně není k dispozici) a instalace závislostí na Ubuntu. Akce jsou uvedené podle hlavní verze (`checkout@v4`, `setup-python@v5`), ne podle SHA. Nic není pushnuté.
 

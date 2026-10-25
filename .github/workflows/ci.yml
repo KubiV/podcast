@@ -1,0 +1,74 @@
+# CI: ruff (lint + formát), unittest na Pythonu 3.11 a 3.14, frontend smoke jen ručně (krok 5.4, docs/audit/CHANGELOG.md)
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      frontend_smoke:
+        description: "Spustit i frontend smoke testy (Playwright, potřebuje CDN)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Ruff (lint + formát)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: pip install ruff==0.16.10
+      - run: ruff check --output-format=github .
+      - run: ruff format --check .
+
+  tests:
+    name: Testy (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.11 = Docker image (python:3.11-slim), 3.14 = vývojové prostředí
+        python-version: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+      # Testy samy blokují síť, nastavují dočasný datový adresář a prázdné API klíče (tests/__init__.py).
+      - run: python -m unittest discover -s tests -t . -v
+
+  frontend-smoke:
+    name: Frontend smoke (Playwright)
+    if: github.event_name == 'workflow_dispatch' && inputs.frontend_smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python -m playwright install --with-deps chromium
+      - run: python -m unittest tests.test_frontend_smoke -v
+        env:
+          AIMEDSTUDIO_FRONTEND_SMOKE: "1"
