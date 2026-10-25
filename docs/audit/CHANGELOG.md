@@ -811,8 +811,16 @@ Commit: `a9535f5` – `refactor(frontend): Move Materials integration section in
 
 ### 3.5.14 Question manager → `static/js/questions-manager.js`
 
-Commit: `refactor(frontend): Move Question manager section into questions-manager.js` (hash doplní další krok)
+Commit: `d56120d` – `refactor(frontend): Move Question manager section into questions-manager.js`
 
 - Řádky 3963–4403 původního `app.js` (441 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/questions-manager.js` s krátkou hlavičkou. `app.js` 4403 → 3962 ř.
 - `index.html`: `questions-manager.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`questions-manager.js` `?v=2.20`.
+- **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
+
+### 3.5.15 Exam planner → `static/js/planner.js`
+
+Commit: `refactor(frontend): Move Exam planner section into planner.js` (hash doplní další krok)
+
+- Řádky 2032–3962 původního `app.js` (1931 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/planner.js` s krátkou hlavičkou. `app.js` 3962 → 2031 ř.
+- `index.html`: `planner.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`planner.js` `?v=2.21`.
 - **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
