@@ -1,0 +1,18 @@
+{
+  "benign": {
+    "notes_full": "<!-- METADATA\n{\"question\": \"Srdeční selhání\", \"project\": \"kardio\"}\n-->\n# Srdeční selhání\n\n## Definice\n\nSrdeční selhání je **klinický syndrom** [1, s. 12]. Podle *ESC* guidelines [Zdroj: kardio_skripta.pdf, s. 3].\n\n- NYHA I–IV\n- Ejekční frakce < 40 %\n  - HFrEF\n  - HFpEF\n\n1. Anamnéza\n2. Echokardiografie [2, s. 45; 3, s. 7]\n\n| Parametr | Hodnota |\n|---|---|\n| NT-proBNP | > 125 pg/ml |\n| LVEF | < 40 % |\n\n> Poznámka: viz také [odkaz](https://www.escardio.org).\n\n`kód` a blok:\n\n```\nfunction x() { return 1; }\n```\n\nVzorec inline $CO = SV \\times HR$ a blokový:\n\n$$\\frac{a}{b} = c^2$$\n",
+  "chat_answer": "Ano, **digoxin** se používá u fibrilace síní<sup>[1, s. 434]</sup>.\n\nDávkování:\n1. Nasycovací dávka\n2. Udržovací dávka 1, s. 435\n\nViz \\(t_{1/2}\\) a \\[Cl = \\frac{D}{AUC}\\].",
+  "flashcard_back": "**Furosemid** – kličkové diuretikum\n\n- inhibuje Na⁺/K⁺/2Cl⁻ v Henleově kličce\n- NÚ: hypokalemie, ototoxicita\n\n<br>\n\n<b>Rang A</b>",
+  "lesson_markdown": "# Lekce\n\n### Kapitola 1\n\nText s ~~přeškrtnutím~~ a hranatými závorkami [poznámka].\n\n- [ ] úkol\n- [x] hotovo\n\n---\n\n![schéma](https://example.org/schema.png)"
+  },
+  "malicious": {
+    "img_onerror": "Ahoj <img src=x onerror=\"window.__xss=1\"> světe",
+    "script_tag": "Text <script>window.__xss=1</script> konec",
+    "js_link": "[klikni](javascript:window.__xss=1)",
+    "svg_onload": "<svg onload=\"window.__xss=1\"><circle r=1></circle></svg>",
+    "iframe_srcdoc": "<iframe srcdoc=\"<script>parent.__xss=1</script>\"></iframe>",
+    "citation_attr_break": "Viz [Zdroj: a\" onmouseover=\"window.__xss=1\" x=\"y.pdf, s. 1]",
+    "citation_js_break": "Viz [Zdroj: a');window.__xss=1;//, s. 1]",
+    "details_ontoggle": "<details open ontoggle=\"window.__xss=1\"><summary>x</summary></details>"
+  }
+}

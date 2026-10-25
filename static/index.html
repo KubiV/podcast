@@ -13,6 +13,8 @@
     <link rel="manifest" href="/manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- DOMPurify: sanitizace HTML z markdownu (výstupy AI) – pinnutá verze + SRI -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.4.16/purify.min.js" integrity="sha512-flQmhkXNRQ3iUfvtdCobtpMjCb6kE+zLnTiAulAQJ3WykVfy84JvCMOo6vhwWXHTXjR25h9Zj+LyGFRWKjRoag==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <!-- KaTeX pro vykreslování matematických vzorců, indexů a laboratorních mezí -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
@@ -5523,6 +5525,6 @@
 
     <!-- JAVASCRIPT APLIKACE -->
     <script src="/js/translations.js?v=2.4"></script>
-    <script src="/js/app.js?v=2.4"></script>
+    <script src="/js/app.js?v=2.5"></script>
 </body>
 </html>

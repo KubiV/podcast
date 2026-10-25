@@ -55,7 +55,7 @@ Commit: `59ac8d8` – `fix(security): Check project access on static file mounts
 
 ## 1.3 ⚠ Izolace živého logu `/api/logs` (nález S3)
 
-Commit: `fix(security): Filter /api/logs events per user and project` (hash doplní další krok)
+Commit: `01fd81a` – `fix(security): Filter /api/logs events per user and project`
 
 **Zabezpečeno:**
 - `core/logger.py`: každá událost si při publikaci zapamatuje uživatele, který ji vyvolal (`current_user_var`), a projekt z payloadu. `log_history` teď ukládá i původce logu. Odběratel (`LogSubscriber`) nese svého uživatele.
@@ -82,3 +82,31 @@ Commit: `fix(security): Filter /api/logs events per user and project` (hash dopl
 **Zbývá (mimo rozsah kroku):**
 - Logy dál obsahují začátek uživatelského dotazu (`routers/chat_api.py`: `Chat dotaz … '{message[:50]}'`, `services/rag_service.py:257`) a jdou i na stdout (`print`). Vidí je jen autor a admin. Úplné odstranění je otázka zásad logování.
 - `can_receive_event` se volá pro každou událost a každého odběratele a může sáhnout do SQLite (vlastník projektu). Při současném objemu událostí to nevadí.
+
+## 1.4 ⚠ Sanitizace markdownu z AI výstupů (nálezy F1, F4, část F3)
+
+Commit: `fix(security): Sanitize rendered markdown with DOMPurify` (hash doplní další krok)
+
+**Nová závislost (schválena):** DOMPurify **3.4.16** z cdnjs s SRI `sha512-flQmhkXN…KjRoag==`, `crossorigin="anonymous"`. Hash jsem ověřil dvakrát: spočítal ze staženého souboru a porovnal s hodnotou z cdnjs API. Nejnovější 3.4.17 (vydaná 2026-10-12) jsem nepoužil, protože je mladší než 14 dní.
+
+**Zabezpečeno (`static/js/app.js`):**
+- `sanitizeHtml()`: HTML vždy prochází přes `DOMPurify.sanitize`. Když se knihovna nenačte, funguje fail-closed a obsah se zobrazí jako escapovaný text.
+- `renderMarkdownWithKaTeX()`: výstup `marked.parse` se sanitizuje **před** vložením citací a KaTeX, které generuje sama aplikace. Při chybě `marked` se místo surového textu vrací escapovaný text.
+- `renderMarkdownSafe()`: jediná cesta pro markdown bez KaTeX. Nahradila všech 7 přímých volání `marked.parse` (tisk poznámek, lekce, chatu a záložní větve v Medulingu). Záložní `<pre>${text}</pre>` už text escapuje.
+- `createCitationBadge()`: text citace z výstupu modelu se dekóduje (`decodeHtmlEntities`) a pak escapuje podle kontextu. Pro JS řetězec v `onclick` slouží `escapeJsStringAttr`, pro `title` a obsah `escapeHtml`. Původní `replace(/'/g, "\\'")` nechránil, protože `marked` převádí `'` na `&#39;` a prohlížeč ho v atributu dekóduje zpět.
+- Chat: při chybě renderu se zpráva vkládá escapovaná (F4, `appendChatMessageToUI`).
+- `index.html`: cache-busting `app.js?v=2.4` → `v=2.5`, aby prohlížeče načetly opravu.
+
+**Ověření (prohlížeč, dočasný server bez dat a klíčů):**
+- Snapshot výstupu `renderMarkdownWithKaTeX` jsem pořídil před změnou a porovnal po ní. Všechny 4 běžné vzorky (poznámky s tabulkou, citacemi, kódem a vzorci; odpověď chatu; kartička; lekce s task listem a obrázkem) jsou **bajtově identické**.
+- Škodlivé vzorky (`tests/frontend/markdown_fixtures.json`): před změnou se spustil skript u 5 z 8 (img onerror, odkaz `javascript:`, iframe srcdoc, citace s `'`, details ontoggle), po změně u 0 z 8.
+- Kliknutí na citace předává handlerům přesné hodnoty, včetně názvu `O'Brien & spol.pdf`. Ten dřív rozbil JS řetězec, takže jde i o opravu chyby.
+- DOMPurify se načetl se SRI. Bez něj se obsah zobrazí jako escapovaný text.
+- `node --check` OK. Backend beze změny: 43/43 testů, ruff 2× UP038, format OK.
+
+**Testovací pomůcky:** `tests/frontend/markdown_fixtures.json` (vzorky) a `tests/frontend/render_check.js` (harness pro konzoli prohlížeče se snapshotem v localStorage). Automatizovaný frontendový test chybí, Playwright by byl nová závislost.
+
+**Zbývá (další kroky plánu):**
+- Ostatní `innerHTML` s neescapovanými názvy souborů a zpráv (F3, F6) a `onclick` s interpolovanými hodnotami mimo citace (F2) řeší krok 1.6.
+- `marked` a Tailwind z CDN jsou stále bez verze a bez SRI. Řeší je krok 1.8.
+- Při testu bez přihlášení hlásí konzole `TypeError … reading 'forEach'` v `loadProjects` (`app.js:1205`), protože stránka čte odpověď 401 jako seznam projektů. Chyba existovala už dřív, je zapsaná a neopravená.

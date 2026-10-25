@@ -618,11 +618,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
             let contentHtml = "";
             if (isRaw) {
                 const rawText = rawArea.value || currentNotesMarkdown || "";
-                if (typeof marked !== "undefined" && marked.parse) {
-                    contentHtml = marked.parse(rawText);
-                } else {
-                    contentHtml = `<pre>${rawText}</pre>`;
-                }
+                contentHtml = renderMarkdownSafe(rawText);
             } else if (renderedArea) {
                 if (renderedArea.querySelector(".text-3xl") && renderedArea.textContent.includes("Zde se zobrazí")) {
                     alert(t("print.selectNotesFirst", "Nejprve vyberte nebo vygenerujte studijní text k tisku."));
@@ -663,10 +659,8 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
             let contentHtml = "";
             if (renderedArea && !renderedArea.querySelector(".text-4xl")) {
                 contentHtml = renderedArea.innerHTML;
-            } else if (typeof marked !== "undefined" && marked.parse) {
-                contentHtml = marked.parse(currentLessonData.markdown_content);
             } else {
-                contentHtml = `<pre>${currentLessonData.markdown_content}</pre>`;
+                contentHtml = renderMarkdownSafe(currentLessonData.markdown_content);
             }
 
             if (currentLessonData.lecture_script) {
@@ -708,7 +702,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
 
                     let bodyHtml = "";
                     if (typeof marked !== "undefined" && marked.parse) {
-                        bodyHtml = marked.parse(msg.content || "");
+                        bodyHtml = renderMarkdownSafe(msg.content || "");
                     } else {
                         bodyHtml = `<p>${(msg.content || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
                     }
@@ -2069,6 +2063,40 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
+        }
+
+        // Dekóduje HTML entity (např. text z výstupu marked) na prostý řetězec; textarea nespouští skripty.
+        function decodeHtmlEntities(str) {
+            const textarea = document.createElement("textarea");
+            textarea.innerHTML = String(str);
+            return textarea.value;
+        }
+
+        // Řetězec pro JS literál v '…' uvnitř inline handleru (onclick="fn('…')"): nejdřív JS, pak HTML escapování.
+        function escapeJsStringAttr(str) {
+            return escapeHtml(String(str).replace(/\\/g, "\\\\").replace(/'/g, "\\'"));
+        }
+
+        // HTML z markdownu (výstup AI, uživatelský text) vždy přes DOMPurify; bez knihovny fail-closed jako text.
+        function sanitizeHtml(html) {
+            if (typeof DOMPurify !== "undefined" && DOMPurify.sanitize) {
+                return DOMPurify.sanitize(html);
+            }
+            console.warn("DOMPurify není načten – HTML se zobrazí jako prostý text.");
+            return escapeHtml(html);
+        }
+
+        // Markdown bez KaTeX/citací (tisk, záložní cesty) – sanitizovaný.
+        function renderMarkdownSafe(markdown) {
+            if (typeof marked === "undefined" || !marked.parse) {
+                return `<pre>${escapeHtml(markdown || "")}</pre>`;
+            }
+            try {
+                return sanitizeHtml(marked.parse(markdown || ""));
+            } catch (err) {
+                console.warn("marked.parse error:", err);
+                return `<pre>${escapeHtml(markdown || "")}</pre>`;
+            }
         }
 
         function escapeQuotes(str) {
@@ -5382,8 +5410,11 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                 html = marked.parse(text);
             } catch (err) {
                 console.warn("marked.parse error:", err);
-                html = text;
+                html = escapeHtml(text);
             }
+
+            // 5b. Sanitizace (před citacemi a KaTeX: ty generuje aplikace sama s escapovanými hodnotami)
+            html = sanitizeHtml(html);
 
             // 6. Formátování citací
             try {
@@ -9750,17 +9781,19 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
         }
 
         function createCitationBadge(idOrFile, page = "", isDirect = false) {
-            const cleanPage = page ? String(page).trim() : "";
+            // Vstupy jsou text z výstupu modelu (už HTML-escapovaný markdownem): dekódovat a escapovat podle kontextu
+            const cleanPage = page ? decodeHtmlEntities(page).trim() : "";
             const pageLabel = cleanPage ? `, s. ${cleanPage}` : "";
             if (isDirect) {
-                const cleanFile = String(idOrFile).trim();
-                const safeFile = cleanFile.replace(/'/g, "\\'");
-                const safePage = cleanPage.replace(/'/g, "\\'");
-                return `<span class="inline-citation cursor-pointer hover:bg-sky-950/80 hover:border-sky-500 transition" onclick="handleDirectCitationClick(event, '${safeFile}', '${safePage}')" title="Kliknutím otevřít ${cleanFile}${pageLabel}"><sup>📖 ${cleanFile}${pageLabel}</sup></span>`;
+                const cleanFile = decodeHtmlEntities(idOrFile).trim();
+                const safeFile = escapeJsStringAttr(cleanFile);
+                const safePage = escapeJsStringAttr(cleanPage);
+                const label = escapeHtml(`${cleanFile}${pageLabel}`);
+                return `<span class="inline-citation cursor-pointer hover:bg-sky-950/80 hover:border-sky-500 transition" onclick="handleDirectCitationClick(event, '${safeFile}', '${safePage}')" title="Kliknutím otevřít ${label}"><sup>📖 ${label}</sup></span>`;
             } else {
-                const cleanId = String(idOrFile).trim();
-                const safeId = cleanId.replace(/'/g, "\\'");
-                const safePage = cleanPage.replace(/'/g, "\\'");
+                const cleanId = decodeHtmlEntities(idOrFile).trim();
+                const safeId = escapeJsStringAttr(cleanId);
+                const safePage = escapeJsStringAttr(cleanPage);
                 let knownFile = "";
                 const proj = (activeMedQuestion && activeMedQuestion.project) || window.currentNotesProject || currentProject;
                 if (window.currentMedulingoSources) {
@@ -9777,7 +9810,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                 const tooltip = knownFile 
                     ? `Kliknutím otevřít ${knownFile}${pageLabel}` 
                     : `Kliknutím otevřít zdroj #${cleanId}${pageLabel}`;
-                return `<span class="inline-citation cursor-pointer hover:bg-sky-950/80 hover:border-sky-500 transition" data-src-id="${safeId}" onclick="handleCitationClick(event, '${safeId}', '${safePage}')" title="${tooltip}"><sup>[${cleanId}${pageLabel}]</sup></span>`;
+                return `<span class="inline-citation cursor-pointer hover:bg-sky-950/80 hover:border-sky-500 transition" data-src-id="${escapeHtml(cleanId)}" onclick="handleCitationClick(event, '${safeId}', '${safePage}')" title="${escapeHtml(tooltip)}"><sup>[${escapeHtml(`${cleanId}${pageLabel}`)}]</sup></span>`;
             }
         }
 
@@ -9899,7 +9932,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
             try {
                 parsedContent = renderMarkdownWithKaTeX(msg.content || "");
             } catch (e) {
-                parsedContent = msg.content || "";
+                parsedContent = escapeHtml(msg.content || "");
             }
 
             let sourcesHtml = "";
@@ -13401,7 +13434,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                 try {
                     back.innerHTML = typeof renderMarkdownWithKaTeX === "function"
                         ? renderMarkdownWithKaTeX(c.back || "")
-                        : (typeof marked !== "undefined" ? marked.parse(c.back || "") : (c.back || ""));
+                        : renderMarkdownSafe(c.back || "");
                 } catch (e) {
                     back.textContent = c.back || "";
                 }
@@ -13599,7 +13632,7 @@ ${contextSnippets}`;
                                 try {
                                     aiBubble.innerHTML = (typeof renderMarkdownWithKaTeX === "function" 
                                         ? renderMarkdownWithKaTeX(fullText) 
-                                        : marked.parse(fullText)) + '<span class="inline-block w-1.5 h-3.5 bg-emerald-400 ml-1 animate-pulse align-middle"></span>';
+                                        : renderMarkdownSafe(fullText)) + '<span class="inline-block w-1.5 h-3.5 bg-emerald-400 ml-1 animate-pulse align-middle"></span>';
                                 } catch (e) {
                                     aiBubble.textContent = fullText;
                                 }
@@ -13611,7 +13644,7 @@ ${contextSnippets}`;
                             try {
                                 aiBubble.innerHTML = typeof renderMarkdownWithKaTeX === "function"
                                     ? renderMarkdownWithKaTeX(fullText)
-                                    : marked.parse(fullText);
+                                    : renderMarkdownSafe(fullText);
                             } catch (e) {
                                 aiBubble.textContent = fullText;
                             }
@@ -13628,7 +13661,7 @@ ${contextSnippets}`;
                     try {
                         aiBubble.innerHTML = typeof renderMarkdownWithKaTeX === "function"
                             ? renderMarkdownWithKaTeX(fullText)
-                            : marked.parse(fullText);
+                            : renderMarkdownSafe(fullText);
                     } catch (e) {
                         aiBubble.textContent = fullText;
                     }
