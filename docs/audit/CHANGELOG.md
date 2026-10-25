@@ -441,7 +441,7 @@ Krok mění jen testy, kód aplikace beze změny.
 
 ## 2.3 Charakterizace čistých funkcí služeb (golden master)
 
-Commit: `test: Add golden-master characterization of service helpers` (hash doplní další krok)
+Commit: `04eb7ba` – `test: Add golden-master characterization of service helpers`
 
 Krok mění jen testy, kód aplikace beze změny.
 
@@ -466,3 +466,54 @@ Krok mění jen testy, kód aplikace beze změny.
 **Zjištění (zapsáno, neopraveno):** neznámý typ testové otázky (např. `"open"` místo `"open_ended"`) se změní na `single_choice` a bez možností se tiše zahodí.
 
 **Ověření vůči baseline:** 114/114 testů OK ve dvou bězích. `ruff check` beze změny (2× UP038), F401 130, `ruff format` OK.
+
+## 2.4 Charakterizace opakování a záložního modelu Gemini
+
+Commit: `test: Characterize Gemini retry and fallback behavior` (hash doplní další krok)
+
+Krok mění jen testy, kód aplikace beze změny.
+
+- Nový `tests/test_ai_resilience.py` (17 testů). `asyncio.sleep` nahrazuje záznamník, takže testy nečekají a zaznamenají plán čekání. Gemini nahrazuje `FakeGeminiClient` z kroku 2.1.
+- **`call_gemini_with_retries` (`ai_service`):**
+  - úspěch napoprvé, opakování po 503 s čekáním 8 a 16 s,
+  - přepnutí na záložní model od 3. neúspěchu (čekání 4 s),
+  - vyčerpání pokusů vyhodí `ValueError` se srozumitelnou hláškou a `(Detail: …)`. Fallback spotřebuje pokus, takže se čekání 30 s přeskočí: 8, 16, 4, 45, 60.
+  - `enable_fallback=False`, neopakovatelná chyba se vyhodí hned,
+  - `text=None` vrací `""`,
+  - předání `temperature`/`max_output_tokens`/`response_mime_type`, jazyková direktiva podle `current_language_var`,
+  - varianty `log_fn` (synchronní, padající) a výchozí logování do `send_log`.
+- **Obě `call_gemini_with_resilience`** (`ai_service` – mrtvý kód, `lesson_service` – používaný):
+  - vrací objekt odpovědi a konfiguraci předávají beze změny, bez jazykové direktivy,
+  - plán čekání 6, 12, 4, 45, 60,
+  - `report_fn(step, pct, zpráva)` s výchozím krokem `generating` vs. `generating_markdown`,
+  - po vyčerpání znovu vyhodí **původní** výjimku, neopakovatelná chyba se vyhodí hned, `report_fn` je volitelné.
+- **Rozdíly zdokumentované pro sloučení v kroku 4.2:**
+  - neznámý model: `ai_service` přepne na `gemini-3.6-flash`, `lesson_service` nikdy nepřepne a čeká 6, 12, 25, 45, 60,
+  - výsledek po vyčerpání pokusů: `retries` vyhodí přeložený `ValueError`, `resilience` původní výjimku,
+  - jazykovou direktivu přidává jen `retries`.
+- **Mutační kontrola:** detekce opakovatelné chyby, obě fallback mapy, srozumitelná hláška, jazyková direktiva a detail chyby. Zachyceno 6 z 6.
+
+**Zjištěné chyby (zapsáno, neopraveno – testy je zachycují s komentářem „CHYBA“):**
+- **`call_gemini_with_retries` může vrátit `None`.** Když přepnutí na záložní model padne na poslední pokus, `continue` ukončí smyčku a funkce skončí bez výjimky. S výchozími intervaly (6 pokusů, fallback na 3.) nenastává. S `wait_intervals` o 2 položkách ano. Žádný současný volající vlastní intervaly nepředává, chyba je tedy latentní. Stejná struktura je v obou `call_gemini_with_resilience`.
+- **Duplicitní jazyková direktiva.** Když `system_instruction` začíná přímo direktivou (bez vlastního textu před ní), kontrola `lang_directive not in system_instruction` ji kvůli `.strip()` nenajde a doplní ji podruhé.
+
+**Ověření vůči baseline:** 131/131 testů OK ve dvou bězích. `ruff check` beze změny (2× UP038), F401 130, `ruff format` OK.
+
+---
+
+## Souhrn fáze 2 (charakterizační testy) – kroky 2.1–2.4
+
+| Krok | Commit | Obsah |
+|---|---|---|
+| 2.1 infrastruktura | `135d320` | fake Gemini, offline embeddingy, blokace sítě v testech |
+| 2.2 CRUD endpointy | `90ed888` | 13 testů, mutace 8/8 |
+| 2.3 čisté funkce služeb | `04eb7ba` | golden master 14 skupin, mutace 7/7 |
+| 2.4 retry a fallback | (tento krok) | 17 testů, mutace 6/6 |
+
+Testy: 90 → 131, celá sada běží offline (síťová pojistka). Kód aplikace se ve fázi 2 neměnil. Nově zapsáno 6 chyb:
+- smíšená časová pásma v chatu,
+- nekonzistentní výpis souborů,
+- hledání testu podřetězcem,
+- tiše zahozený neznámý typ otázky,
+- `None` z `call_gemini_with_retries`,
+- duplicitní jazyková direktiva.
