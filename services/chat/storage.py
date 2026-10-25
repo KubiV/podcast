@@ -235,4 +235,10 @@ init_db()
 
 
 def sanitize_project_name(name: str) -> str:
+    """
+    ID projektu v chatové DB (vlákna, FTS) a v názvech Chroma kolekcí – povoluje jen ASCII `[a-zA-Z0-9_-]`.
+
+    Záměrně se liší od `core.utils.sanitize_name` (ID v uploads/), např. `Kardiologie_č` → `Kardiologie__`.
+    Sjednocení by změnilo ID existujících dat, a proto vyžaduje migraci (nález R1 v docs/audit/AUDIT.md).
+    """
     return re.sub(r"[^a-zA-Z0-9_-]", "_", name.strip())

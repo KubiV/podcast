@@ -4,6 +4,7 @@ import re
 from datetime import datetime
 from typing import Any
 
+from core.utils import sanitize_name
 from prompts.medulingo import MEDULINGO_PODCAST_PROMPT  # noqa: F401 – re-export pro routers/medulingo.py
 
 
@@ -16,11 +17,6 @@ def normalize_name(s: str) -> str:
     n = unicodedata.normalize("NFKD", s)
     stripped = "".join([c for c in n if not unicodedata.combining(c)])
     return re.sub(r"[^a-zA-Z0-9]+", "", stripped.lower())
-
-
-def sanitize_name(name: str) -> str:
-    cleaned = re.sub(r"[^\w\-_.]", "_", name.strip())
-    return re.sub(r"_+", "_", cleaned)
 
 
 # Thematic icons for categories

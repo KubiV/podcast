@@ -2,19 +2,13 @@
 
 import json
 import os
-import re
 import time
 import uuid
 from datetime import datetime
 from typing import Any
 
 from core.security import safe_join
-
-
-# Pomocná funkce pro sanitizaci jména
-def sanitize_name(name: str) -> str:
-    cleaned = re.sub(r"[^\w\-_.]", "_", name.strip())
-    return re.sub(r"_+", "_", cleaned)
+from core.utils import sanitize_name
 
 
 class TestStorageManager:

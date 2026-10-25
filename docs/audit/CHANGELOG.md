@@ -877,7 +877,7 @@ Commit: `df5e535` – `refactor(ai): Share one call_gemini_with_resilience imple
 
 ### 4.3 Chat a lekce používají klienty z `core.clients` (R4, R5) – ⚠ změna chování (oprava chyby)
 
-Commit: `fix(ai): Use per-user BYOK key for chat and lessons` (hash doplní další krok)
+Commit: `4574b15` – `fix(ai): Use per-user BYOK key for chat and lessons`
 
 **Mění chování v privátním režimu API klíčů (per-user BYOK).** Je to záměrná oprava chyby R4 a podle plánu má samostatný commit.
 - **Dříve:** chat (`stream_grounded_chat`) a výukové lekce (`generate_lesson_package`) braly klíč Gemini přes `services/chat/storage.get_ai_client`. Ta četla vždy globální klíč serveru (`user_config.json`, pak `GEMINI_API_KEY`) a režim API klíčů ignorovala. V privátním režimu tak:
@@ -900,4 +900,22 @@ Commit: `fix(ai): Use per-user BYOK key for chat and lessons` (hash doplní dal�
   - Dva testy jdou přes endpointy: stream `/api/chat/completions` jako Alice vezme Alicin klíč (ověřuje i propagaci `current_user_var` do streamovací odpovědi) a `/api/lessons/generate` bez klíče vrátí 500 s původní zprávou.
   - **Na kódu před změnou testy selhaly:** chat použil `test-server-config-key` místo Alicina klíče, lekce bez klíče pokračovala na klíč serveru a spadla až na OpenAI TTS a Chroma klienti byli dva. Klíče v testu jsou fiktivní řetězce.
 - **Ověření:** `ruff check` / `ruff format --check` OK. Běžná sada 157 OK (4 přeskočené smoke), smoke 4/4 OK, celé OpenAPI schéma bajtově shodné s HEAD, golden mastery beze změny.
+
+### 4.4 Jedna `sanitize_name` pro test a Medulingo (R1)
+
+Commit: `refactor: Use core sanitize_name in practice tests and Medulingo` (hash doplní další krok)
+
+- Lokální kopie `sanitize_name` v `services/practice_tests/storage.py` a `services/medulingo_service.py` jsou pryč. Oba moduly teď importují `core.utils.sanitize_name`, takže pod svými jmény jsou dál dostupné i přes fasádu `services.test_service` a shim `medulingo_service`.
+- Jediný rozdíl mezi variantami: `core` ořezává okrajová `_` (a pro prázdný či `None` vstup vrací `""`).
+- **Projektové cesty se nemění:**
+  - Do `MedulingoService` (`_get_planner_data`, `_save_planner_data`, `scan_project_assets`) jdou jen názvy už sanitizované přes `core` v `routers/medulingo.py`. Do `TestStorageManager` jdou názvy projektů z frontendu (kanonická ID adresářů).
+  - Pro každý výstup `core` platí `stará_varianta(core(s)) == core(s)`. Ověřeno jednorázovou kontrolou na 200 009 vstupech: náhodné řetězce s diakritikou, interpunkcí a bílými znaky plus okrajové případy.
+- **Pozorovatelná změna jen u syrových vstupů s okrajovými znaky** (plán 4.4 s ní počítal):
+  - `GET /api/tests?project=` s neplatnými okrajovými znaky: filtr prefixu je teď shodný s ID, které ověřuje `require_project_access`.
+  - `id` jednotky v přehledu Medulingo pro téma jako `(Kardio)` je teď `kardio`, dřív `_kardio_`. Frontend `u.id` nečte (používá `title`, `icon` a počty).
+- `sanitize_project_name` (chat DB, FTS, Chroma) se podle plánu **nesjednocuje**: změnilo by to ID existujících dat a vyžadovalo migraci. Rozdíl je teď zdokumentovaný v jeho docstringu.
+- **Testy 2.3:**
+  - `test_sanitizer_variants_differ` teď ověřuje, že varianty test/Medulingo *jsou* `core.utils.sanitize_name`.
+  - Golden master `services_golden.json` je záměrně přegenerovaný. Změnilo se přesně 6 hodnot (3 vstupy × 2 varianty, jen ořezané okrajové `_`), nic dalšího.
+- **Ověření:** `ruff check` / `ruff format --check` OK. Běžná sada 157 OK (4 přeskočené smoke), smoke 4/4 OK, celé OpenAPI schéma bajtově shodné s HEAD.
 

@@ -28,10 +28,10 @@ class TestDuplicateImplementations(unittest.TestCase):
         # Diakritika: chat (FTS, vlákna, Chroma kolekce) používá jiné ID projektu než uploads/
         self.assertEqual(sanitize_name("Kardiologie_č"), "Kardiologie_č")
         self.assertEqual(sanitize_project_name("Kardiologie_č"), "Kardiologie__")
-        # Okrajová podtržítka: core je ořezává, test_service a medulingo ne
+        # test_service a medulingo od kroku 4.4 používají core.utils.sanitize_name (ořezává okrajová podtržítka)
+        self.assertIs(test_sanitize, sanitize_name)
+        self.assertIs(medulingo_sanitize, sanitize_name)
         self.assertEqual(sanitize_name("__x__"), "x")
-        self.assertEqual(test_sanitize("__x__"), "_x_")
-        self.assertEqual(medulingo_sanitize("__x__"), "_x_")
         # safe_filename navíc bere jen název souboru a ořezává tečky
         self.assertEqual(safe_filename("../../etc/passwd"), "passwd")
         self.assertEqual(sanitize_name("../../etc/passwd"), ".._.._etc_passwd")

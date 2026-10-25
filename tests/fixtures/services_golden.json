@@ -857,27 +857,27 @@
    "core.security.safe_filename": "Moje_Zkouška_2026",
    "core.utils.sanitize_name": "Moje_Zkouška_2026",
    "medulingo_service.normalize_name": "mojezkouska2026",
-   "medulingo_service.sanitize_name": "Moje_Zkouška_2026_",
+   "medulingo_service.sanitize_name": "Moje_Zkouška_2026",
    "test_service.normalize_text": "moje zkouska 2026",
-   "test_service.sanitize_name": "Moje_Zkouška_2026_"
+   "test_service.sanitize_name": "Moje_Zkouška_2026"
   },
   "__podtržítka__": {
    "chat_service.sanitize_project_name": "__podtr__tka__",
    "core.security.safe_filename": "podtržítka",
    "core.utils.sanitize_name": "podtržítka",
    "medulingo_service.normalize_name": "podtrzitka",
-   "medulingo_service.sanitize_name": "_podtržítka_",
+   "medulingo_service.sanitize_name": "podtržítka",
    "test_service.normalize_text": "__podtrzitka__",
-   "test_service.sanitize_name": "_podtržítka_"
+   "test_service.sanitize_name": "podtržítka"
   },
   "a'b\"c<d>": {
    "chat_service.sanitize_project_name": "a_b_c_d_",
    "core.security.safe_filename": "a_b_c_d",
    "core.utils.sanitize_name": "a_b_c_d",
    "medulingo_service.normalize_name": "abcd",
-   "medulingo_service.sanitize_name": "a_b_c_d_",
+   "medulingo_service.sanitize_name": "a_b_c_d",
    "test_service.normalize_text": "a b c d",
-   "test_service.sanitize_name": "a_b_c_d_"
+   "test_service.sanitize_name": "a_b_c_d"
   },
   "a//b\\c": {
    "chat_service.sanitize_project_name": "a__b_c",
