@@ -637,7 +637,7 @@ Bloky rozřezal skript podle řádků, včetně komentářů nad definicemi. **A
 
 ## 3.4 Společná kostra dávkového zpracování (nález A5)
 
-Commit: `refactor(batch): Share one batch skeleton across podcast, notes and flashcards` (hash doplní další krok)
+Commit: `e45a017` – `refactor(batch): Share one batch skeleton across podcast, notes and flashcards`
 
 Čistý refaktoring, bez změny chování.
 
@@ -668,3 +668,20 @@ Commit: `refactor(batch): Share one batch skeleton across podcast, notes and fla
 - Golden master prošel napoprvé: **všech 28 průběhů je identických**, tedy každý log, událost, čekání i volání.
 - Mutační kontrola nové kostry: vypnutí detekce chyby autorizace, záměna textů režimu, změna jednoho textu noční kontroly a hlášky autorizace. Zachyceno 4 ze 4.
 - 144/144 testů OK ve dvou bězích, seznam OpenAPI cest identický. `ruff check` beze změny (2× UP038), F401 123, `ruff format` OK.
+
+## 3.5a Smoke testy frontendu v prohlížeči (Playwright)
+
+Commit: `test(frontend): Add opt-in Playwright smoke tests` (hash doplní další krok)
+
+Příprava pro krok 3.5. Kód aplikace se nemění.
+
+- **Nová dev závislost (schválena uživatelem):** `requirements-dev.txt` s `playwright==1.63.0`. Verze 1.64.x je mladší než 14 dní. Do `requirements.txt` ani do Docker image se nepřidává. Prohlížeč se stáhne přes `python -m playwright install chromium` (Chrome Headless Shell 153, ~94 MB, do `~/Library/Caches/ms-playwright`, mimo repozitář).
+- **Nový `tests/test_frontend_smoke.py` (4 testy, opt-in přes `AIMEDSTUDIO_FRONTEND_SMOKE=1`).** Běžná sada je testy přeskočí a zůstává offline. Každý běh nastartuje uvicorn s dočasnými daty a bez API klíčů a naplní ho daty přes `tests/frontend/seed_xss_data.py`, včetně škodlivých hodnot z 1.6. Testy ověřují:
+  - načtení stránky a knihoven z CDN bez nezachycených chyb JS,
+  - **existenci všech globálních funkcí volaných z inline handlerů** (index.html i šablony v app.js, přes 100 jmen). To je hlavní pojistka pro dělení app.js.
+  - průchod všemi 11 sekcemi a běh 10 loaderů sekcí bez chyb, `window.__xss` zůstane 0,
+  - pipeline markdown → DOMPurify → citace → KaTeX (škodlivé HTML jen jako text, `on*` atributy jen u citačních odznaků).
+- **Baseline na nezměněném kódu:** 4/4 OK ve dvou bězích. Bez proměnné prostředí 4 přeskočené. Běžná sada: 148 testů OK (4 přeskočené).
+
+**Zjištěná chyba (zapsáno, neopraveno, ve smoke testu vedená jako známá):**
+- **ID chat vlákna si volí klient** (`POST /api/chat/threads` s `id`) a server ho neověřuje. ID s `/` (např. `thread_x');…;//`) pak nejde načíst, protože `/api/chat/threads/{id}` vrací 404. Frontend vlákno automaticky vybírá po načtení seznamu a zaloguje chybu. Navrhuji ID vláken generovat jen na serveru, nebo je validovat (`thread_[0-9a-f]{12}`).

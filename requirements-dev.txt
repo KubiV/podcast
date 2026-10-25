@@ -1,0 +1,4 @@
+# Vývojové závislosti (nejsou součástí aplikace ani Docker image).
+# Frontend smoke testy: pip install -r requirements-dev.txt && python -m playwright install chromium
+# Spuštění: AIMEDSTUDIO_FRONTEND_SMOKE=1 python -m unittest tests.test_frontend_smoke
+playwright==1.63.0
