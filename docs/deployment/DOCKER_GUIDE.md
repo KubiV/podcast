@@ -259,6 +259,8 @@ Další výchozí hodnoty: **registrace přes web zapnuté** (nový účet ček�
 
 > **Doporučení pro server dostupný z internetu:** pokud nechcete, aby si studenti navzájem viděli a mazali projekty, vypněte *Sdílené projekty*. Pokud nechcete platit generování za ostatní, vypněte *Sdílené API klíče*. Registrace vypněte, když nové účty nečekáte. Proměnnou `APP_PASSWORD` nepoužívejte – je zastaralá a kdokoli se znalostí hesla se přes HTTP Basic Auth přihlásí **jako administrátor**.
 
+> Úplný bezpečnostní model (autorizace, klíče, limity a známá otevřená rizika) popisuje [docs/SECURITY.md](../SECURITY.md).
+
 ### 7.3 Režim nepřihlášeného hosta (ON/OFF)
 * **Vypnuto (OFF – výchozí stav):** Návštěvníci bez přihlášení jsou zablokováni přihlašovací obrazovkou (kód 401).
 * **Zapnuto (ON):** Návštěvníci otevřou aplikaci bez hesla v roli **Pozorovatel** – mohou číst a poslouchat materiály všech projektů, ale nic negenerují ani nemění.

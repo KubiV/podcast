@@ -1146,7 +1146,7 @@ Commit: `4020e29` – `docs: Add prerequisites, install, test and lint instructi
 
 ### 5.2 Průvodci nasazením v `docs/deployment/` a opravená tvrzení o rolích (D3)
 
-Commit: `docs: Move deployment guides to docs/deployment and correct role claims` (hash doplní další krok)
+Commit: `34622f2` – `docs: Move deployment guides to docs/deployment and correct role claims`
 
 - `git mv DOCKER_GUIDE.md CLOUDFLARE_GUIDE.md docs/deployment/`, historie zůstává. Odkazy v `README.md` jsou upravené. Vnitřní odkaz `DOCKER_GUIDE → CLOUDFLARE_GUIDE` vede do stejné složky a platí dál. Jiné relativní odkazy průvodci nemají.
 - **Opravená tvrzení**, ověřená proti `main.py` (middleware), `core/authz.py`, `routers/projects.py`, `core/clients.py` a `services/auth_service.py`:
@@ -1162,4 +1162,38 @@ Commit: `docs: Move deployment guides to docs/deployment and correct role claims
   - `CLOUDFLARE_GUIDE`: dvě sekce „2.“ přečíslovány na 2 a 3.
 - Umístění přepínačů v UI (Nastavení ➔ Uživatelé & schvalování) ověřeno v `index.html`: `settingsUsersTabContent` obsahuje oba přepínače.
 - Kód se nemění.
+
+### 5.3 `docs/ARCHITECTURE.md` podle nové struktury, nový `docs/SECURITY.md` (D2)
+
+Commit: `docs: Update architecture overview and add security model` (hash doplní další krok)
+
+- **`docs/ARCHITECTURE.md` přepsán podle současného kódu:**
+  - diagram s middleware, `ProjectStaticFiles`, fasádami a balíčky `services/chat/`, `services/practice_tests/`, `services/projects/`, `services/batch.py` a novými moduly `core/` (`authz`, `html_sanitizer`, `uploads`, `rate_limit`, `request_models`, `AISettings`);
+  - tabulka routerů a Pydantic modelů (včetně 4 endpointů s `dict`);
+  - frontend po sekcích (klasické skripty, pořadí načítání, `?v=`, DOMPurify);
+  - umístění dat a hlavní toky (generování, dávky, grounded chat, výběr klíče);
+  - testovací strategie s bezpečným příkazem a known debt s odkazy na audit.
+- **Opravené nepravdy z původní verze:**
+  - Python 3.12+ → 3.11+;
+  - „user pracuje s vlastními projekty“ platí jen v privátním režimu;
+  - „viewer blokován kromě přihlášení a tisku“ – doplněna výjimka `evaluate-open-answer`;
+  - „žádné prompty natvrdo v kódu“ – část instrukcí lekcí je v `lesson_service.py`;
+  - „79 operací“ → 79 cest / 91 operací;
+  - embeddingy počítá lokálně ChromaDB, ne Gemini;
+  - příkaz pro testy.
+- **Nový `docs/SECURITY.md`:**
+  - režimy nasazení a síťové adresy;
+  - přihlášení a relace (PBKDF2 200k, token, cookie, setup, registrace, rate limit, legacy `APP_PASSWORD` jako admin, veřejné cesty);
+  - role a režimy sdílení s výchozími hodnotami, vynucování v `core/authz.py` a v `/api/logs`;
+  - výběr a uložení API klíčů;
+  - ochrana vstupů a výstupů (limity uploadu a importu s proměnnými prostředí, strict modely, DOMPurify, sanitizace tisku a otevírání prohlížeče jen z lokálního desktopu, CSP včetně přísnější CSP tiskového náhledu, SRI, `.dockerignore`);
+  - doporučené nastavení pro internet;
+  - **tabulka známých otevřených rizik**: výchozí sdílení, lekce bez vlastníka, import bez vlastníka, viewer čte vše, klíče a tokeny v čitelné podobě, `open-data-folder` na serveru, globální Pomodoro nastavení, `'unsafe-inline'` a Tailwind bez SRI, `t()`, escapování v `chat.js`, ID vláken, kolize `chunk_id`, `chmod 777` fallback, neprověřené závislosti.
+  - Každé tvrzení je ověřené v kódu. Při ověřování jsem opravil vlastní nepřesnosti v konceptu: hlavičky jsou jen CSP, prohlížeč při tisku se na serveru otevírá jen pro lokální desktop a popis kolize `chunk_id` je zpřesněný.
+- **README:**
+  - úvodní tvrzení „100% lokálně, každý uživatel si zadává vlastní klíče“ nahrazeno přesným popisem desktop vs. server, výchozího sdílení a odchozích spojení (AI API, CDN, model embeddingů);
+  - poznámka o režimech klíčů a odkazy na `SECURITY.md`;
+  - struktura `docs/`.
+- `DOCKER_GUIDE`/`CLOUDFLARE_GUIDE`: odkaz na `SECURITY.md` v sekci rolí.
+- **Ověření:** skript prošel všechny relativní odkazy a kotvy v `README.md`, `docs/*.md` a `docs/deployment/*.md` (0 problémů). Kód se nemění.
 

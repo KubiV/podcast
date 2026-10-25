@@ -140,6 +140,8 @@ Další výchozí hodnoty: **registrace přes web zapnuté** (nový účet ček�
 
 ---
 
+> Úplný bezpečnostní model (autorizace, klíče, limity a známá otevřená rizika) popisuje [docs/SECURITY.md](../SECURITY.md).
+
 ### 2. Integrovaný systém účtů, schvalování a hosté 🛡️
 * **První spuštění (Prvotní setup):**
   Při prvním otevření webu vás systém automaticky vyzve k vytvoření **hlavního administrátorského účtu**. Tento účet je okamžitě aktivován a má plná práva nad celou instancí.

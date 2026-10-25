@@ -2,7 +2,7 @@
 
 Lokální desktopová a webová aplikace pro studenty a lékaře, která převádí rozsáhlé studijní materiály (PDF, DOCX, PPTX, TXT) na přehledné výukové podcasty, vysoce strukturované studijní texty (poznámky s citacemi v horním indexu), interaktivní Anki/Quizlet kartičky, didaktické přednášky od A do Z a adaptivní cvičné testy.
 
-Aplikace běží **100% lokálně na počítači uživatele** na bázi modelu **BYOK (Bring Your Own Key)** – každý uživatel si v nastavení zadává své vlastní API klíče a veškerá data (materiály, audio nahrávky, vektorová databáze) zůstávají bezpečně uložena v jeho zařízení.
+Jako **desktopová aplikace** běží na počítači uživatele: data (materiály, audio, databáze, vektorový index) zůstávají v jeho zařízení a ven odcházejí jen volání AI poskytovatelů (Google Gemini, volitelně OpenAI/ElevenLabs) s vlastním API klíčem (**BYOK**), načítání frontendových knihoven z CDN a jednorázové stažení embeddingového modelu ChromaDB. Jako **server** (Docker) slouží více uživatelům s účty a rolemi. Kdo vidí jaké projekty a čí API klíče se používají, určují režimy sdílení – ve výchozím stavu jsou projekty i klíče sdílené. Podrobnosti: [docs/SECURITY.md](docs/SECURITY.md).
 
 ---
 
@@ -122,6 +122,8 @@ Aplikace funguje na principu **Bring Your Own Key** – uživatel má plnou kont
 4. Klikněte na **„Uložit nastavení“**.
 
 > **Poznámka:** Pro vývojáře je zachována i zpětná kompatibilita se souborem `.env` v kořeni projektu.
+>
+> **Více uživatelů (server):** ve výchozím režimu *sdílených API klíčů* spravuje klíče jen administrátor a generování všech uživatelů platí klíče serveru. V režimu *per-user* si každý uživatel zadává vlastní klíče. Viz [docs/SECURITY.md](docs/SECURITY.md#4-api-klíče-a-náklady).
 
 ---
 
@@ -168,7 +170,7 @@ Veškerá data vytvořená uživatelem jsou izolována od kódu aplikace, což z
 ├── services/                # Zapouzdřené doménové služby (ai, rag, notes, cards, podcast, auth...)
 ├── prompts/                 # Izolované systémové a uživatelské šablony promptů
 ├── tests/                   # Automatizované testy (unittest; frontend smoke přes Playwright jako opt-in)
-├── docs/                    # Architektura (ARCHITECTURE.md) a audit/refaktoring (docs/audit/)
+├── docs/                    # ARCHITECTURE.md, SECURITY.md, nasazení (deployment/), audit a refaktoring (audit/)
 ├── static/
 │   ├── index.html           # Kostra SPA (HTML, modaly, načtení skriptů v pevném pořadí)
 │   └── js/                  # Frontend po sekcích: app.js (jádro) + auth, chat, notes, flashcards, planner… (klasické skripty)
