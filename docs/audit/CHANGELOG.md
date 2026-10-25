@@ -795,8 +795,16 @@ Commit: `64d5c48` – `refactor(frontend): Move Flashcards section into flashcar
 
 ### 3.5.12 Notes → `static/js/notes.js`
 
-Commit: `refactor(frontend): Move Notes section into notes.js` (hash doplní další krok)
+Commit: `af482e2` – `refactor(frontend): Move Notes section into notes.js`
 
 - Řádky 4826–5614 původního `app.js` (789 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/notes.js` s krátkou hlavičkou. `app.js` 5614 → 4825 ř.
 - `index.html`: `notes.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`notes.js` `?v=2.18`.
+- **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
+
+### 3.5.13 Materials integration → `static/js/materials.js`
+
+Commit: `refactor(frontend): Move Materials integration section into materials.js` (hash doplní další krok)
+
+- Řádky 4404–4825 původního `app.js` (422 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/materials.js` s krátkou hlavičkou. `app.js` 4825 → 4403 ř.
+- `index.html`: `materials.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`materials.js` `?v=2.19`.
 - **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
