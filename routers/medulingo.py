@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter, Body, HTTPException, Request
 
 from core.authz import require_project_access
@@ -5,6 +7,7 @@ from core.clients import require_allowed_model
 from core.config import AI, TESTS_DIR, USER_DATA_DIR
 from core.context import current_user_var
 from core.logger import send_log
+from core.request_models import RequestModel
 from core.utils import sanitize_name
 from services.ai_service import call_gemini_with_retries
 from services.flashcards_service import internal_generate_flashcards
@@ -17,6 +20,28 @@ from services.podcast_service import (
 )
 from services.rag_service import query_rag_context_with_sources
 from services.test_service import generate_practice_test
+
+
+class MedulingoGeneratePackRequest(RequestModel):
+    """Tělo '/api/medulingo/generate-pack'."""
+
+    project: str | None = None
+    question_id: str | int | None = None
+    question_title: str | None = ""
+    modules: list[Any] | None = ["notes", "cards", "podcast", "test"]
+    gemini_model: str | None = AI.default_gemini_model
+    tts_provider: str | None = "openai"
+    tts_voice: str | None = "onyx"
+
+
+class MedulingoCompleteRequest(RequestModel):
+    """Tělo '/api/medulingo/complete'."""
+
+    project: str | None = None
+    question_id: str | int | None = None
+    grade: str | None = "A"
+    completed: bool | None = True
+
 
 router = APIRouter()
 
@@ -42,18 +67,18 @@ async def medulingo_question_detail_endpoint(question_id: str, project: str = ""
 
 
 @router.post("/api/medulingo/generate-pack")
-async def medulingo_generate_pack_endpoint(request: Request, payload: dict = Body(...)):
+async def medulingo_generate_pack_endpoint(request: Request, payload: MedulingoGeneratePackRequest = Body(...)):
     user = getattr(request.state, "user", None) or current_user_var.get()
     if user and user.get("role") == "viewer":
         raise HTTPException(status_code=403, detail="Režim pozorovatele: Nemáte oprávnění generovat obsah lekcí.")
 
-    project = payload.get("project")
-    question_id = payload.get("question_id")
-    question_title = payload.get("question_title", "")
-    modules = payload.get("modules", ["notes", "cards", "podcast", "test"])
-    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
-    tts_provider = payload.get("tts_provider", "openai")
-    tts_voice = payload.get("tts_voice", "onyx")
+    project = payload.project
+    question_id = payload.question_id
+    question_title = payload.question_title
+    modules = payload.modules
+    gemini_model = payload.gemini_model
+    tts_provider = payload.tts_provider
+    tts_voice = payload.tts_voice
 
     if not project or (not question_id and not question_title):
         raise HTTPException(status_code=400, detail="Chybí identifikátor otázky nebo projekt.")
@@ -191,17 +216,17 @@ async def medulingo_generate_pack_endpoint(request: Request, payload: dict = Bod
 
 
 @router.post("/api/medulingo/complete")
-async def medulingo_complete_endpoint(request: Request, payload: dict = Body(...)):
+async def medulingo_complete_endpoint(request: Request, payload: MedulingoCompleteRequest = Body(...)):
     user = getattr(request.state, "user", None) or current_user_var.get()
     if user and user.get("role") == "viewer":
         raise HTTPException(
             status_code=403, detail="Režim pozorovatele: Nemáte oprávnění měnit stav splnění zkouškových otázek."
         )
 
-    project = payload.get("project")
-    question_id = payload.get("question_id")
-    grade = payload.get("grade", "A")
-    completed = payload.get("completed", True)
+    project = payload.project
+    question_id = payload.question_id
+    grade = payload.grade
+    completed = payload.completed
 
     if not project or not question_id:
         raise HTTPException(status_code=400, detail="Chybí projekt nebo question_id.")

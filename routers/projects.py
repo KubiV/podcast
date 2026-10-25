@@ -21,6 +21,7 @@ from core.config import (
 )
 from core.context import current_user_var
 from core.logger import send_log
+from core.request_models import RequestModel
 from core.uploads import copy_with_limit, validate_import_archive
 from core.utils import sanitize_name
 from services.auth_service import AuthService
@@ -33,6 +34,30 @@ from services.projects.transfer import (
     inspect_archive,
     max_import_bytes,
 )
+
+
+class ProjectCreateRequest(RequestModel):
+    """Tělo '/api/projects'."""
+
+    name: str | None = None
+
+
+class ProjectRenameRequest(RequestModel):
+    """Tělo '/api/projects/{project_id}/rename'."""
+
+    new_name: str | None = ""
+
+
+class ProjectClearDataRequest(RequestModel):
+    """Tělo '/api/projects/{project_id}/clear-data'."""
+
+    clear_chat: bool | None = False
+    clear_notes: bool | None = False
+    clear_flashcards: bool | None = False
+    clear_tests: bool | None = False
+    clear_audio: bool | None = False
+    clear_questions: bool | None = False
+
 
 router = APIRouter()
 
@@ -101,8 +126,8 @@ async def list_projects(request: Request):
 
 
 @router.post("/api/projects")
-async def create_project(request: Request, payload: dict = Body(...)):
-    name = payload.get("name")
+async def create_project(request: Request, payload: ProjectCreateRequest = Body(...)):
+    name = payload.name
     if not name:
         raise HTTPException(status_code=400, detail="Název projektu je prázdný.")
     safe_name = sanitize_name(name)
@@ -194,9 +219,9 @@ async def delete_project(project_id: str, request: Request):
 
 
 @router.post("/api/projects/{project_id}/rename")
-async def rename_project(project_id: str, request: Request, payload: dict = Body(...)):
+async def rename_project(project_id: str, request: Request, payload: ProjectRenameRequest = Body(...)):
     """Přejmenuje projekt, jeho složku, ChromaDB kolekci, SQLite vazby i generované soubory."""
-    new_name = str(payload.get("new_name", "")).strip()
+    new_name = str(payload.new_name).strip()
     if not new_name:
         raise HTTPException(status_code=400, detail="Nový název projektu nesmí být prázdný.")
 
@@ -289,7 +314,7 @@ async def rename_project(project_id: str, request: Request, payload: dict = Body
 
 
 @router.post("/api/projects/{project_id}/clear-data")
-async def clear_project_data(project_id: str, payload: dict = Body(...)):
+async def clear_project_data(project_id: str, payload: ProjectClearDataRequest = Body(...)):
     """Selektivní vyčištění generovaných dat projektu se zachováním nahraných zdrojových podkladů."""
     require_project_access(project_id, write=True)
     safe_proj = sanitize_name(project_id)
@@ -300,12 +325,12 @@ async def clear_project_data(project_id: str, payload: dict = Body(...)):
     if not os.path.exists(proj_dir):
         raise HTTPException(status_code=404, detail="Projekt nebyl nalezen.")
 
-    clear_chat = payload.get("clear_chat", False)
-    clear_notes = payload.get("clear_notes", False)
-    clear_flashcards = payload.get("clear_flashcards", False)
-    clear_tests = payload.get("clear_tests", False)
-    clear_audio = payload.get("clear_audio", False)
-    clear_questions = payload.get("clear_questions", False)
+    clear_chat = payload.clear_chat
+    clear_notes = payload.clear_notes
+    clear_flashcards = payload.clear_flashcards
+    clear_tests = payload.clear_tests
+    clear_audio = payload.clear_audio
+    clear_questions = payload.clear_questions
 
     cleared = []
 

@@ -6,6 +6,7 @@ from core.authz import filter_accessible_output_files, require_output_file_acces
 from core.clients import require_allowed_model
 from core.config import AI, TESTS_DIR
 from core.logger import send_log
+from core.request_models import RequestModel
 from services.ai_service import call_gemini_with_retries
 from services.rag_service import query_rag_context_with_sources
 from services.test_service import (
@@ -14,6 +15,41 @@ from services.test_service import (
     generate_more_test_questions,
     generate_practice_test,
 )
+
+
+class GenerateTestRequest(RequestModel):
+    """Tělo '/api/tests/generate'."""
+
+    project: str | None = ""
+    questions: list[Any] | None = []
+    categories: list[Any] | None = []
+    categories_map: dict[str, Any] | None = {}
+    count: int | None = 10
+    question_types: list[Any] | None = ["single_choice", "multi_choice"]
+    difficulty: str | None = "normal"
+    mode: str | None = "instant"
+    prompt: str | None = ""
+    gemini_model: str | None = AI.default_gemini_model
+
+
+class GenerateMoreTestsRequest(RequestModel):
+    """Tělo '/api/tests/generate-more'."""
+
+    previous_test_id: str | None = ""
+    project: str | None = ""
+    count: int | None = 5
+    difficulty_shift: str | None = "same"
+    focus_mistakes: bool | None = True
+    gemini_model: str | None = AI.default_gemini_model
+
+
+class EvaluateOpenAnswerRequest(RequestModel):
+    """Tělo '/api/tests/evaluate-open-answer'."""
+
+    user_answer: str | None = ""
+    model_answer: str | None = ""
+    key_points: list[Any] | None = []
+
 
 router = APIRouter()
 test_storage = TestStorageManager(TESTS_DIR)
@@ -28,17 +64,17 @@ def _require_test_access(filename_or_id: str, write: bool = False) -> dict[str, 
 
 
 @router.post("/api/tests/generate")
-async def generate_test_endpoint(payload: dict = Body(...)):
-    project = payload.get("project", "")
-    questions = payload.get("questions", [])
-    categories = payload.get("categories", [])
-    categories_map = payload.get("categories_map", {})
-    count = int(payload.get("count", 10))
-    question_types = payload.get("question_types", ["single_choice", "multi_choice"])
-    difficulty = payload.get("difficulty", "normal")
-    mode = payload.get("mode", "instant")
-    custom_prompt = payload.get("prompt", "")
-    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
+async def generate_test_endpoint(payload: GenerateTestRequest = Body(...)):
+    project = payload.project
+    questions = payload.questions
+    categories = payload.categories
+    categories_map = payload.categories_map
+    count = int(payload.count)
+    question_types = payload.question_types
+    difficulty = payload.difficulty
+    mode = payload.mode
+    custom_prompt = payload.prompt
+    gemini_model = payload.gemini_model
 
     if not project:
         raise HTTPException(status_code=400, detail="Chybí název projektu.")
@@ -73,13 +109,13 @@ async def generate_test_endpoint(payload: dict = Body(...)):
 
 
 @router.post("/api/tests/generate-more")
-async def generate_more_tests_endpoint(payload: dict = Body(...)):
-    previous_test_id = payload.get("previous_test_id", "")
-    project = payload.get("project", "")
-    count = int(payload.get("count", 5))
-    difficulty_shift = payload.get("difficulty_shift", "same")
-    focus_mistakes = bool(payload.get("focus_mistakes", True))
-    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
+async def generate_more_tests_endpoint(payload: GenerateMoreTestsRequest = Body(...)):
+    previous_test_id = payload.previous_test_id
+    project = payload.project
+    count = int(payload.count)
+    difficulty_shift = payload.difficulty_shift
+    focus_mistakes = bool(payload.focus_mistakes)
+    gemini_model = payload.gemini_model
 
     if not previous_test_id or not project:
         raise HTTPException(status_code=400, detail="Chybí identifikátor testu nebo projekt.")
@@ -147,10 +183,10 @@ async def delete_test_endpoint(filename: str):
 
 
 @router.post("/api/tests/evaluate-open-answer")
-async def evaluate_open_answer_endpoint(payload: dict = Body(...)):
-    user_answer = payload.get("user_answer", "")
-    model_answer = payload.get("model_answer", "")
-    key_points = payload.get("key_points", [])
+async def evaluate_open_answer_endpoint(payload: EvaluateOpenAnswerRequest = Body(...)):
+    user_answer = payload.user_answer
+    model_answer = payload.model_answer
+    key_points = payload.key_points
     if not isinstance(key_points, list):
         key_points = []
     result = evaluate_open_answer(user_answer, model_answer, key_points)

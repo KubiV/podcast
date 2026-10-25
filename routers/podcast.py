@@ -6,6 +6,7 @@ from core.authz import filter_accessible_output_files, require_output_file_acces
 from core.clients import require_allowed_model
 from core.config import AI, AUDIO_DIR
 from core.logger import send_log
+from core.request_models import RequestModel
 from core.security import safe_filename, safe_join
 from core.utils import sanitize_name
 from services.podcast_service import (
@@ -14,6 +15,35 @@ from services.podcast_service import (
     internal_generate_audio,
     internal_generate_script,
 )
+
+
+class GenerateScriptRequest(RequestModel):
+    """Tělo '/api/generate-script'."""
+
+    question: str | None = None
+    prompt: str | None = None
+    provider: str | None = "openai"
+    project: str | None = None
+    gemini_model: str | None = AI.default_gemini_model
+
+
+class GenerateAudioRequest(RequestModel):
+    """Tělo '/api/generate-audio'."""
+
+    script: str | None = None
+    filename: str | None = "podcast"
+    question_title: str | None = None
+    provider: str | None = "openai"
+    voice: str | None = "onyx"
+    format: str | None = "mp3"
+
+
+class GenerateSubtitlesRequest(RequestModel):
+    """Tělo '/api/generate-subtitles'."""
+
+    script: str | None = None
+    filename: str | None = None
+
 
 router = APIRouter()
 
@@ -47,12 +77,12 @@ async def delete_output(filename: str):
 
 
 @router.post("/api/generate-script")
-async def generate_script(payload: dict = Body(...)):
-    question = payload.get("question")
-    custom_prompt = payload.get("prompt")
-    provider = payload.get("provider", "openai")
-    project = payload.get("project")
-    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
+async def generate_script(payload: GenerateScriptRequest = Body(...)):
+    question = payload.question
+    custom_prompt = payload.prompt
+    provider = payload.provider
+    project = payload.project
+    gemini_model = payload.gemini_model
 
     if not question or not custom_prompt or not project:
         raise HTTPException(status_code=400, detail="Chybí parametry dotazu.")
@@ -68,13 +98,13 @@ async def generate_script(payload: dict = Body(...)):
 
 
 @router.post("/api/generate-audio")
-async def generate_audio(payload: dict = Body(...)):
-    script = payload.get("script")
-    filename = payload.get("filename", "podcast")
-    provider = payload.get("provider", "openai")
-    voice = payload.get("voice", "onyx")
-    output_format = payload.get("format", "mp3")
-    question_title = payload.get("question_title", filename)
+async def generate_audio(payload: GenerateAudioRequest = Body(...)):
+    script = payload.script
+    filename = payload.filename
+    provider = payload.provider
+    voice = payload.voice
+    output_format = payload.format
+    question_title = payload.question_title if "question_title" in payload.model_fields_set else filename
     require_output_file_access(safe_filename(audio_filename_for(str(filename))), write=True)
 
     await send_log(f"🔊 Spouštím TTS syntézu přes {provider}...")
@@ -89,9 +119,9 @@ async def generate_audio(payload: dict = Body(...)):
 
 
 @router.post("/api/generate-subtitles")
-async def generate_subtitles_endpoint(payload: dict = Body(...)):
-    script = payload.get("script")
-    filename = payload.get("filename")
+async def generate_subtitles_endpoint(payload: GenerateSubtitlesRequest = Body(...)):
+    script = payload.script
+    filename = payload.filename
     require_output_file_access(safe_filename(str(filename or "")), write=True)
 
     success = await create_srt_for_audio(script, filename)

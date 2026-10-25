@@ -1018,7 +1018,7 @@ Commit: `1b63e71` – `refactor(frontend): Add showModal/hideModal helpers`
 
 ### 4.9 `AISettings` v `core/config.py` (AI6)
 
-Commit: `refactor(ai): Centralize AI models and generation parameters in AISettings` (hash doplní další krok)
+Commit: `7e1ec9a` – `refactor(ai): Centralize AI models and generation parameters in AISettings`
 
 - `core/config.py`: frozen dataclass `AISettings` (instance `AI`) a `GenerationParams(temperature, max_output_tokens, thinking_budget)`. Obsah:
   - výchozí model (`DEFAULT_GEMINI_MODEL`);
@@ -1041,4 +1041,42 @@ Commit: `refactor(ai): Centralize AI models and generation parameters in AISetti
   - Obě `get_fallback_model` (obecná i lekce) vracejí stejné výsledky jako verze z HEAD na 20 013 názvech modelů (známé modely, velká písmena, mezery, prefixy, náhodné kombinace).
   - `ruff check` / `ruff format --check` OK. Běžná sada 159 OK (6 přeskočených smoke), smoke 6/6 OK, golden mastery beze změny.
   - Celé OpenAPI schéma je bajtově shodné s HEAD, včetně výchozí hodnoty `Form` u `/api/lessons/generate`.
+
+### 4.10 Pydantic modely těl požadavků (A11) – ⚠ 422 pro hodnoty špatného typu
+
+Commit: `refactor(api): Validate JSON request bodies with Pydantic models` (hash doplní další krok)
+
+- `core/request_models.py`: základ `RequestModel` s `strict=True`, `extra="ignore"` a `protected_namespaces=()` (pole `model_answer`).
+- **23 z 27** endpointů s `payload: dict = Body(...)` má model, definovaný v příslušném routeru jako v `routers/auth.py`.
+  - Každé pole má tvar `T | None = <původní default z payload.get>`. `payload.get("k", d)` → `payload.k`.
+  - Modely i přepis vygeneroval skript z AST handlerů s kontrolou, že sada klíčů odpovídá a žádný klíč nemá dva různé defaulty.
+- **Proč se platné požadavky chovají stejně:**
+  - chybějící klíč → původní default;
+  - `null` → `None` (jako `dict.get`);
+  - neznámé klíče se ignorují;
+  - **strict** zaručuje, že se přijatá hodnota nepřevádí (žádné `"10"` → `10`), takže handler dostane tutéž hodnotu jako dřív.
+  - Výjimky:
+    - `generate-audio.question_title`: chybějící klíč → `filename` přes `model_fields_set`, `null` → `None`, jako dřív.
+    - `ai-classify-questions`: tělo je volitelné (`Model | None = None`), jako dřív `Body(default={})`.
+- **Změna chování (plán s ní počítal):** hodnota jiného typu vrátí **422** místo dřívějšího průchodu do handleru. Šlo například o řetězec místo čísla, `"true"` místo boolu, číslo místo řetězce nebo položku dávky, která není objekt. Dřív to končilo tichým použitím, `int()`/`str()` převodem nebo chybou 500 hlouběji.
+  - Typy odpovídají tomu, co posílá frontend: počty z `parseInt` (`NaN` → `null` → `None`), boolean přepínače, ID otázky Medulinga `str | int`.
+- **Ponechány jako `dict`**, protože závisí na přítomnosti klíčů nebo ukládají celé tělo:
+  - `POST /api/projects/{id}/planner` (`"planner" in payload else payload`);
+  - `POST /api/settings` (`k in payload`, ukládá jen poslané klíče);
+  - `POST /api/tests/{filename}/result` (ukládá celé tělo);
+  - `POST /api/projects/{id}/questions` (vlastní 400 „Otázky musí být seznam“, které by model změnil na 422).
+- **Testy:** nový `tests/test_request_models.py` (10 testů).
+  - Těla ve tvaru z frontendu pro všech 23 modelů dávají hodnoty podle sémantiky `dict.get`.
+  - **Úplná tabulka defaultů** všech 23 modelů, vygenerovaná z kódu před krokem (z původních `payload.get`), se shoduje s modely.
+  - `null` → `None`, neznámé klíče se ignorují, defaulty se nesdílejí mezi instancemi a nic se nepřevádí.
+  - Přes HTTP: 422 pro `count: "10"`, neznámé klíče nevadí, klasifikace funguje i bez těla, OpenAPI odkazuje na schéma.
+  - Mutační kontroly: default `count` 10 → 11 test shodí; bez `strict` selžou 4 testy.
+- **E2E v prohlížeči (jednorázově, Playwright):** skutečné frontendové funkce přes převedené endpointy, bez jediné 422.
+  - Pokryté funkce: vytvoření, přejmenování a vyčištění projektu, vytvoření a přejmenování vlákna chatu, tisk, test klíče, generování testu (500 až kvůli chybějícímu API klíči, tedy po validaci) a uložení plánovače.
+  - Funkce generování, které potřebují složitější stav UI, pokrývá `test_model_policy`: posílá realistická těla na `generate-notes/flashcards/script`, `tests/generate(-more)`, `medulingo/generate-pack`, `ai-classify`, `process-notes-batch` a `chat/completions` a prochází.
+- **OpenAPI diff proti HEAD:**
+  - cesty, metody, parametry, odpovědi i `required` u těl jsou beze změny;
+  - u 23 operací se změnilo jen `requestBody` (místo `object` odkaz na schéma);
+  - přibylo 23 schémat, žádné neubylo.
+- **Ověření:** `ruff check` / `ruff format --check` OK. Běžná sada 169 OK (6 přeskočených smoke), smoke 6/6 OK.
 

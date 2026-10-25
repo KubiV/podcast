@@ -20,6 +20,7 @@ from core.config import (
 )
 from core.context import current_user_var
 from core.logger import publish_event, send_log
+from core.request_models import RequestModel
 from core.utils import friendly_api_error, sanitize_name
 from services.ai_service import call_gemini_with_retries, clean_and_parse_json
 from services.chat_service import (
@@ -39,17 +40,50 @@ from services.chat_service import (
 )
 from services.lesson_service import generate_lesson_package
 
+
+class ChatCompletionRequest(RequestModel):
+    """Tělo '/api/chat/completions'."""
+
+    project: str | None = None
+    message: str | None = None
+    model: str | None = AI.default_gemini_model
+    system_prompt: str | None = ""
+    thread_id: str | None = None
+
+
+class ChatThreadCreateRequest(RequestModel):
+    """Tělo '/api/chat/threads'."""
+
+    project_id: str | None = None
+    project: str | None = None
+    title: str | None = None
+    id: str | None = None
+
+
+class ChatThreadUpdateRequest(RequestModel):
+    """Tělo '/api/chat/threads/{thread_id}'."""
+
+    title: str | None = None
+    is_pinned: bool | None = None
+
+
+class ClassifyQuestionsRequest(RequestModel):
+    """Tělo '/api/projects/{project_id}/ai-classify-questions'."""
+
+    gemini_model: str | None = None
+
+
 router = APIRouter()
 
 
 # --- 1. PROJEKTOVÝ GROUNDED CHAT ---
 @router.post("/api/chat/completions")
-async def chat_completions_endpoint(payload: dict = Body(...)):
-    project = payload.get("project")
-    message = payload.get("message")
-    model = payload.get("model", AI.default_gemini_model)
-    custom_sys = payload.get("system_prompt", "")
-    thread_id = payload.get("thread_id")
+async def chat_completions_endpoint(payload: ChatCompletionRequest = Body(...)):
+    project = payload.project
+    message = payload.message
+    model = payload.model
+    custom_sys = payload.system_prompt
+    thread_id = payload.thread_id
 
     if not project or not message:
         raise HTTPException(status_code=400, detail="Chybí projekt nebo text zprávy.")
@@ -97,12 +131,12 @@ async def get_chat_threads_endpoint(project_id: str | None = None, q: str | None
 
 
 @router.post("/api/chat/threads")
-async def create_chat_thread_endpoint(payload: dict = Body(...)):
-    project = payload.get("project_id") or payload.get("project")
+async def create_chat_thread_endpoint(payload: ChatThreadCreateRequest = Body(...)):
+    project = payload.project_id or payload.project
     if not project:
         raise HTTPException(status_code=400, detail="Chybí identifikátor projektu.")
-    title = payload.get("title")
-    thread_id = payload.get("id")
+    title = payload.title
+    thread_id = payload.id
     require_project_access(project, write=True)
     if thread_id:
         require_thread_access(thread_id, write=True)
@@ -121,10 +155,10 @@ async def get_chat_thread_detail_endpoint(thread_id: str):
 
 
 @router.patch("/api/chat/threads/{thread_id}")
-async def update_chat_thread_endpoint(thread_id: str, payload: dict = Body(...)):
+async def update_chat_thread_endpoint(thread_id: str, payload: ChatThreadUpdateRequest = Body(...)):
     require_thread_access(thread_id, write=True)
-    title = payload.get("title")
-    is_pinned = payload.get("is_pinned")
+    title = payload.title
+    is_pinned = payload.is_pinned
     updated = update_thread(thread_id, title=title, is_pinned=is_pinned)
     if not updated:
         raise HTTPException(status_code=404, detail="Konverzace nenalezena.")
@@ -324,14 +358,16 @@ async def save_project_questions(project_id: str, request: Request, payload: dic
 
 
 @router.post("/api/projects/{project_id}/ai-classify-questions")
-async def ai_classify_questions_endpoint(project_id: str, request: Request, payload: dict = Body(default={})):
+async def ai_classify_questions_endpoint(
+    project_id: str, request: Request, payload: ClassifyQuestionsRequest | None = None
+):
     user = getattr(request.state, "user", None) or current_user_var.get()
     if user and user.get("role") == "viewer":
         raise HTTPException(
             status_code=403, detail="Režim pozorovatele: Nemáte oprávnění provádět AI klasifikaci otázek."
         )
     require_project_access(project_id, write=True)
-    require_allowed_model(payload.get("gemini_model") or AI.default_gemini_model)
+    require_allowed_model((payload.gemini_model if payload else None) or AI.default_gemini_model)
     safe_proj = sanitize_name(project_id)
     proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
     planner_file = os.path.join(proj_dir, PLANNER_FILENAME)
@@ -379,7 +415,7 @@ async def ai_classify_questions_endpoint(project_id: str, request: Request, payl
         f"{json.dumps(compact_questions, ensure_ascii=False, indent=1)}"
     )
 
-    gemini_model = payload.get("gemini_model") or AI.default_gemini_model
+    gemini_model = (payload.gemini_model if payload else None) or AI.default_gemini_model
     try:
         response_text = await call_gemini_with_retries(
             model=gemini_model,

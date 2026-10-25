@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Body, HTTPException
 
@@ -6,6 +7,7 @@ from core.authz import require_project_access
 from core.clients import require_allowed_model
 from core.config import AI
 from core.logger import BatchState, active_batches, send_log
+from core.request_models import RequestModel
 from core.utils import sanitize_name
 from services.batch import BatchTexts, run_question_batch
 from services.flashcards_service import internal_generate_flashcards
@@ -14,6 +16,47 @@ from services.podcast_service import (
     internal_generate_audio,
     internal_generate_script,
 )
+
+
+class CancelBatchRequest(RequestModel):
+    """Tělo '/api/cancel-batch'."""
+
+    project: str | None = ""
+
+
+class PodcastBatchRequest(RequestModel):
+    """Tělo '/api/process-batch'."""
+
+    questions: list[dict[str, Any]] | None = []
+    prompt: str | None = None
+    provider: str | None = "openai"
+    voice: str | None = "onyx"
+    format: str | None = "mp3"
+    project: str | None = ""
+    gemini_model: str | None = AI.default_gemini_model
+    overnight_mode: bool | None = True
+
+
+class NotesBatchRequest(RequestModel):
+    """Tělo '/api/process-notes-batch'."""
+
+    questions: list[dict[str, Any]] | None = []
+    prompt: str | None = ""
+    project: str | None = ""
+    gemini_model: str | None = AI.default_gemini_model
+    overnight_mode: bool | None = True
+
+
+class FlashcardsBatchRequest(RequestModel):
+    """Tělo '/api/process-flashcards-batch'."""
+
+    questions: list[dict[str, Any]] | None = []
+    count: int | None = 10
+    prompt: str | None = ""
+    project: str | None = ""
+    gemini_model: str | None = AI.default_gemini_model
+    overnight_mode: bool | None = True
+
 
 router = APIRouter()
 
@@ -65,8 +108,8 @@ def flashcards_batch_texts(count: int) -> BatchTexts:
 
 # --- ZRUŠENÍ DÁVKOVÉHO PROCESU ---
 @router.post("/api/cancel-batch")
-async def cancel_batch(payload: dict = Body(...)):
-    project = sanitize_name(payload.get("project", ""))
+async def cancel_batch(payload: CancelBatchRequest = Body(...)):
+    project = sanitize_name(payload.project)
     require_project_access(project, write=True)
     batch = active_batches.get(project)
     if not batch:
@@ -111,15 +154,15 @@ async def background_batch_process(
 
 
 @router.post("/api/process-batch")
-async def process_batch(background_tasks: BackgroundTasks, payload: dict = Body(...)):
-    questions = payload.get("questions", [])
-    custom_prompt = payload.get("prompt")
-    provider = payload.get("provider", "openai")
-    voice = payload.get("voice", "onyx")
-    output_format = payload.get("format", "mp3")
-    project = sanitize_name(payload.get("project", ""))
-    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
-    overnight_mode = bool(payload.get("overnight_mode", True))
+async def process_batch(background_tasks: BackgroundTasks, payload: PodcastBatchRequest = Body(...)):
+    questions = payload.questions
+    custom_prompt = payload.prompt
+    provider = payload.provider
+    voice = payload.voice
+    output_format = payload.format
+    project = sanitize_name(payload.project)
+    gemini_model = payload.gemini_model
+    overnight_mode = bool(payload.overnight_mode)
 
     if not questions or not custom_prompt or not project:
         raise HTTPException(status_code=400, detail="Chybí otázky, prompt nebo projekt.")
@@ -175,12 +218,12 @@ async def background_notes_batch_process(
 
 
 @router.post("/api/process-notes-batch")
-async def process_notes_batch(background_tasks: BackgroundTasks, payload: dict = Body(...)):
-    questions = payload.get("questions", [])
-    custom_prompt = payload.get("prompt", "")
-    project = sanitize_name(payload.get("project", ""))
-    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
-    overnight_mode = bool(payload.get("overnight_mode", True))
+async def process_notes_batch(background_tasks: BackgroundTasks, payload: NotesBatchRequest = Body(...)):
+    questions = payload.questions
+    custom_prompt = payload.prompt
+    project = sanitize_name(payload.project)
+    gemini_model = payload.gemini_model
+    overnight_mode = bool(payload.overnight_mode)
 
     if not questions or not project:
         raise HTTPException(status_code=400, detail="Chybí otázky nebo projekt.")
@@ -234,13 +277,13 @@ async def background_flashcards_batch_process(
 
 
 @router.post("/api/process-flashcards-batch")
-async def process_flashcards_batch(background_tasks: BackgroundTasks, payload: dict = Body(...)):
-    questions = payload.get("questions", [])
-    count = int(payload.get("count", 10))
-    custom_prompt = payload.get("prompt", "")
-    project = sanitize_name(payload.get("project", ""))
-    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
-    overnight_mode = bool(payload.get("overnight_mode", True))
+async def process_flashcards_batch(background_tasks: BackgroundTasks, payload: FlashcardsBatchRequest = Body(...)):
+    questions = payload.questions
+    count = int(payload.count)
+    custom_prompt = payload.prompt
+    project = sanitize_name(payload.project)
+    gemini_model = payload.gemini_model
+    overnight_mode = bool(payload.overnight_mode)
 
     if not questions or not project:
         raise HTTPException(status_code=400, detail="Chybí otázky nebo projekt.")

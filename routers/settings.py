@@ -18,8 +18,18 @@ from core.clients import (
 from core.config import AI, IS_FROZEN, USER_DATA_DIR, load_user_config, save_user_config
 from core.context import current_user_var
 from core.logger import send_log
+from core.request_models import RequestModel
 from core.utils import extract_gemini_error_detail, friendly_api_error
 from services.auth_service import AuthService
+
+
+class ApiKeyTestRequest(RequestModel):
+    """Tělo '/api/settings/test-key'."""
+
+    provider: str | None = "gemini"
+    key: str | None = None
+    model: str | None = None
+
 
 router = APIRouter()
 
@@ -171,9 +181,9 @@ async def save_settings(request: Request, payload: dict[str, Any] = Body(...)):
 
 
 @router.post("/api/settings/test-key")
-async def test_api_key(request: Request, payload: dict[str, Any] = Body(...)):
-    provider = payload.get("provider", "gemini")
-    key = str(payload.get("key") or "").strip()
+async def test_api_key(request: Request, payload: ApiKeyTestRequest = Body(...)):
+    provider = payload.provider
+    key = str(payload.key or "").strip()
 
     if not key or "..." in key:
         user = getattr(request.state, "user", None) or current_user_var.get()
@@ -190,7 +200,7 @@ async def test_api_key(request: Request, payload: dict[str, Any] = Body(...)):
     try:
         if provider == "gemini":
             test_client = genai.Client(api_key=key)
-            test_model = str(payload.get("model") or AI.default_gemini_model).strip()
+            test_model = str(payload.model or AI.default_gemini_model).strip()
             try:
                 await asyncio.to_thread(
                     test_client.models.generate_content,

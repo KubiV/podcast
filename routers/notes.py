@@ -8,21 +8,32 @@ from core.authz import filter_accessible_output_files, require_output_file_acces
 from core.clients import require_allowed_model
 from core.config import AI, NOTES_DIR
 from core.logger import send_log
+from core.request_models import RequestModel
 from core.security import safe_filename, safe_join
 from core.utils import friendly_api_error, sanitize_name
 from services.notes_service import (
     internal_generate_notes,
 )
 
+
+class GenerateNotesRequest(RequestModel):
+    """Tělo '/api/generate-notes'."""
+
+    question: str | None = None
+    project: str | None = None
+    prompt: str | None = ""
+    gemini_model: str | None = AI.default_gemini_model
+
+
 router = APIRouter()
 
 
 @router.post("/api/generate-notes")
-async def generate_notes_endpoint(payload: dict = Body(...)):
-    question = payload.get("question")
-    project = payload.get("project")
-    custom_prompt = payload.get("prompt", "")
-    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
+async def generate_notes_endpoint(payload: GenerateNotesRequest = Body(...)):
+    question = payload.question
+    project = payload.project
+    custom_prompt = payload.prompt
+    gemini_model = payload.gemini_model
 
     if not question or not project:
         raise HTTPException(status_code=400, detail="Chybí znění otázky nebo projekt.")

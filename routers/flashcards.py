@@ -7,6 +7,7 @@ from core.authz import filter_accessible_output_files, require_output_file_acces
 from core.clients import require_allowed_model
 from core.config import AI, FLASHCARDS_DIR
 from core.logger import send_log
+from core.request_models import RequestModel
 from core.security import safe_filename, safe_join
 from core.utils import sanitize_name
 from prompts.flashcards import (
@@ -18,6 +19,18 @@ from services.flashcards_service import (
     normalize_front,
     resolve_card_source,
 )
+
+
+class GenerateFlashcardsRequest(RequestModel):
+    """Tělo '/api/generate-flashcards'."""
+
+    question: str | None = None
+    project: str | None = None
+    count: int | None = 10
+    prompt: str | None = ""
+    gemini_model: str | None = AI.default_gemini_model
+    force_regenerate: bool | None = False
+
 
 router = APIRouter()
 
@@ -43,13 +56,13 @@ async def get_flashcards_prompts():
 
 
 @router.post("/api/generate-flashcards")
-async def generate_flashcards_endpoint(payload: dict = Body(...)):
-    question = payload.get("question")
-    project = payload.get("project")
-    count = int(payload.get("count", 10))
-    custom_prompt = payload.get("prompt", "")
-    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
-    force_regenerate = bool(payload.get("force_regenerate", False))
+async def generate_flashcards_endpoint(payload: GenerateFlashcardsRequest = Body(...)):
+    question = payload.question
+    project = payload.project
+    count = int(payload.count)
+    custom_prompt = payload.prompt
+    gemini_model = payload.gemini_model
+    force_regenerate = bool(payload.force_regenerate)
 
     if not question or not project:
         raise HTTPException(status_code=400, detail="Chybí znění otázky nebo projekt.")

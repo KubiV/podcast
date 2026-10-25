@@ -10,6 +10,17 @@ from fastapi import APIRouter, Body, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 from core.html_sanitizer import sanitize_html
+from core.request_models import RequestModel
+
+
+class PrintPrepareRequest(RequestModel):
+    """Tělo '/api/print/prepare'."""
+
+    title: str | None = ""
+    html: str | None = ""
+    project: str | None = ""
+    auto_open_browser: bool | None = False
+
 
 router = APIRouter()
 
@@ -56,20 +67,20 @@ def _is_local_desktop_request(request: Request) -> bool:
 
 
 @router.post("/api/print/prepare")
-async def prepare_print_job(request: Request, payload: dict = Body(...)):
+async def prepare_print_job(request: Request, payload: PrintPrepareRequest = Body(...)):
     """
     Přijme vygenerovaný HTML obsah a metadata k tisku.
     Uloží data do dočasné mezipaměti a vrátí URL adresu čistého tiskového náhledu.
     Pokud je požadováno (auto_open_browser), otevře odkaz v systémovém prohlížeči.
     """
     doc_id = uuid.uuid4().hex[:10]
-    title = str(payload.get("title", "")).strip() or "Studijní dokument"
-    html_content = str(payload.get("html", "")).strip()
+    title = str(payload.title).strip() or "Studijní dokument"
+    html_content = str(payload.html).strip()
     if len(html_content.encode("utf-8")) > MAX_PRINT_HTML_BYTES:
         raise HTTPException(status_code=413, detail="Dokument je pro tiskový náhled příliš velký.")
     html_content = sanitize_html(html_content)
-    project = str(payload.get("project", "")).strip()
-    auto_open = bool(payload.get("auto_open_browser", False))
+    project = str(payload.project).strip()
+    auto_open = bool(payload.auto_open_browser)
     now_ts = datetime.now().timestamp()
 
     _print_jobs[doc_id] = {
