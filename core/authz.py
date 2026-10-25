@@ -15,6 +15,9 @@ from collections.abc import Iterable
 from typing import Any
 
 from fastapi import HTTPException
+from fastapi.staticfiles import StaticFiles
+from starlette.responses import Response
+from starlette.types import Scope
 
 from core.config import UPLOAD_DIR
 from core.context import current_user_var
@@ -89,6 +92,31 @@ def filter_accessible_output_files(filenames: Iterable[str], user: dict[str, Any
         if allowed[project]:
             result.append(f)
     return result
+
+
+class ProjectStaticFiles(StaticFiles):
+    """
+    StaticFiles s kontrolou přístupu k projektu (jen čtení; GET/HEAD).
+
+    `layout="project_dir"`: první segment cesty je název projektu (`/uploads/{projekt}/...`).
+    `layout="output_file"`: plochá složka výstupů s prefixem `{projekt}_` (`/audio/{projekt}_...`).
+    Ostatní chování (Range, ETag/304, content-type, 404) zůstává z StaticFiles.
+    """
+
+    def __init__(self, *, layout: str, **kwargs: Any) -> None:
+        if layout not in ("project_dir", "output_file"):
+            raise ValueError(f"Neznámé rozložení statických souborů: {layout}")
+        self.layout = layout
+        super().__init__(**kwargs)
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        if self.layout == "project_dir":
+            project = path.replace("\\", "/").split("/", 1)[0]
+            if project not in ("", ".", ".."):
+                require_project_access(project)
+        else:
+            require_output_file_access(os.path.basename(path))
+        return await super().get_response(path, scope)
 
 
 def _projects_for_chat_id(chat_project_id: str) -> list[str]:

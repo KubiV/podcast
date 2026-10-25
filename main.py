@@ -12,6 +12,7 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from core.authz import ProjectStaticFiles
 from core.clients import (
     get_chroma_client,
     get_elevenlabs_api_key,
@@ -295,10 +296,10 @@ app.include_router(chat_api_router)
 app.include_router(print_router)
 
 # --- Statické soubory ---
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
-app.mount("/lessons-data", StaticFiles(directory=LESSONS_DIR), name="lessons-data")
-app.mount("/audio", StaticFiles(directory=AUDIO_DIR), name="audio")
-app.mount("/notes-files", StaticFiles(directory=NOTES_DIR), name="notes-files")
+app.mount("/uploads", ProjectStaticFiles(directory=UPLOAD_DIR, layout="project_dir"), name="uploads")
+app.mount("/lessons-data", ProjectStaticFiles(directory=LESSONS_DIR, layout="project_dir"), name="lessons-data")
+app.mount("/audio", ProjectStaticFiles(directory=AUDIO_DIR, layout="output_file"), name="audio")
+app.mount("/notes-files", ProjectStaticFiles(directory=NOTES_DIR, layout="output_file"), name="notes-files")
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 
 if __name__ == "__main__":

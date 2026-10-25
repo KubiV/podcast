@@ -249,6 +249,68 @@ class TestPrivateProjects(ProjectAuthzBase):
         self.assertTrue(os.path.exists(os.path.join(NOTES_DIR, "authz_bob_proj_q1.md")))
 
 
+class TestStaticMounts(ProjectAuthzBase):
+    """Statické mounty /uploads, /audio, /notes-files, /lessons-data (krok 1.2)."""
+
+    def setUp(self):
+        super().setUp()
+        auth_service.set_shared_projects(False)
+
+    def test_owner_static_files_keep_behavior(self):
+        c = self.client_as("alice")
+        res = c.get("/uploads/authz_alice_proj/doc.txt")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.text, "obsah")
+        self.assertTrue(res.headers["content-type"].startswith("text/plain"))
+
+        audio = c.get("/audio/authz_alice_proj_q1.mp3")
+        self.assertEqual(audio.status_code, 200)
+        self.assertEqual(audio.headers["content-type"], "audio/mpeg")
+
+        ranged = c.get("/audio/authz_alice_proj_q1.mp3", headers={"Range": "bytes=0-1"})
+        self.assertEqual(ranged.status_code, 206)
+        self.assertEqual(ranged.content, b"au")
+
+        etag = audio.headers["etag"]
+        self.assertEqual(c.get("/audio/authz_alice_proj_q1.mp3", headers={"If-None-Match": etag}).status_code, 304)
+        self.assertEqual(c.head("/notes-files/authz_alice_proj_q1.md").status_code, 200)
+        self.assertEqual(c.get("/audio/neexistuje.mp3").status_code, 404)
+
+    def test_foreign_static_files_forbidden(self):
+        c = self.client_as("alice")
+        for url in (
+            "/uploads/authz_bob_proj/doc.txt",
+            "/audio/authz_bob_proj_q1.mp3",
+            "/notes-files/authz_bob_proj_q1.md",
+        ):
+            with self.subTest(url=url):
+                self.assertEqual(c.get(url).status_code, 403)
+                self.assertEqual(c.head(url).status_code, 403)
+
+    def test_admin_and_viewer_can_read_foreign_static_files(self):
+        for name in ("admin", "viewer"):
+            c = self.client_as(name)
+            with self.subTest(user=name):
+                self.assertEqual(c.get("/uploads/authz_bob_proj/doc.txt").status_code, 200)
+                self.assertEqual(c.get("/audio/authz_bob_proj_q1.mp3").status_code, 200)
+
+    def test_unowned_lesson_files_stay_accessible(self):
+        from core.config import LESSONS_DIR
+
+        _write(os.path.join(LESSONS_DIR, "lekce_authz", "script.txt"), "lekce")
+        c = self.client_as("alice")
+        self.assertEqual(c.get("/lessons-data/lekce_authz/script.txt").status_code, 200)
+
+    def test_shared_mode_static_files_accessible(self):
+        auth_service.set_shared_projects(True)
+        c = self.client_as("alice")
+        self.assertEqual(c.get("/uploads/authz_bob_proj/doc.txt").status_code, 200)
+        self.assertEqual(c.get("/notes-files/authz_bob_proj_q1.md").status_code, 200)
+
+    def test_unauthenticated_static_files_rejected(self):
+        self.assertEqual(TestClient(app).get("/uploads/authz_alice_proj/doc.txt").status_code, 401)
+
+
 class TestSharedProjects(ProjectAuthzBase):
     """Charakterizace: ve sdíleném režimu se chování nemění, každý uživatel vidí vše."""
 

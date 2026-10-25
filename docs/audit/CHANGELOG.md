@@ -5,7 +5,7 @@ Hash commitu se doplňuje v následujícím kroku (commit nemůže obsahovat vla
 
 ## 1.1 ⚠ Autorizace přístupu k projektům (IDOR, nález S1, částečně S6a)
 
-Commit: `fix(security): Enforce project ownership on project-scoped endpoints` (hash doplní další krok)
+Commit: `310d6b1` – `fix(security): Enforce project ownership on project-scoped endpoints`
 
 **Zabezpečeno:**
 - Nový modul `core/authz.py`: `require_project_access`, `require_output_file_access`, `filter_accessible_output_files`, `require_thread_access`, `can_access_chat_project`.
@@ -28,6 +28,27 @@ Commit: `fix(security): Enforce project ownership on project-scoped endpoints` (
 - Import projektu nenastaví importujícího jako vlastníka. Nový projekt pak připadne adminovi (`ensure_existing_projects_owned`, `routers/projects.py:72`), takže ho uživatel v privátním režimu po importu neuvidí.
 - Výukové lekce (`/api/lessons*`, `lekce_*`) nemají model vlastnictví. Zůstávají globální knihovnou. Vyřešit je lze jen novou funkcí (uložení vlastníka při generování), proto jsou mimo tento krok.
 - Výstupní soubory se k projektu přiřazují podle prefixu `{projekt}_`. Když existují projekty `a` a `a_b`, soubor `a_b_x.md` patří projektu `a_b` (nejdelší shoda), i kdyby vznikl v projektu `a` z otázky „b x“. To je důsledek stávajícího pojmenování souborů.
-- Statické mounty `/uploads`, `/audio`, `/notes-files`, `/lessons-data` dál obcházejí autorizaci. Řeší je krok 1.2.
+- Statické mounty `/uploads`, `/audio`, `/notes-files`, `/lessons-data` dál obcházejí autorizaci. Řeší je krok 1.2 (hotovo).
 
 **Incident při psaní testů:** první spuštění nových testů proti **neopravenému** kódu (bez izolace klíčů) načetlo skutečné API klíče z lokálního `.env`. Proběhla tím reálná volání Gemini API (vrátila HTTP 429 „prepayment credits are depleted“, takže nevznikly žádné náklady) a pravděpodobně jedno volání OpenAI TTS s jednoznakovým textem „S“. Výsledek toho volání není z logu zřejmý. Data se zapisovala jen do dočasného adresáře. Opraveno v `tests/__init__.py`, kde jsou teď API klíče v testech vždy prázdné.
+
+## 1.2 ⚠ Autorizace statických souborů (nález S2)
+
+Commit: `fix(security): Check project access on static file mounts` (hash doplní další krok)
+
+**Zabezpečeno:**
+- `core/authz.py`: nová třída `ProjectStaticFiles`, podtřída `StaticFiles`. Před vrácením souboru ověří přístup k projektu (čtení) a pak deleguje na původní `StaticFiles.get_response`.
+  - `/uploads/{projekt}/…` a `/lessons-data/{lekce}/…` určují projekt podle prvního segmentu cesty.
+  - `/audio/…` a `/notes-files/…` určují projekt podle prefixu `{projekt}_` (stejné pravidlo jako v kroku 1.1).
+- `main.py`: čtyři mounty nahrazeny touto třídou. URL zůstávají stejné, frontend se neměnil.
+
+**Zachované chování** (charakterizační testy prošly před změnou i po ní): content-type, `Range` → 206, `If-None-Match` → 304, `HEAD`, 404 pro neexistující soubor, 401 bez přihlášení, beze změny ve sdíleném režimu, admin i viewer čtou cizí soubory.
+
+**Změna chování (záměrná):** v privátním režimu vrací cizí soubor `403`. Lekce nemají vlastníka, proto zůstávají přístupné (stejně jako v kroku 1.1).
+
+**Testy:** `TestStaticMounts` v `tests/test_project_authz.py` obsahuje 6 testů. Před změnou selhaly 3 negativní subtesty, po změně prochází vše.
+
+**Ověření vůči baseline:** 35/35 testů OK, `ruff check` beze změny (2× UP038), F401 131, `ruff format` OK, seznam OpenAPI cest identický.
+
+**Zjištěné chyby (zapsáno, neopraveno):**
+- Odkazy na zdroj u kartiček mají natvrdo `http://localhost:8000/uploads/…` (`services/flashcards_service.py:132`, `routers/flashcards.py:234`). Při nasazení na serveru nefungují.
