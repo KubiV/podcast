@@ -961,11 +961,30 @@ Commit: `478f528` – `refactor: Remove dead helpers in core/context.py and fron
 
 ### 4.7 Ignorované soubory odebrané z gitu (R12)
 
-Commit: `chore: Stop tracking .DS_Store and stale bytecode` (hash doplní další krok)
+Commit: `5f6cdae` – `chore: Stop tracking .DS_Store and stale bytecode`
 
 - `git rm --cached .DS_Store __pycache__/main_v1.cpython-314.pyc`. Oba vzory už `.gitignore` obsahuje, soubory byly v indexu jen z doby před jeho úpravou. Lokální kopie zůstaly na disku.
 - `git ls-files -ci --exclude-standard` je teď prázdné: žádný jiný sledovaný soubor neodporuje `.gitignore`.
 - `main_v1` nikde v kódu, specu ani skriptech nefiguruje. Šlo o bytecode staré verze `main.py` bez zdrojového souboru.
 - Lokální `__pycache__/` obsahuje i `.pyc` smazaných shimů (krok 4.5). Python je bez zdrojového `.py` neimportuje a git je ignoruje, proto jsem je nemazal.
 - **Ověření:** běžná sada 157 OK (4 přeskočené smoke), `ruff check` OK. Kód se nemění.
+
+### 4.8 Frontend helpery (F7, F8)
+
+Rozsah kroku je po zmapování rozdělený na tři commity: 4.8a escapování, 4.8b helper pro JSON požadavky, 4.8c helpery modalů.
+
+**Mimo tento krok, protože by změnily chování** (čekají na rozhodnutí):
+- `alert` (138×), `confirm` (23×) a `prompt` (9×) → toasty nebo vlastní dialogy. Mění UX: blokující dialog → neblokující toast, jiné potvrzování.
+- Delegované listenery místo 313 inline handlerů. Velká přestavba bez změny vzhledu, v řádku 4.8 auditu není.
+
+#### 4.8a Jediný `escapeHtml`
+
+Commit: `refactor(frontend): Use escapeHtml instead of manual escaping in app.js` (hash doplní další krok)
+
+- `app.js`: dvě ruční escapování `.replace(/&/g…).replace(/</g…).replace(/>/g…)` (tisk lekce: mluvený scénář; tisk chatu: zpráva bez `marked`) → `escapeHtml(...)`.
+  - `escapeHtml` navíc escapuje `"` a `'`. Uvnitř textového obsahu (`<div>`, `<p>`) to vykreslení nemění. Ověřeno parserem HTML na 50 000 náhodných řetězcích: textový obsah je u obou variant shodný.
+- **Nalezená chyba (neopraveno, zapsáno):** `chat.js` (prohlížeč dokumentu, 2 místa) escapuje `sec.page`/`sec.text` jen na `<` a vkládá je i do atributů `data-text`, `data-page` a `data-content`.
+  - Text s `"` atribut ukončí: vyhledávání pracuje s useknutým textem a „kopírovat“ zkopíruje jen část. Text s HTML entitami (`&lt;`) se zobrazí dekódovaný.
+  - Oprava (`escapeHtml`) mění chování, proto ji navrhuji jako samostatný `fix` commit se souhlasem.
+- **Ověření:** `node --check`, smoke 4/4 OK, běžná sada 157 OK (4 přeskočené smoke).
 

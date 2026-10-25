@@ -664,10 +664,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
             }
 
             if (currentLessonData.lecture_script) {
-                const safeScript = currentLessonData.lecture_script
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;");
+                const safeScript = escapeHtml(currentLessonData.lecture_script);
                 contentHtml += `<div style="margin-top: 40px; padding-top: 20px; border-top: 2px dashed #cbd5e1; page-break-before: always;"><h2 style="font-size: 18px; font-weight: bold; margin-bottom: 12px;">🎙️ Doslovný mluvený scénář přednášky</h2><div style="font-size: 13px; line-height: 1.6; white-space: pre-line; color: #334155;">${safeScript}</div></div>`;
             }
 
@@ -704,7 +701,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                     if (typeof marked !== "undefined" && marked.parse) {
                         bodyHtml = renderMarkdownSafe(msg.content || "");
                     } else {
-                        bodyHtml = `<p>${(msg.content || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
+                        bodyHtml = `<p>${escapeHtml(msg.content || "")}</p>`;
                     }
 
                     let sourcesHtml = "";
