@@ -41,6 +41,25 @@ Aplikace běží **100% lokálně na počítači uživatele** na bázi modelu **
 
 ---
 
+## 🧰 Prerekvizity a instalace (ze zdrojových kódů)
+
+**Prerekvizity**
+- **Python 3.11 nebo novější.** Docker image používá `python:3.11-slim`; vývoj a testy jsou aktuálně ověřené na Pythonu 3.14. (`pyproject.toml` zatím uvádí `>=3.10` – sjednocení verzí je otevřený bod R14 v [auditu](docs/audit/AUDIT.md).)
+- **FFmpeg** v `PATH` – potřebný pro skládání audia, titulků a videa podcastů (macOS: `brew install ffmpeg`, Debian/Ubuntu: `sudo apt install ffmpeg`, Windows: [ffmpeg.org](https://ffmpeg.org/download.html)).
+- API klíč **Google Gemini** pro generování obsahu; **OpenAI** nebo **ElevenLabs** jen pro hlasový výstup (viz [Konfigurace API klíčů](#-konfigurace-api-klíčů-byok)).
+
+**Instalace**
+```bash
+python3 -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env              # volitelné: klíče a nastavení serveru (popis proměnných je přímo v souboru)
+```
+
+> **Známé omezení:** `requirements.txt` zatím neobsahuje `pypdf`, který se používá jako záložní extrakce textu z PDF (`services/rag_service.py`). Pokud ho potřebujete, nainstalujte ho ručně (`pip install pypdf`). Úprava závislostí čeká na schválení (nález R13 v [auditu](docs/audit/AUDIT.md)).
+
+---
+
 ## 🖥️ Možnosti spuštění aplikace
 
 Aplikaci lze provozovat třemi různými způsoby podle vašich potřeb:
@@ -109,8 +128,11 @@ Aplikace funguje na principu **Bring Your Own Key** – uživatel má plnou kont
 ## 💾 Lokální úložiště dat
 
 Veškerá data vytvořená uživatelem jsou izolována od kódu aplikace, což zajišťuje, že o své materiály nepřijdete ani při aktualizaci aplikace:
-- **Umístění dat:** `~/Documents/AIMedStudio` (na Windows typicky `C:\Users\<Uživatel>\Dokumenty\AIMedStudio`).
-- **Přenosný režim:** Pokud vedle aplikace vytvoříte složku `data/`, aplikace bude data ukládat do ní (vhodné pro USB flash disky).
+- **Zabalená desktopová aplikace:** `~/Documents/AIMedStudio` (na Windows typicky `C:\Users\<Uživatel>\Dokumenty\AIMedStudio`).
+- **Přenosný režim (zabalená aplikace):** Pokud vedle aplikace vytvoříte složku `data/`, aplikace bude data ukládat do ní (vhodné pro USB flash disky).
+- **Spuštění ze zdrojových kódů:** data leží v **kořeni repozitáře** (`auth.db`, `chat_history.db`, `chroma_db/`, `uploads/`, `generated_*/` – vše je v `.gitignore`).
+- **Docker:** `/app/data` v kontejneru, mapované na `./data` vedle `docker-compose.yml`.
+- **Vlastní umístění:** proměnná prostředí `AIMEDSTUDIO_DATA_DIR` má přednost před všemi výchozími cestami.
 - Ve složce Nastavení je k dispozici tlačítko **„📂 Otevřít“**, které tuto složku přímo otevře v systémovém průzkumníku souborů.
 
 ---
@@ -120,8 +142,8 @@ Veškerá data vytvořená uživatelem jsou izolována od kódu aplikace, což z
 | Vrstva | Technologie |
 | --- | --- |
 | **Desktop Launcher** | Python, `pywebview` (macOS WebKit / Windows WebView2), `threading` |
-| **Backend & Server** | Python 3.11+, FastAPI, Uvicorn |
-| **Frontend** | Jednostránková aplikace (SPA), HTML5, JavaScript (ES6+), Tailwind CSS |
+| **Backend & Server** | Python 3.11+ (Docker 3.11, vývoj 3.14), FastAPI, Uvicorn, Pydantic |
+| **Frontend** | Jednostránková aplikace (SPA) bez build kroku: HTML5, vanilla JavaScript (`static/js/*.js`), Tailwind CSS (Play CDN), marked + DOMPurify, KaTeX |
 | **Vektorová databáze** | ChromaDB (RAG indexace a sémantické vyhledávání) |
 | **Zpracování dokumentů** | `pdfplumber`, `python-docx`, `python-pptx`, `pypdf` |
 | **Generativní AI** | Google Gemini API (`google-genai` SDK – Gemini 3.6 Flash, Pro) |
@@ -138,15 +160,18 @@ Veškerá data vytvořená uživatelem jsou izolována od kódu aplikace, což z
 ├── main.py                  # Štíhlý orchestrátor FastAPI, Auth middleware a montování routerů
 ├── desktop_app.py           # Vstupní spouštěč desktopové aplikace (Uvicorn + pywebview)
 ├── medstudio.spec           # PyInstaller konfigurace pro sestavení desktopové aplikace
-├── requirements.txt         # Seznam Python závislostí
+├── requirements.txt         # Python závislosti aplikace
+├── requirements-dev.txt     # Vývojové závislosti (Playwright pro frontend smoke testy)
+├── pyproject.toml           # Konfigurace ruff (lint, formát)
 ├── core/                    # Sdílená infrastruktura (config, clients, security, logger, utils)
 ├── routers/                 # Modulární HTTP vrstva (projects, files, podcast, notes, cards, chat...)
 ├── services/                # Zapouzdřené doménové služby (ai, rag, notes, cards, podcast, auth...)
 ├── prompts/                 # Izolované systémové a uživatelské šablony promptů
-├── tests/                   # Automatizované testy (bezpečnost, integrita API, služby)
-├── docs/                    # Architektonická a integrační dokumentace (ARCHITECTURE.md)
+├── tests/                   # Automatizované testy (unittest; frontend smoke přes Playwright jako opt-in)
+├── docs/                    # Architektura (ARCHITECTURE.md) a audit/refaktoring (docs/audit/)
 ├── static/
-│   └── index.html           # Kompletní frontendové rozhraní (SPA)
+│   ├── index.html           # Kostra SPA (HTML, modaly, načtení skriptů v pevném pořadí)
+│   └── js/                  # Frontend po sekcích: app.js (jádro) + auth, chat, notes, flashcards, planner… (klasické skripty)
 ├── scripts/
 │   ├── build_desktop.sh     # Sestavovací skript pro macOS a Linux
 │   └── build_desktop.bat    # Sestavovací skript pro Windows
@@ -162,16 +187,37 @@ Veškerá data vytvořená uživatelem jsou izolována od kódu aplikace, což z
 
 ## 🧪 Testování a integrita
 
-Projekt obsahuje automatizovanou testovací sadu pro ověření bezpečnosti, integrity všech API endpointů a odolnosti AI služeb:
+Projekt obsahuje automatizovanou testovací sadu (`unittest`) pro bezpečnost a autorizaci, integritu API endpointů, odolnost AI služeb (offline, s falešným Gemini klientem) a charakterizační „golden master“ testy.
 
 ```bash
-python -m unittest discover tests
+python -m unittest discover -s tests -t .
+```
+
+- Testy běží nad **dočasným datovým adresářem**, s prázdnými API klíči a se zablokovanou sítí (`tests/__init__.py`), takže nesahají na vaše data ani na placená API.
+- Spouštějte je **jen tímto příkazem** (případně jednotlivé moduly: `python -m unittest tests.test_security`). Holé `python -m unittest` z kořene repozitáře testy záměrně odmítne načíst, protože by jinak mohly běžet nad skutečnými daty.
+- **Frontend smoke testy** (skutečný prohlížeč, opt-in):
+  ```bash
+  pip install -r requirements-dev.txt
+  python -m playwright install chromium
+  AIMEDSTUDIO_FRONTEND_SMOKE=1 python -m unittest tests.test_frontend_smoke
+  ```
+  Stránka potřebuje přístup na internet kvůli knihovnám z CDN.
+
+### Lint a formátování
+
+Kód se kontroluje nástrojem [ruff](https://docs.astral.sh/ruff/) podle konfigurace v `pyproject.toml` (`ruff` zatím není v `requirements-dev.txt`, nainstalujte ho samostatně, např. `pip install ruff`):
+
+```bash
+ruff check .
+ruff format --check .
 ```
 
 
 ---
 
 ## 🔌 Přehled API endpointů
+
+Tabulka níže je orientační přehled. Úplný a aktuální seznam včetně schémat těl požadavků je v OpenAPI dokumentaci běžící aplikace na `/docs` (dostupné po přihlášení).
 
 | Oblast | Endpointy | Popis |
 | --- | --- | --- |

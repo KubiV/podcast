@@ -1108,7 +1108,7 @@ Commit: `1d8df51` – `refactor(api): Validate JSON request bodies with Pydantic
 
 ### Oprava izolace testů
 
-Commit: `fix(tests): Make test isolation independent of how the suite is started` (hash doplní další krok)
+Commit: `fbfa4e4` – `fix(tests): Make test isolation independent of how the suite is started`
 
 - Všech 21 testovacích modulů importuje `tests` jako **první** import, oddělený `# isort: split`, aby ho isort nepřesunul za `main`/`core`. Discovery `discover tests` (top-level moduly) teď běží izolovaně.
 - `tests/__init__.py`: když je `core.config` už načtený (discovery z kořene přes `services/test_service.py`), balíček vyhodí `RuntimeError` se správným příkazem. Testy se pak vůbec nenačtou a nespustí.
@@ -1119,4 +1119,28 @@ Commit: `fix(tests): Make test isolation independent of how the suite is started
   - doporučený příkaz, `discover tests` i discovery z kořene se spouštějí v **kopii kódu v dočasném adresáři** bez `AIMEDSTUDIO_DATA_DIR`, takže ani selhání pojistky nesáhne na skutečná data. První dva musí být izolované, třetí se nesmí načíst a v kořeni nesmí vzniknout `auth.db`.
   - Mutační kontroly: bez pojistky 2 selhání, bez prvního importu v `test_ai_resilience.py` 1 selhání.
 - **Ověření:** `ruff check` / `ruff format --check` OK, sada 173 OK (6 přeskočených smoke), smoke 6/6 OK. Časy změn `auth.db`, `chat_history.db`, `chroma_db` a `uploads` jsou před a po celém běhu stejné.
+
+### 5.1 README: prerekvizity, instalace, testy, lint (D1)
+
+Commit: `docs: Add prerequisites, install, test and lint instructions to README` (hash doplní další krok)
+
+- **Nová sekce „Prerekvizity a instalace“:**
+  - Python 3.11+ (Docker 3.11, vývoj ověřen na 3.14; nesoulad s `pyproject.toml >=3.10` uveden jako otevřený R14);
+  - FFmpeg s instalací pro macOS, Debian a Windows;
+  - potřebné API klíče;
+  - `venv` + `pip install -r requirements.txt` + `.env.example`;
+  - známé omezení: chybějící `pypdf` v `requirements.txt` (R13, úprava závislostí čeká na schválení).
+- **Testy:**
+  - správný příkaz `python -m unittest discover -s tests -t .` místo dřívějšího `discover tests`, který obcházel izolaci (incident výše);
+  - co izolace zajišťuje;
+  - holé `python -m unittest` testy odmítne;
+  - frontend smoke přes `requirements-dev.txt` + Playwright (opt-in).
+- **Lint a formát:** `ruff check .` a `ruff format --check .`. `ruff` zatím není v `requirements-dev.txt`, README uvádí samostatnou instalaci. Přidání do requirements je změna závislostí a vyžaduje souhlas.
+- **Úložiště dat podle režimu:** zabalená aplikace (`~/Documents/AIMedStudio`, přenosné `data/`), zdrojové kódy (kořen repa), Docker (`/app/data` → `./data`), `AIMEDSTUDIO_DATA_DIR`. Dřív README uváděl jen umístění zabalené aplikace.
+- **Opravená zastaralá místa:**
+  - struktura projektu (`static/js/*.js` po kroku 3.5, `requirements-dev.txt`, `pyproject.toml`, `docs/audit/`);
+  - technologie (Pydantic, frontend bez build kroku s marked + DOMPurify + KaTeX);
+  - u přehledu API odkaz na úplnou OpenAPI dokumentaci `/docs` (po přihlášení, ověřeno: anonymně 401, přihlášeně 200).
+- **Nezměněno (patří do 5.3, SECURITY.md):** úvodní tvrzení „100% lokálně, každý uživatel si zadává vlastní klíče“ neodpovídá serverovému režimu se sdílenými klíči (výchozí `shared_api_keys=1`).
+- **Ověření:** kotva odkazu `#-konfigurace-api-klíčů-byok` odpovídá generování GitHubu. Příkazy pro testy jsou ověřené (sada 173 OK, smoke 6/6 OK), `pypdf` se používá v `services/rag_service.py:40`.
 
