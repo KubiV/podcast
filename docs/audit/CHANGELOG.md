@@ -311,9 +311,9 @@ Commit: `10e6448` – `fix(security): Rate-limit logins, make admin setup atomic
 
 ## 1.10 ⚠ Allowlist modelů při sdílených klíčích, limit systémového promptu (nález S11)
 
-Commit: `fix(security): Restrict model choice on shared API keys` (hash doplní další krok)
+Commit: `ef65f74` – `fix(security): Restrict model choice on shared API keys`
 
-**Odchylka od plánu (k odsouhlasení):** plán zněl „allowlist `gemini_model` z konfigurace; `custom_system_prompt` jen pro admina, nebo ho jen připojovat“. Upravil jsem to podle zjištění v kódu:
+**Odchylka od plánu (schválena uživatelem po kroku 1.10):** plán zněl „allowlist `gemini_model` z konfigurace; `custom_system_prompt` jen pro admina, nebo ho jen připojovat“. Upravil jsem to podle zjištění v kódu:
 - **Allowlist platí jen pro ne-adminy v režimu sdílených API klíčů.** Frontend má pole pro vlastní název modelu (`*ModelCustomInput`). Uživatel s vlastním klíčem (per-user BYOK) si model platí sám a funkce mu zůstává. Admin může zadat cokoli. Výchozí allowlist obsahuje přesně modely nabízené v UI (`gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.8-flash`, `gemini-flash-latest`, `gemini-pro-latest`), takže výběr z menu funguje beze změny.
 - **Vlastní systémový prompt zůstává, jen má limit 20 000 znaků.** Medulingo chat si systémový prompt skládá ve frontendu (`app.js`, funkce chatu Medulinga) a posílá ho jako `system_prompt`. Omezení na admina by Medulingo chat běžným uživatelům rozbilo a připojování by změnilo chování modelu. Nákladové riziko pokrývá allowlist modelů a „obejít grounding“ jde i obyčejným dotazem.
 
@@ -333,3 +333,51 @@ Commit: `fix(security): Restrict model choice on shared API keys` (hash doplní 
 **Ověření vůči baseline:** 88/88 testů OK, `ruff check` beze změny (2× UP038), F401 130, `ruff format` OK, seznam OpenAPI cest identický.
 
 **Mimo rozsah:** endpoint `/api/settings/test-key` dál přijímá libovolný model (10 tokenů, jen test klíče). Vlastní šablony promptů u poznámek, kartiček a testů (`prompt`) zůstávají bez limitu. Jde o funkci aplikace, ne o tento nález.
+
+## 1.11 Úplné `.env.example` (nález S16)
+
+Commit: `docs(config): Document all environment variables in .env.example` (hash doplní další krok)
+
+- `.env.example` dokumentuje všech 14 proměnných, které čte aplikace (`core/`, `services/`, `routers/`, `main.py`, `desktop_app.py`) nebo `docker-compose.yml`. Jsou rozdělené do sekcí API klíče, server, limity, Docker/proxy a desktop.
+- Aktivní (nezakomentované) zůstávají jen tři API klíče jako dosud, ostatní jsou zakomentované s výchozí hodnotou. Zkopírování `.env.example` do `.env` se tedy chová stejně jako dřív (ověřeno přes `dotenv_values`).
+- Přidal jsem poznámku, že v Dockeru se do kontejneru dostanou jen proměnné z `environment` v compose, kdežto `.env` slouží compose pro dosazení `${...}`.
+- Nový `tests/test_env_example.py` (2 testy) hledá v kódu `os.getenv`, `os.environ` a `_env_mb`, včetně víceřádkových volání, a `${…}` v compose. Ověří, že každá nalezená proměnná je v `.env.example`. Před změnou chybělo 11 proměnných.
+
+**Ověření vůči baseline:** 90/90 testů OK, `ruff check` beze změny (2× UP038), `ruff format` OK. `docker compose --env-file .env.example config` je validní. Kód aplikace se nezměnil.
+
+---
+
+## Souhrn fáze 1 (bezpečnost) – kroky 1.1–1.11
+
+| Krok | Commit | Nálezy |
+|---|---|---|
+| 1.1 autorizace projektů | `310d6b1` | S1, S6a |
+| 1.2 statické soubory | `59ac8d8` | S2 |
+| 1.3 izolace `/api/logs` | `01fd81a` | S3 |
+| 1.4 DOMPurify pro markdown | `404b279` | F1, F4 |
+| 1.5 tiskový náhled | `ed02958` | S4, S5 |
+| 1.6 escapování handlerů a HTML | `527bec2` | F2, F3, F6 |
+| 1.7 import/upload limity | `fa9894a` | S6b–d, S7, S15 |
+| 1.8 SRI + CSP | `5858b6a` | F5 |
+| 1.9 rate limit, setup, proxy | `10e6448` | S8, S9, S10 |
+| 1.10 allowlist modelů | `ef65f74` | S11 |
+| 1.11 `.env.example` | (tento krok) | S16 |
+
+Testy: 18 → 90. Lint: beze změny proti baseline (2× UP038), F401 132 → 130. Seznam OpenAPI cest beze změny po celou fázi.
+
+**Schválené odchylky od plánu:**
+- 1.5: viewer smí tisknout.
+- 1.6: escapování místo přepisu na `data-*`.
+- 1.9: port zůstává na LAN, adresa je nastavitelná.
+- 1.10: allowlist jen při sdílených klíčích, systémový prompt s limitem.
+
+**Otevřené body z fáze 1 (zapsané u kroků):**
+- Lekce bez vlastníka.
+- Import nenastaví vlastníka projektu.
+- Tailwind bez SRI (CDN bez CORS).
+- `'unsafe-inline'` v CSP.
+- `t()` bez escapování.
+- KaTeX CSS chybí v tiskové šabloně.
+- Hardcoded `localhost:8000` v odkazech kartiček.
+- Prázdná složka po odmítnutém uploadu.
+- Neověřený Docker build a desktop (pywebview).
