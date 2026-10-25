@@ -149,7 +149,7 @@ class OfflineAITestCase(unittest.TestCase):
     GEMINI_CLIENT_TARGETS = (
         "core.clients.get_gemini_client",
         "services.ai_service.get_gemini_client",
-        "services.chat_service.get_ai_client",
+        "services.chat.grounded_chat.get_ai_client",
         "services.lesson_service.get_ai_client",
     )
 

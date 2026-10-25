@@ -469,7 +469,7 @@ Krok mění jen testy, kód aplikace beze změny.
 
 ## 2.4 Charakterizace opakování a záložního modelu Gemini
 
-Commit: `test: Characterize Gemini retry and fallback behavior` (hash doplní další krok)
+Commit: `285cfeb` – `test: Characterize Gemini retry and fallback behavior`
 
 Krok mění jen testy, kód aplikace beze změny.
 
@@ -508,7 +508,7 @@ Krok mění jen testy, kód aplikace beze změny.
 | 2.1 infrastruktura | `135d320` | fake Gemini, offline embeddingy, blokace sítě v testech |
 | 2.2 CRUD endpointy | `90ed888` | 13 testů, mutace 8/8 |
 | 2.3 čisté funkce služeb | `04eb7ba` | golden master 14 skupin, mutace 7/7 |
-| 2.4 retry a fallback | (tento krok) | 17 testů, mutace 6/6 |
+| 2.4 retry a fallback | `285cfeb` | 17 testů, mutace 6/6 |
 
 Testy: 90 → 131, celá sada běží offline (síťová pojistka). Kód aplikace se ve fázi 2 neměnil. Nově zapsáno 6 chyb:
 - smíšená časová pásma v chatu,
@@ -517,3 +517,39 @@ Testy: 90 → 131, celá sada běží offline (síťová pojistka). Kód aplikac
 - tiše zahozený neznámý typ otázky,
 - `None` z `call_gemini_with_retries`,
 - duplicitní jazyková direktiva.
+
+---
+
+# Fáze 3 – Rozdělení god souborů
+
+## 3.1 Rozdělení `services/chat_service.py` (1 641 ř.) do balíčku `services/chat/` (nález A1)
+
+Commit: `refactor(chat): Split chat_service into services/chat package` (hash doplní další krok)
+
+Čistý refaktoring, bez změny chování.
+
+**Přesunuto:**
+
+| Modul | Řádků | Obsah |
+|---|---|---|
+| `services/chat/storage.py` | 264 | datové cesty, `get_db_connection`, schéma + migrace (`init_db()` při importu), `get_chroma_client`, `get_gemini_api_key`, `get_ai_client`, `sanitize_project_name` |
+| `services/chat/repository.py` | 677 | vlákna, zprávy, záznamy projektu (smazání, přejmenování, export/import SQLite, Markdown export), lekce |
+| `services/chat/fts.py` | 283 | český stemmer, stop slova, FTS dotaz, indexace, mazání, synchronizace s ChromaDB |
+| `services/chat/retrieval.py` | 171 | `retrieve_chat_context` (hybridní dense + BM25) |
+| `services/chat/grounded_chat.py` | 272 | `clean_leaked_thoughts`, `stream_grounded_chat` |
+| `services/chat_service.py` | 58 | **fasáda**, re-export všech veřejných jmen |
+
+- **Odchylka od plánu:** přibyl pátý modul `storage.py`. Plán počítal se 4 moduly, ale infrastrukturu (DB, klienti, schéma) sdílí všechny, a v `repository` by vytvářela nesprávnou závislost `fts`/`retrieval` → `repository`. Graf závislostí je teď acyklický: `storage` ← `repository`/`fts` ← `retrieval` ← `grounded_chat`.
+- Rozdělení provedl skript řezem přesně podle řádků z AST. **AST všech 48 funkcí, konstant a příkazů je identický s originálem.** Importy každého modulu jsou dopočítané z jmen, která blok skutečně používá (ruff: žádné F821/F401 v nových modulech).
+- Fasáda nemá `__all__`, aby se star-import v kořenovém shimu `chat_service.py` (14 lokálních importů v routerech a službách, nález A7) choval stejně. Všechny importy `from services.chat_service import …` fungují beze změny.
+- **Jediná nutná úprava kódu funkce:** záložní datová složka v `get_user_data_dir()`. Původně `dirname(__file__)` = `services/`, po přesunu by to bylo `services/chat/`. Upravil jsem ji na `dirname(dirname(__file__))`, takže dál vede do `services/` jako dosud (nález A8 zůstává otevřený).
+- `tests/support.py`: cíl náhrady Gemini klienta pro chat je teď `services.chat.grounded_chat.get_ai_client`, tedy místo volání (viz postřeh u 2.2).
+
+**Ověření:**
+- 131/131 testů OK ve dvou bězích. Mezi nimi jsou charakterizace CRUD a chat vláken (2.2), golden master včetně `sanitize_project_name`, stemmeru a FTS dotazu (2.3) a offline RAG end-to-end s grounded chatem (2.1).
+- Seznam OpenAPI cest je identický. `ruff check` beze změny (2× UP038), F401 130 → 127 (nepoužité importy původního modulu se nepřenesly), `ruff format` OK.
+- Čistý interpret s 6 různými pořadími prvního importu (`services.chat_service`, shim `chat_service`, `services.chat.retrieval`, `rag_service`, `lesson_service`, `main`): pokaždé správná cesta k DB a fasáda vrací tytéž objekty jako implementace.
+
+**Incident při ověřování:** kontrola záložní cesty běžela bez `AIMEDSTUDIO_DATA_DIR`, takže import `storage` přes `init_db()` vytvořil v pracovním stromu `services/chat_history.db` a prázdnou `services/chroma_db/`. Obojí jsem ověřil (jen prázdné schéma, 0 záznamů) a smazal. Tento vedlejší efekt importu existoval i před refaktoringem a je to přesně nález A8.
+
+**Neověřeno:** PyInstaller build. Nový balíček `services.chat` by měla statická analýza najít přes importy fasády, ale `medstudio.spec` jsem nespouštěl.
