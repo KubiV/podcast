@@ -1,11 +1,9 @@
-import asyncio
 import base64
 import os
 import secrets
 import shutil
 import sys
 from datetime import datetime
-from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -44,15 +42,12 @@ from core.context import (
     get_language_directive,
 )
 from core.logger import (
-    LOG_SUBSCRIBER_QUEUE_SIZE,
     BatchState,
     active_batches,
-    log_history,
-    log_subscribers,
     publish_event,
     send_batch_event,
     send_log,
-    serialize_sse,
+    stream_events,
 )
 from core.security import safe_filename, safe_join
 from core.utils import (
@@ -264,20 +259,8 @@ async def auth_middleware(request: Request, call_next):
 
 @app.get("/api/logs")
 async def stream_logs():
-    async def event_generator():
-        subscriber: asyncio.Queue[tuple[str, dict[str, Any]]] = asyncio.Queue(maxsize=LOG_SUBSCRIBER_QUEUE_SIZE)
-        log_subscribers.add(subscriber)
-        try:
-            for log_message in tuple(log_history):
-                yield serialize_sse("log", {"message": log_message})
-
-            while True:
-                event_name, payload = await subscriber.get()
-                yield serialize_sse(event_name, payload)
-        finally:
-            log_subscribers.discard(subscriber)
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    # Uživatele zachytíme hned (nastavil ho auth middleware); proud mu doručí jen události, které smí vidět.
+    return StreamingResponse(stream_events(current_user_var.get()), media_type="text/event-stream")
 
 
 # --- Registrace modulárních routerů ---

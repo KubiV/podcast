@@ -72,8 +72,8 @@ async def internal_generate_script(
 
     context_text, unique_sources, raw_context = await rag_query_fn(question, project, n_results=40)
 
-    ukazka_textu = raw_context[:150].replace("\n", " ")
-    await send_log(f"📄 NALEZENÝ TEXT (ukázka): {ukazka_textu}...")
+    # Obsah podkladů do logu nepíšeme (log vidí i admin a jde na stdout), jen jeho rozsah
+    await send_log(f"📄 Nalezený kontext: {len(raw_context)} znaků z {len(unique_sources)} zdrojů.")
 
     full_user_content = f"ZPRACOVÁVANÁ ZKOUŠKOVÁ OTÁZKA: {question}\n\n=== RELEVANTNÍ VÝTAŽEK ZE SKRIPT ===\n{raw_context}\n=================================="
     await send_log(f"🤖 Kontext nalezen. Odesílám zadání scénáře do {gemini_model} API...")

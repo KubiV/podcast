@@ -34,7 +34,7 @@ Commit: `310d6b1` – `fix(security): Enforce project ownership on project-scope
 
 ## 1.2 ⚠ Autorizace statických souborů (nález S2)
 
-Commit: `fix(security): Check project access on static file mounts` (hash doplní další krok)
+Commit: `59ac8d8` – `fix(security): Check project access on static file mounts`
 
 **Zabezpečeno:**
 - `core/authz.py`: nová třída `ProjectStaticFiles`, podtřída `StaticFiles`. Před vrácením souboru ověří přístup k projektu (čtení) a pak deleguje na původní `StaticFiles.get_response`.
@@ -52,3 +52,33 @@ Commit: `fix(security): Check project access on static file mounts` (hash dopln�
 
 **Zjištěné chyby (zapsáno, neopraveno):**
 - Odkazy na zdroj u kartiček mají natvrdo `http://localhost:8000/uploads/…` (`services/flashcards_service.py:132`, `routers/flashcards.py:234`). Při nasazení na serveru nefungují.
+
+## 1.3 ⚠ Izolace živého logu `/api/logs` (nález S3)
+
+Commit: `fix(security): Filter /api/logs events per user and project` (hash doplní další krok)
+
+**Zabezpečeno:**
+- `core/logger.py`: každá událost si při publikaci zapamatuje uživatele, který ji vyvolal (`current_user_var`), a projekt z payloadu. `log_history` teď ukládá i původce logu. Odběratel (`LogSubscriber`) nese svého uživatele.
+- Pravidla doručení (`can_receive_event`):
+  - admin vidí vše,
+  - události s projektem (`batch`, `lesson_progress`) vidí ten, kdo smí projekt číst (pravidla z kroku 1.1),
+  - ostatní logy vidí jen uživatel, který je vyvolal,
+  - logy bez uživatelského kontextu (systémové) vidí jen admin.
+- Přehrání historie po připojení používá stejná pravidla.
+- `main.stream_logs` deleguje na `core.logger.stream_events(user)`. Logika proudu se přesunula z `main.py` do `core/logger.py` a z `main.py` zmizelo 6 importů, které tím přestaly být potřeba.
+- `services/podcast_service.py`: log už neobsahuje úryvek textu zdrojového dokumentu (150 znaků), jen jeho délku a počet zdrojů.
+
+**Změna chování (záměrná):**
+- Běžný uživatel a host už nevidí logy ostatních. To platí **i ve sdíleném režimu projektů**: sdílené zůstávají jen projektové události (průběh dávek), ne textové logy.
+- Pozorovatel (viewer/host) dál vidí průběh dávek všech projektů, protože smí číst všechny projekty.
+- Průběh generování lekcí vidí všichni, protože lekce nemají vlastníka (krok 1.1).
+
+**Zachované chování** (charakterizační testy prošly před změnou i po ní): formát SSE `event: …\ndata: {json}\n\n`, přehrání historie, nahrazení `\n` mezerou, doručení vlastních logů živě, formát událostí `batch`, sdílený režim pro dávky. Frontend se neměnil.
+
+**Testy:** nový `tests/test_log_stream.py` (8 testů) čte generátor endpointu přímo. Před změnou selhaly 4 izolační testy, po změně prochází vše. Navíc proběhl ruční smoke test se skutečným uvicorn serverem (dočasná data, bez API klíčů): uživatel ve streamu viděl jen vlastní log, admin oba a nepřihlášený dostal 401.
+
+**Ověření vůči baseline:** 43/43 testů OK, `ruff check` beze změny (2× UP038), F401 131, `ruff format` OK, seznam OpenAPI cest identický.
+
+**Zbývá (mimo rozsah kroku):**
+- Logy dál obsahují začátek uživatelského dotazu (`routers/chat_api.py`: `Chat dotaz … '{message[:50]}'`, `services/rag_service.py:257`) a jdou i na stdout (`print`). Vidí je jen autor a admin. Úplné odstranění je otázka zásad logování.
+- `can_receive_event` se volá pro každou událost a každého odběratele a může sáhnout do SQLite (vlastník projektu). Při současném objemu událostí to nevadí.
