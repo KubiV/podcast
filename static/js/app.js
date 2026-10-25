@@ -12,6 +12,16 @@
             return file;
         }
 
+        // JSON požadavek na API: fetch s hlavičkou Content-Type: application/json a tělem JSON.stringify(payload).
+        // Vrací Response jako fetch (globální window.fetch přidává jazyk a ošetření 401, viz auth.js).
+        function sendJson(url, payload, method = "POST") {
+            return fetch(url, {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+        }
+
         let currentProject = "";
         let questions = [];
         let selectedQuestionIndex = null;
@@ -576,15 +586,11 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
             const isPywebview = Boolean(window.pywebview);
 
             try {
-                const res = await fetch("/api/print/prepare", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        title: title || "Studijní dokument",
-                        html: htmlContent,
-                        project: project || currentProject || "",
-                        auto_open_browser: isPywebview
-                    })
+                const res = await sendJson("/api/print/prepare", {
+                    title: title || "Studijní dokument",
+                    html: htmlContent,
+                    project: project || currentProject || "",
+                    auto_open_browser: isPywebview
                 });
 
                 if (!res.ok) {
@@ -1217,11 +1223,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
         async function createNewProject() {
             const name = prompt(t("project.promptNewName", "Zadejte název nového projektu (např. Interna, ARO, Pediatrie):"));
             if (!name || name.trim() === "") return;
-            const res = await fetch("/api/projects", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ name: name.trim() })
-            });
+            const res = await sendJson("/api/projects", { name: name.trim() });
             const data = await res.json();
             if (!res.ok) {
                 alert(`Chyba při zakládání projektu: ${data.detail || "Neznámá chyba"}`);
@@ -1510,11 +1512,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
             if (!newName || newName.trim() === "" || newName.trim() === projToRename) return;
 
             try {
-                const res = await fetch(`/api/projects/${encodeURIComponent(projToRename)}/rename`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ new_name: newName.trim() })
-                });
+                const res = await sendJson(`/api/projects/${encodeURIComponent(projToRename)}/rename`, { new_name: newName.trim() });
                 const data = await res.json();
 
                 if (!res.ok) {
@@ -1580,16 +1578,12 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
             }
 
             try {
-                const res = await fetch(`/api/projects/${encodeURIComponent(currentProject)}/clear-data`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        clear_chat: clearChat,
-                        clear_notes: clearNotes,
-                        clear_flashcards: clearFlashcards,
-                        clear_tests: clearTests,
-                        clear_audio: clearAudio
-                    })
+                const res = await sendJson(`/api/projects/${encodeURIComponent(currentProject)}/clear-data`, {
+                    clear_chat: clearChat,
+                    clear_notes: clearNotes,
+                    clear_flashcards: clearFlashcards,
+                    clear_tests: clearTests,
+                    clear_audio: clearAudio
                 });
                 const data = await res.json();
                 if (!res.ok) {

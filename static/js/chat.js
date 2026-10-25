@@ -374,11 +374,7 @@
             if (!newTitle || newTitle.trim() === oldTitle || !newTitle.trim()) return;
 
             try {
-                const res = await fetch(`/api/chat/threads/${encodeURIComponent(threadId)}`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ title: newTitle.trim() }),
-                });
+                const res = await sendJson(`/api/chat/threads/${encodeURIComponent(threadId)}`, { title: newTitle.trim() }, "PATCH");
                 if (!res.ok) throw new Error("Chyba při přejmenování");
                 await loadChatThreads(currentChatThreadId);
                 if (threadId === currentChatThreadId) {

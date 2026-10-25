@@ -388,12 +388,8 @@
             appendConsoleLog(`🤖 Spouštím AI překategorizování ${questions.length} otázek pro projekt '${currentProject}'...`);
 
             try {
-                const res = await fetch(`/api/projects/${encodeURIComponent(currentProject)}/ai-classify-questions`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        gemini_model: "gemini-3.6-flash"
-                    })
+                const res = await sendJson(`/api/projects/${encodeURIComponent(currentProject)}/ai-classify-questions`, {
+                    gemini_model: "gemini-3.6-flash"
                 });
 
                 const data = await res.json();
@@ -555,11 +551,7 @@
 
             // Uložíme autoritativně na server
             try {
-                const res = await fetch(`/api/projects/${encodeURIComponent(currentProject)}/planner`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ planner: examPlanner })
-                });
+                const res = await sendJson(`/api/projects/${encodeURIComponent(currentProject)}/planner`, { planner: examPlanner });
 
                 // Teprve po úspěšném uložení na server zaktualizujeme Medulingo, aby načetlo čerstvá data z disku
                 if (res.ok && typeof loadMedulingo === 'function') {

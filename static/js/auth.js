@@ -318,11 +318,7 @@
             }
 
             try {
-                const res = await fetch("/api/auth/setup", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ username, email, password })
-                });
+                const res = await sendJson("/api/auth/setup", { username, email, password });
                 const data = await res.json();
                 if (!res.ok) {
                     throw new Error(data.detail || "Chyba při zakládání administrátora.");
@@ -366,11 +362,7 @@
             }
 
             try {
-                const res = await fetch("/api/auth/login", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ username, password, remember_me: rememberMe })
-                });
+                const res = await sendJson("/api/auth/login", { username, password, remember_me: rememberMe });
                 const data = await res.json();
                 if (!res.ok) {
                     throw new Error(data.detail || "Neplatné přihlašovací údaje.");
@@ -428,11 +420,7 @@
             }
 
             try {
-                const res = await fetch("/api/auth/register", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ username, email, password })
-                });
+                const res = await sendJson("/api/auth/register", { username, email, password });
                 const data = await res.json();
                 if (!res.ok) {
                     throw new Error(data.detail || "Chyba při odesílání žádosti o registraci.");
@@ -783,11 +771,7 @@
 
         async function adminChangeRole(userId, newRole) {
             try {
-                const res = await fetch(`/api/auth/admin/change-role/${userId}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ role: newRole })
-                });
+                const res = await sendJson(`/api/auth/admin/change-role/${userId}`, { role: newRole });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || "Chyba při změně role uživatele.");
                 showGlobalToast(data.message || "Role byla úspěšně změněna.", "success");
@@ -937,11 +921,7 @@
         async function adminToggleRegistration(enabled) {
             const statusEl = document.getElementById("regToggleStatus");
             try {
-                const res = await fetch("/api/auth/admin/registration-toggle", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ allow_registration: enabled })
-                });
+                const res = await sendJson("/api/auth/admin/registration-toggle", { allow_registration: enabled });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || "Chyba při změně nastavení registrací.");
                 authRegistrationAllowed = enabled;
@@ -958,11 +938,7 @@
         async function adminToggleGuest(enabled) {
             const statusEl = document.getElementById("guestToggleStatus");
             try {
-                const res = await fetch("/api/auth/admin/guest-toggle", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ allow_guest: enabled })
-                });
+                const res = await sendJson("/api/auth/admin/guest-toggle", { allow_guest: enabled });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || "Chyba při změně nastavení hostů.");
                 authGuestAllowed = enabled;
@@ -978,11 +954,7 @@
 
         async function adminToggleSharedApiKeys(enabled) {
             try {
-                const res = await fetch("/api/auth/admin/shared-api-keys-toggle", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ shared_api_keys: enabled })
-                });
+                const res = await sendJson("/api/auth/admin/shared-api-keys-toggle", { shared_api_keys: enabled });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || "Chyba při změně sdílení API klíčů.");
                 showGlobalToast(
@@ -1000,11 +972,7 @@
 
         async function adminToggleSharedProjects(enabled) {
             try {
-                const res = await fetch("/api/auth/admin/shared-projects-toggle", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ shared_projects: enabled })
-                });
+                const res = await sendJson("/api/auth/admin/shared-projects-toggle", { shared_projects: enabled });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || "Chyba při změně sdílení projektů.");
                 showGlobalToast(
@@ -1077,11 +1045,7 @@
                 if (provider === "gemini") {
                     payload.model = getSelectedModel("geminiModelSelect", "geminiModelCustomInput");
                 }
-                const res = await fetch("/api/settings/test-key", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
+                const res = await sendJson("/api/settings/test-key", payload);
                 const data = await res.json();
                 if (statusEl) {
                     if (data.valid) {
@@ -1137,11 +1101,7 @@
             }
 
             try {
-                const res = await fetch("/api/settings", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
+                const res = await sendJson("/api/settings", payload);
                 const data = await res.json();
 
                 if (res.ok) {

@@ -979,7 +979,7 @@ Rozsah kroku je po zmapování rozdělený na tři commity: 4.8a escapování, 4
 
 #### 4.8a Jediný `escapeHtml`
 
-Commit: `refactor(frontend): Use escapeHtml instead of manual escaping in app.js` (hash doplní další krok)
+Commit: `a9eaf1b` – `refactor(frontend): Use escapeHtml instead of manual escaping in app.js`
 
 - `app.js`: dvě ruční escapování `.replace(/&/g…).replace(/</g…).replace(/>/g…)` (tisk lekce: mluvený scénář; tisk chatu: zpráva bez `marked`) → `escapeHtml(...)`.
   - `escapeHtml` navíc escapuje `"` a `'`. Uvnitř textového obsahu (`<div>`, `<p>`) to vykreslení nemění. Ověřeno parserem HTML na 50 000 náhodných řetězcích: textový obsah je u obou variant shodný.
@@ -987,4 +987,17 @@ Commit: `refactor(frontend): Use escapeHtml instead of manual escaping in app.js
   - Text s `"` atribut ukončí: vyhledávání pracuje s useknutým textem a „kopírovat“ zkopíruje jen část. Text s HTML entitami (`&lt;`) se zobrazí dekódovaný.
   - Oprava (`escapeHtml`) mění chování, proto ji navrhuji jako samostatný `fix` commit se souhlasem.
 - **Ověření:** `node --check`, smoke 4/4 OK, běžná sada 157 OK (4 přeskočené smoke).
+
+#### 4.8b Helper `sendJson` pro JSON požadavky
+
+Commit: `refactor(frontend): Add sendJson helper for JSON API requests` (hash doplní další krok)
+
+- `app.js`: nový `sendJson(url, payload, method = "POST")` volá globální `fetch` (s přepisem z `auth.js`) s `{method, headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload)}` a vrací `Response`. Ošetření odpovědi a chyb zůstává na místě volání.
+- **34 volání** v 9 souborech je přepsaných skriptem nad AST (parser TypeScriptu). Přepisovalo se jen tam, kde options obsahovaly *přesně* `method`, `headers` s jediným `Content-Type: application/json` a `body: JSON.stringify(x)`. Výraz `x` se převzal doslova, pouze o úroveň méně odsazený.
+  - Metody jsou všude řetězcové literály (33× POST, 1× PATCH), takže změna pořadí vyhodnocení nemá vliv.
+- Ponechána 3 volání s `signal` (přerušitelné generování v `podcast.js` 2× a `viewer-navigation.js` 1×).
+- `index.html`: cache-busting `?v=2.23` u `app.js` a 8 upravených skriptů. Nový `chat.js` atd. volá `sendJson` z `app.js` a nesmí se potkat se starým `app.js` z cache.
+- **Test:** nový smoke test `test_send_json_matches_plain_fetch` zachytí volání `window.fetch` a ověří, že `sendJson` předá stejnou URL i options jako původní zápis (POST i PATCH, payload s diakritikou a uvozovkami).
+- **Ověření:** `node --check` všech skriptů, smoke 5/5 OK, běžná sada 157 OK (5 přeskočených smoke).
+- Řádků: +140 / −266.
 

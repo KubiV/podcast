@@ -284,11 +284,7 @@
 
             if (activeBatch && activeBatch.project === currentProject) {
                 try {
-                    const res = await fetch("/api/cancel-batch", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ project: currentProject })
-                    });
+                    const res = await sendJson("/api/cancel-batch", { project: currentProject });
                     const data = await res.json();
                     if (res.ok && data.status === "cancelling") {
                         appendConsoleLog("🛑 Storno dávky odesláno. Dokončí se probíhající volání, další se nespustí.");
@@ -493,19 +489,15 @@
             const isOvernight = document.getElementById("podcastOvernightMode")?.checked ?? true;
 
             try {
-                const res = await fetch("/api/process-batch", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        questions: target.map(q => ({title: q.title, q_index: q.q_index})), 
-                        prompt: getDynamicPrompt(),
-                        provider: document.getElementById("ttsProviderSelect").value,
-                        voice: document.getElementById("ttsVoiceSelect").value,
-                        format: document.getElementById("outputFormatSelect").value,
-                        project: currentProject,
-                        gemini_model: modelName,
-                        overnight_mode: isOvernight
-                    })
+                const res = await sendJson("/api/process-batch", { 
+                    questions: target.map(q => ({title: q.title, q_index: q.q_index})), 
+                    prompt: getDynamicPrompt(),
+                    provider: document.getElementById("ttsProviderSelect").value,
+                    voice: document.getElementById("ttsVoiceSelect").value,
+                    format: document.getElementById("outputFormatSelect").value,
+                    project: currentProject,
+                    gemini_model: modelName,
+                    overnight_mode: isOvernight
                 });
                 const data = await res.json();
                 if (!res.ok) {

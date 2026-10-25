@@ -181,17 +181,13 @@
             const isOvernight = document.getElementById("cardsOvernightMode")?.checked ?? true;
 
             try {
-                const res = await fetch("/api/process-flashcards-batch", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        questions: target.map(q => ({ title: q.title, q_index: q.q_index })),
-                        count: count,
-                        prompt: document.getElementById("cardsPromptInput").value,
-                        project: currentProject,
-                        gemini_model: modelName,
-                        overnight_mode: isOvernight
-                    })
+                const res = await sendJson("/api/process-flashcards-batch", {
+                    questions: target.map(q => ({ title: q.title, q_index: q.q_index })),
+                    count: count,
+                    prompt: document.getElementById("cardsPromptInput").value,
+                    project: currentProject,
+                    gemini_model: modelName,
+                    overnight_mode: isOvernight
                 });
                 const data = await res.json();
                 if (!res.ok) {
@@ -339,17 +335,13 @@
             const forceRegen = document.getElementById("cardsForceRegenerate")?.checked ?? false;
 
             try {
-                const res = await fetch("/api/generate-flashcards", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        question,
-                        project: currentProject,
-                        count,
-                        prompt: document.getElementById("cardsPromptInput").value,
-                        gemini_model: modelName,
-                        force_regenerate: forceRegen
-                    })
+                const res = await sendJson("/api/generate-flashcards", {
+                    question,
+                    project: currentProject,
+                    count,
+                    prompt: document.getElementById("cardsPromptInput").value,
+                    gemini_model: modelName,
+                    force_regenerate: forceRegen
                 });
 
                 const data = await res.json();

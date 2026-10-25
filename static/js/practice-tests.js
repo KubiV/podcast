@@ -442,20 +442,16 @@
             }
 
             try {
-                const res = await fetch("/api/tests/generate", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        project: currentProject,
-                        questions: selectedQuestionTitles,
-                        categories: selectedCategories,
-                        categories_map: categoriesMap,
-                        count: currentTestCount,
-                        question_types: qTypes,
-                        difficulty: currentTestDifficulty,
-                        mode: currentTestMode,
-                        gemini_model: modelName
-                    })
+                const res = await sendJson("/api/tests/generate", {
+                    project: currentProject,
+                    questions: selectedQuestionTitles,
+                    categories: selectedCategories,
+                    categories_map: categoriesMap,
+                    count: currentTestCount,
+                    question_types: qTypes,
+                    difficulty: currentTestDifficulty,
+                    mode: currentTestMode,
+                    gemini_model: modelName
                 });
 
                 const data = await res.json();
@@ -1235,11 +1231,7 @@
             // Uložíme na server
             if (activeTest.filename) {
                 try {
-                    await fetch(`/api/tests/${encodeURIComponent(activeTest.filename)}/result`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(resultPayload)
-                    });
+                    await sendJson(`/api/tests/${encodeURIComponent(activeTest.filename)}/result`, resultPayload);
                 } catch (e) {
                     console.warn("Nepodařilo se uložit výsledek testu:", e);
                 }
@@ -1435,17 +1427,13 @@
             const oldQuestionCount = activeTest.questions?.length || 0;
 
             try {
-                const res = await fetch("/api/tests/generate-more", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        previous_test_id: activeTest.filename,
-                        project: currentProject,
-                        count: followupQuestionsCount,
-                        difficulty_shift: followupDifficultyShift,
-                        focus_mistakes: focusMistakes,
-                        gemini_model: modelName
-                    })
+                const res = await sendJson("/api/tests/generate-more", {
+                    previous_test_id: activeTest.filename,
+                    project: currentProject,
+                    count: followupQuestionsCount,
+                    difficulty_shift: followupDifficultyShift,
+                    focus_mistakes: focusMistakes,
+                    gemini_model: modelName
                 });
 
                 const data = await res.json();

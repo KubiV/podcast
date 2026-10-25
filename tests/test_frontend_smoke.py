@@ -217,6 +217,28 @@ class TestFrontendSmoke(unittest.TestCase):
         self.assertEqual(result, {"failed": {}, "xss": 0})
         self.assertEqual(self.errors, [], "\n".join(self.errors))
 
+    def test_send_json_matches_plain_fetch(self):
+        """`sendJson` (krok 4.8b) posílá stejný požadavek jako původní fetch s JSON hlavičkou a tělem."""
+        self.login()
+        calls = self.page.evaluate(
+            """async () => {
+                const original = window.fetch, calls = [];
+                window.fetch = async (url, opts) => { calls.push([url, JSON.stringify(opts)]); return new Response("{}"); };
+                try {
+                    const payload = {a: 1, text: "ž\\"'<"};
+                    await sendJson("/api/x", payload);
+                    await fetch("/api/x", {method: "POST", headers: {"Content-Type": "application/json"},
+                                           body: JSON.stringify(payload)});
+                    await sendJson("/api/y", {t: "n"}, "PATCH");
+                    await fetch("/api/y", {method: "PATCH", headers: {"Content-Type": "application/json"},
+                                           body: JSON.stringify({t: "n"})});
+                } finally { window.fetch = original; }
+                return calls;
+            }"""
+        )
+        self.assertEqual(calls[0], calls[1])
+        self.assertEqual(calls[2], calls[3])
+
     def test_render_markdown_pipeline(self):
         self.login()
         html = self.page.evaluate(

@@ -175,16 +175,12 @@
             const isOvernight = document.getElementById("notesOvernightMode")?.checked ?? true;
 
             try {
-                const res = await fetch("/api/process-notes-batch", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        questions: target.map(q => ({ title: q.title, q_index: q.q_index })),
-                        prompt: document.getElementById("notesPromptInput").value,
-                        project: currentProject,
-                        gemini_model: modelName,
-                        overnight_mode: isOvernight
-                    })
+                const res = await sendJson("/api/process-notes-batch", {
+                    questions: target.map(q => ({ title: q.title, q_index: q.q_index })),
+                    prompt: document.getElementById("notesPromptInput").value,
+                    project: currentProject,
+                    gemini_model: modelName,
+                    overnight_mode: isOvernight
                 });
                 const data = await res.json();
                 if (!res.ok) {
@@ -467,15 +463,11 @@
             const modelName = getSelectedModel("notesModelSelect", "notesModelCustomInput");
 
             try {
-                const res = await fetch("/api/generate-notes", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        question,
-                        project: currentProject,
-                        prompt: document.getElementById("notesPromptInput").value,
-                        gemini_model: modelName
-                    })
+                const res = await sendJson("/api/generate-notes", {
+                    question,
+                    project: currentProject,
+                    prompt: document.getElementById("notesPromptInput").value,
+                    gemini_model: modelName
                 });
 
                 const data = await res.json();

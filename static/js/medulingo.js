@@ -479,15 +479,11 @@
             const grade = (document.getElementById("medModalGradeSelect")?.value) || q.grade || "A";
 
             try {
-                const res = await fetch("/api/medulingo/complete", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        project: currentProject,
-                        question_id: q.id,
-                        grade: grade,
-                        completed: newCompleted
-                    })
+                const res = await sendJson("/api/medulingo/complete", {
+                    project: currentProject,
+                    question_id: q.id,
+                    grade: grade,
+                    completed: newCompleted
                 });
 
                 if (!res.ok) {
@@ -528,15 +524,11 @@
             const grade = newGrade || "A";
 
             try {
-                const res = await fetch("/api/medulingo/complete", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        project: currentProject,
-                        question_id: q.id,
-                        grade: grade,
-                        completed: isCompleted
-                    })
+                const res = await sendJson("/api/medulingo/complete", {
+                    project: currentProject,
+                    question_id: q.id,
+                    grade: grade,
+                    completed: isCompleted
                 });
 
                 if (!res.ok) {
@@ -573,15 +565,11 @@
             const q = activeMedQuestion.question;
 
             try {
-                const res = await fetch("/api/medulingo/complete", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        project: currentProject,
-                        question_id: q.id,
-                        grade: grade,
-                        completed: true
-                    })
+                const res = await sendJson("/api/medulingo/complete", {
+                    project: currentProject,
+                    question_id: q.id,
+                    grade: grade,
+                    completed: true
                 });
 
                 if (!res.ok) {
@@ -918,16 +906,12 @@ ${contextSnippets}`;
                 || "gemini-3.6-flash";
 
             try {
-                const res = await fetch("/api/chat/completions", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        project: proj,
-                        message: msg,
-                        system_prompt: customSystemPrompt,
-                        model: model,
-                        thread_id: medChatThreadId || undefined
-                    })
+                const res = await sendJson("/api/chat/completions", {
+                    project: proj,
+                    message: msg,
+                    system_prompt: customSystemPrompt,
+                    model: model,
+                    thread_id: medChatThreadId || undefined
                 });
 
                 if (!res.ok) {
@@ -1292,15 +1276,11 @@ ${contextSnippets}`;
                     appendConsoleLog(`👁️ [Medulingo] Test dokončen (známka ${grade}) v režimu pozorovatele. Stav otázky v plánovači nebyl změněn.`);
                 } else {
                     try {
-                        const res = await fetch("/api/medulingo/complete", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                project: currentProject,
-                                question_id: activeMedQuestion.question.id,
-                                grade: grade,
-                                completed: true
-                            })
+                        const res = await sendJson("/api/medulingo/complete", {
+                            project: currentProject,
+                            question_id: activeMedQuestion.question.id,
+                            grade: grade,
+                            completed: true
                         });
 
                         if (!res.ok) {
@@ -1359,18 +1339,14 @@ ${contextSnippets}`;
             appendConsoleLog(`🦉 [Medulingo] Spouštím on-demand generování pro '${q.title}'...`);
 
             try {
-                const res = await fetch("/api/medulingo/generate-pack", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        project: currentProject,
-                        question_id: q.id,
-                        question_title: q.title,
-                        modules: modules,
-                        gemini_model: "gemini-3.6-flash",
-                        tts_provider: "openai",
-                        tts_voice: "onyx"
-                    })
+                const res = await sendJson("/api/medulingo/generate-pack", {
+                    project: currentProject,
+                    question_id: q.id,
+                    question_title: q.title,
+                    modules: modules,
+                    gemini_model: "gemini-3.6-flash",
+                    tts_provider: "openai",
+                    tts_voice: "onyx"
                 });
 
                 const data = await res.json();
@@ -1433,18 +1409,14 @@ ${contextSnippets}`;
             }
 
             try {
-                const res = await fetch("/api/medulingo/generate-pack", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        project: currentProject,
-                        question_id: qId,
-                        question_title: qTitle,
-                        modules: ["notes", "cards", "podcast", "test"],
-                        gemini_model: "gemini-3.6-flash",
-                        tts_provider: "openai",
-                        tts_voice: "onyx"
-                    })
+                const res = await sendJson("/api/medulingo/generate-pack", {
+                    project: currentProject,
+                    question_id: qId,
+                    question_title: qTitle,
+                    modules: ["notes", "cards", "podcast", "test"],
+                    gemini_model: "gemini-3.6-flash",
+                    tts_provider: "openai",
+                    tts_voice: "onyx"
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || "Chyba generování.");
@@ -1479,18 +1451,14 @@ ${contextSnippets}`;
                 const q = unready[i];
                 appendConsoleLog(`📦 [Medulingo] (${i + 1}/${unready.length}) Připravuji '${q.title}'...`);
                 try {
-                    await fetch("/api/medulingo/generate-pack", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            project: currentProject,
-                            question_id: q.id,
-                            question_title: q.title,
-                            modules: ["notes", "cards", "podcast", "test"],
-                            gemini_model: "gemini-3.6-flash",
-                            tts_provider: "openai",
-                            tts_voice: "onyx"
-                        })
+                    await sendJson("/api/medulingo/generate-pack", {
+                        project: currentProject,
+                        question_id: q.id,
+                        question_title: q.title,
+                        modules: ["notes", "cards", "podcast", "test"],
+                        gemini_model: "gemini-3.6-flash",
+                        tts_provider: "openai",
+                        tts_voice: "onyx"
                     });
                 } catch (e) {
                     console.error("Batch gen item error:", e);
