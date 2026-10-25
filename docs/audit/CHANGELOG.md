@@ -755,8 +755,16 @@ Commit: `8b5ce96` – `refactor(frontend): Move Podcast studio section into podc
 
 ### 3.5.7 Lesson → `static/js/lesson.js`
 
-Commit: `refactor(frontend): Move Lesson section into lesson.js` (hash doplní další krok)
+Commit: `cbf807e` – `refactor(frontend): Move Lesson section into lesson.js`
 
 - Řádky 10195–10670 původního `app.js` (476 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/lesson.js` s krátkou hlavičkou. `app.js` 10670 → 10194 ř.
 - `index.html`: `lesson.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`lesson.js` `?v=2.13`.
+- **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
+
+### 3.5.8 Viewer navigation → `static/js/viewer-navigation.js`
+
+Commit: `refactor(frontend): Move Viewer navigation section into viewer-navigation.js` (hash doplní další krok)
+
+- Řádky 9249–10194 původního `app.js` (946 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/viewer-navigation.js` s krátkou hlavičkou. `app.js` 10194 → 9248 ř.
+- `index.html`: `viewer-navigation.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`viewer-navigation.js` `?v=2.14`.
 - **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
