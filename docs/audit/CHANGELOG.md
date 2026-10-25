@@ -779,8 +779,16 @@ Commit: `ffe518e` – `refactor(frontend): Move Grounded chat section into chat.
 
 ### 3.5.10 Practice tests → `static/js/practice-tests.js`
 
-Commit: `refactor(frontend): Move Practice tests section into practice-tests.js` (hash doplní další krok)
+Commit: `d36088a` – `refactor(frontend): Move Practice tests section into practice-tests.js`
 
 - Řádky 6295–7925 původního `app.js` (1631 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/practice-tests.js` s krátkou hlavičkou. `app.js` 7925 → 6294 ř.
 - `index.html`: `practice-tests.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`practice-tests.js` `?v=2.16`.
+- **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
+
+### 3.5.11 Flashcards → `static/js/flashcards.js`
+
+Commit: `refactor(frontend): Move Flashcards section into flashcards.js` (hash doplní další krok)
+
+- Řádky 5615–6294 původního `app.js` (680 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/flashcards.js` s krátkou hlavičkou. `app.js` 6294 → 5614 ř.
+- `index.html`: `flashcards.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`flashcards.js` `?v=2.17`.
 - **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
