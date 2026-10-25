@@ -739,8 +739,16 @@ Commit: `44a30aa` – `refactor(frontend): Move Language switcher section into l
 
 ### 3.5.5 Settings and BYOK → `static/js/settings.js`
 
-Commit: `refactor(frontend): Move Settings and BYOK section into settings.js` (hash doplní další krok)
+Commit: `e99bdbc` – `refactor(frontend): Move Settings and BYOK section into settings.js`
 
 - Řádky 11282–11447 původního `app.js` (166 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/settings.js` s krátkou hlavičkou. `app.js` 11447 → 11281 ř.
 - `index.html`: `settings.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`settings.js` `?v=2.11`.
+- **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
+
+### 3.5.6 Podcast studio → `static/js/podcast.js`
+
+Commit: `refactor(frontend): Move Podcast studio section into podcast.js` (hash doplní další krok)
+
+- Řádky 10671–11281 původního `app.js` (611 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/podcast.js` s krátkou hlavičkou. `app.js` 11281 → 10670 ř.
+- `index.html`: `podcast.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`podcast.js` `?v=2.12`.
 - **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
