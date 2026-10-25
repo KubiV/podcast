@@ -709,7 +709,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
 
                     let sourcesHtml = "";
                     if (msg.sources && msg.sources.length > 0) {
-                        const sList = msg.sources.map(s => `<li>${s.filename || s.file || 'Dokument'} (s. ${s.page || 'neuvedena'})</li>`).join("");
+                        const sList = msg.sources.map(s => `<li>${escapeHtml(s.filename || s.file || 'Dokument')} (s. ${escapeHtml(s.page || 'neuvedena')})</li>`).join("");
                         sourcesHtml = `<div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e1; font-size: 11px; color: #64748b;"><strong>Citované zdroje:</strong><ul style="margin: 4px 0 0 16px; padding: 0;">${sList}</ul></div>`;
                     }
 
@@ -1401,18 +1401,18 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                             <td class="py-2.5 px-3 text-center">
                                 ${isActive 
                                     ? '<span class="text-emerald-400 font-semibold text-[11px]">Vybrán</span>' 
-                                    : `<button type="button" onclick="switchToProject('${escapeQuotes(p)}')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1 rounded border border-slate-700 transition">Aktivovat</button>`
+                                    : `<button type="button" onclick="switchToProject('${escapeJsStringAttr(p)}')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1 rounded border border-slate-700 transition">Aktivovat</button>`
                                 }
                             </td>
                             <td class="py-2.5 px-3 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
-                                    <button type="button" onclick="openProjectExportModal('${escapeQuotes(p)}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded border border-slate-700 transition" title="Exportovat a stáhnout balíček (.medproj) pro sdílení">
+                                    <button type="button" onclick="openProjectExportModal('${escapeJsStringAttr(p)}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded border border-slate-700 transition" title="Exportovat a stáhnout balíček (.medproj) pro sdílení">
                                         📦
                                     </button>
-                                    <button type="button" onclick="promptRenameProject('${escapeQuotes(p)}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 px-2 py-1 rounded border border-slate-700 transition" title="Přejmenovat projekt">
+                                    <button type="button" onclick="promptRenameProject('${escapeJsStringAttr(p)}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 px-2 py-1 rounded border border-slate-700 transition" title="Přejmenovat projekt">
                                         ✏️
                                     </button>
-                                    <button type="button" onclick="confirmDeleteProjectByName('${escapeQuotes(p)}')" class="text-xs bg-rose-950/50 hover:bg-rose-900 text-rose-300 hover:text-rose-100 px-2 py-1 rounded border border-rose-800/60 transition" title="Smazat projekt">
+                                    <button type="button" onclick="confirmDeleteProjectByName('${escapeJsStringAttr(p)}')" class="text-xs bg-rose-950/50 hover:bg-rose-900 text-rose-300 hover:text-rose-100 px-2 py-1 rounded border border-rose-800/60 transition" title="Smazat projekt">
                                         🗑️
                                     </button>
                                 </div>
@@ -1422,7 +1422,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                 });
                 tbody.innerHTML = html;
             } catch (e) {
-                tbody.innerHTML = `<tr><td colspan="3" class="p-3 text-center text-rose-400">Chyba při načítání: ${e.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" class="p-3 text-center text-rose-400">Chyba při načítání: ${escapeHtml(e.message)}</td></tr>`;
             }
         }
 
@@ -3109,7 +3109,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                                     class="mt-0.5 accent-emerald-500 w-3.5 h-3.5 cursor-not-allowed opacity-60 shrink-0"
                                     title="${t("common.viewerReadOnly", "Režim pozorovatele: Pouze ke čtení")}">`
                             : `<input type="checkbox" ${isDone ? 'checked' : ''}
-                                    onchange="event.stopPropagation(); togglePlannerQuestionCompleted('${q.id}')"
+                                    onchange="event.stopPropagation(); togglePlannerQuestionCompleted('${escapeJsStringAttr(q.id)}')"
                                     class="mt-0.5 accent-emerald-500 w-3.5 h-3.5 cursor-pointer shrink-0"
                                     title="${isDone ? t("planner.calUnmarkDone", "Splněno ({date}) - klikněte pro zrušení", { date: q.completedDate || '' }) : t("planner.calMarkDoneToday", "Označit otázku jako hotovou dnes")}">`;
 
@@ -3120,20 +3120,20 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                             <div class="p-1.5 sm:p-2 rounded-lg ${isDone ? 'bg-emerald-950/20 border-emerald-900/60' : 'bg-slate-950/80 border-slate-800'} border hover:border-slate-600 transition flex items-start gap-1.5 group text-left">
                                 ${checkboxHtml}
                                 
-                                <div class="flex-1 min-w-0 ${viewer ? 'cursor-default' : 'cursor-pointer'}" ${viewer ? '' : `onclick="openPlannerEditQuestionModal('${q.id}')"`} title="${editTitle}">
+                                <div class="flex-1 min-w-0 ${viewer ? 'cursor-default' : 'cursor-pointer'}" ${viewer ? '' : `onclick="openPlannerEditQuestionModal('${escapeJsStringAttr(q.id)}')"`} title="${editTitle}">
                                     <div class="flex items-center gap-1 mb-0.5 flex-wrap">
-                                        <span class="font-mono text-[9px] text-slate-400 font-bold">#${q.number || ''}</span>
+                                        <span class="font-mono text-[9px] text-slate-400 font-bold">#${escapeHtml(q.number || '')}</span>
                                         <span class="inline-block px-1 py-0.2 rounded text-[8.5px] font-semibold border ${topicBadge} truncate max-w-[80px]" title="${topicDisplay}">
                                             ${topicDisplay}
                                         </span>
-                                        ${q.grade ? `<span class="px-1 rounded text-[8.5px] ${gradeBadge}">${q.grade}</span>` : ''}
+                                        ${q.grade ? `<span class="px-1 rounded text-[8.5px] ${gradeBadge}">${escapeHtml(q.grade)}</span>` : ''}
                                     </div>
                                     <p class="text-[11px] leading-snug text-slate-200 group-hover:text-emerald-300 transition line-clamp-2" title="${escapeHtml(q.title)}">
                                         ${escapeHtml(q.title)}
                                     </p>
                                 </div>
 
-                                <button type="button" onclick="event.stopPropagation(); explainExamQuestion('${escapeQuotes(q.title)}')"
+                                <button type="button" onclick="event.stopPropagation(); explainExamQuestion('${escapeJsStringAttr(q.title)}')"
                                     class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-sky-300 text-xs transition shrink-0 p-0.5"
                                     title="${t("planner.explainInNotes", "Vysvětlit v poznámkách")}">
                                     💡
@@ -3153,14 +3153,14 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                 let filterBtnHtml = "";
                 if (isSelected) {
                     filterBtnHtml = `
-                        <button type="button" onclick="togglePlannerCalendarDayFilter('${day.dateStr}')"
+                        <button type="button" onclick="togglePlannerCalendarDayFilter('${escapeJsStringAttr(day.dateStr)}')"
                             class="w-full text-center py-1.5 px-2 text-[10px] font-bold text-emerald-300 bg-emerald-950/70 hover:bg-emerald-900/80 rounded-lg border border-emerald-700/80 transition flex items-center justify-center gap-1 shadow-sm">
                             <span>✕</span> <span>${t("planner.calClearFilter", "Zrušit filtr")}</span>
                         </button>
                     `;
                 } else {
                     filterBtnHtml = `
-                        <button type="button" onclick="togglePlannerCalendarDayFilter('${day.dateStr}')"
+                        <button type="button" onclick="togglePlannerCalendarDayFilter('${escapeJsStringAttr(day.dateStr)}')"
                             class="w-full text-center py-1.5 px-2 text-[10px] font-semibold text-slate-400 hover:text-white bg-slate-950/70 hover:bg-slate-800 rounded-lg border border-slate-800 transition flex items-center justify-center gap-1"
                             title="${t("planner.calFilterTitle", "Vyfiltrovat tabulku níže pouze na otázky tohoto dne")}">
                             <span>🔍</span> <span>${t("planner.calFilterBtn", "Filtrovat ({count})", { count: day.items.length })}</span>
@@ -3408,31 +3408,31 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                         ? `${activeColor} px-2 py-0.5 rounded text-xs border font-bold scale-105 transition` 
                         : "bg-slate-950 text-slate-400 hover:text-white hover:bg-slate-800 px-1.5 py-0.5 rounded text-xs border border-slate-800 transition";
 
-                    return `<button onclick="setPlannerQuestionGrade('${q.id}', '${g}')" class="${cls}" title="Nastavit známku ${g}">${g}</button>`;
+                    return `<button onclick="setPlannerQuestionGrade('${escapeJsStringAttr(q.id)}', '${escapeJsStringAttr(g)}')" class="${cls}" title="Nastavit známku ${g}">${g}</button>`;
                 }).join(" ");
 
                 const dateDisplay = q.completedDate 
-                    ? `<span class="font-mono text-[10px] text-slate-300 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 ${viewer ? 'cursor-default' : 'cursor-pointer'}" ${viewer ? '' : `onclick="editPlannerQuestionDate('${q.id}')"`} title="${viewer ? `Datum splnění: ${q.completedDate}` : 'Klikněte pro změnu data'}">${isDoneToday ? '🌟 Dnes' : q.completedDate}</span>` 
+                    ? `<span class="font-mono text-[10px] text-slate-300 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 ${viewer ? 'cursor-default' : 'cursor-pointer'}" ${viewer ? '' : `onclick="editPlannerQuestionDate('${escapeJsStringAttr(q.id)}')"`} title="${viewer ? `Datum splnění: ${escapeHtml(q.completedDate)}` : 'Klikněte pro změnu data'}">${isDoneToday ? '🌟 Dnes' : q.completedDate}</span>` 
                     : `<span class="text-[10px] text-slate-500 italic">Neprojito</span>`;
 
                 const checkboxHtml = viewer
                     ? `<input type="checkbox" ${isCompleted ? 'checked' : ''} disabled class="accent-emerald-500 w-4 h-4 cursor-not-allowed opacity-60" title="Režim pozorovatele: Pouze ke čtení">`
-                    : `<input type="checkbox" ${isCompleted ? 'checked' : ''} onchange="togglePlannerQuestionCompleted('${q.id}')" class="accent-emerald-500 w-4 h-4 cursor-pointer" title="${isCompleted ? 'Kliknutím zrušíte splnění' : 'Označit jako hotové dnes'}">`;
+                    : `<input type="checkbox" ${isCompleted ? 'checked' : ''} onchange="togglePlannerQuestionCompleted('${escapeJsStringAttr(q.id)}')" class="accent-emerald-500 w-4 h-4 cursor-pointer" title="${isCompleted ? 'Kliknutím zrušíte splnění' : 'Označit jako hotové dnes'}">`;
 
                 const titleActionHtml = viewer
                     ? `<span class="text-slate-100 font-medium leading-snug ${isCompleted ? 'text-slate-300' : ''}">${escapeHtml(q.title)}</span>`
-                    : `<span class="text-slate-100 font-medium leading-snug cursor-pointer hover:text-emerald-300 transition ${isCompleted ? 'text-slate-300' : ''}" onclick="openPlannerEditQuestionModal('${q.id}')" title="Klikněte pro úpravu otázky">
+                    : `<span class="text-slate-100 font-medium leading-snug cursor-pointer hover:text-emerald-300 transition ${isCompleted ? 'text-slate-300' : ''}" onclick="openPlannerEditQuestionModal('${escapeJsStringAttr(q.id)}')" title="Klikněte pro úpravu otázky">
                            ${escapeHtml(q.title)}
                        </span>
-                       <button onclick="openPlannerEditQuestionModal('${q.id}')" class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-white text-xs transition" title="Upravit otázku">✏️</button>`;
+                       <button onclick="openPlannerEditQuestionModal('${escapeJsStringAttr(q.id)}')" class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-white text-xs transition" title="Upravit otázku">✏️</button>`;
 
                 const noteInputHtml = viewer
                     ? `<input type="text" value="${escapeHtml(q.note || '')}" placeholder="" readonly disabled class="w-full bg-slate-950/80 border border-slate-800 rounded px-2 py-1 text-slate-400 placeholder-slate-600 focus:outline-none cursor-default opacity-80 transition text-xs" title="Režim pozorovatele: Pouze ke čtení">`
-                    : `<input type="text" value="${escapeHtml(q.note || '')}" placeholder="Přidat poznámku..." onchange="updatePlannerQuestionNote('${q.id}', this.value)" class="w-full bg-slate-950/80 border border-slate-800 rounded px-2 py-1 text-slate-300 placeholder-slate-600 focus:outline-none focus:border-rose-500/80 transition text-xs">`;
+                    : `<input type="text" value="${escapeHtml(q.note || '')}" placeholder="Přidat poznámku..." onchange="updatePlannerQuestionNote('${escapeJsStringAttr(q.id)}', this.value)" class="w-full bg-slate-950/80 border border-slate-800 rounded px-2 py-1 text-slate-300 placeholder-slate-600 focus:outline-none focus:border-rose-500/80 transition text-xs">`;
 
                 const deleteBtnHtml = viewer
                     ? ""
-                    : `<button onclick="deletePlannerQuestion('${q.id}')" class="text-slate-500 hover:text-red-400 px-1 py-1 font-bold text-xs transition" title="Smazat otázku">✕</button>`;
+                    : `<button onclick="deletePlannerQuestion('${escapeJsStringAttr(q.id)}')" class="text-slate-500 hover:text-red-400 px-1 py-1 font-bold text-xs transition" title="Smazat otázku">✕</button>`;
 
                 tr.innerHTML = `
                     <td class="p-3">
@@ -3441,7 +3441,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                         </span>
                     </td>
                     <td class="p-3 text-center font-mono text-slate-400 text-xs font-semibold">
-                        ${q.number || (idx + 1)}
+                        ${escapeHtml(q.number || (idx + 1))}
                     </td>
                     <td class="p-3">
                         <div class="flex items-start justify-between gap-2 group">
@@ -3457,7 +3457,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                     <td class="p-3 text-center">
                         <div class="flex items-center justify-center gap-1">
                             ${gradeButtons}
-                            ${q.grade && !viewer ? `<button onclick="setPlannerQuestionGrade('${q.id}', null)" class="text-slate-500 hover:text-red-400 text-[10px] px-1" title="Zrušit známku">✕</button>` : ''}
+                            ${q.grade && !viewer ? `<button onclick="setPlannerQuestionGrade('${escapeJsStringAttr(q.id)}', null)" class="text-slate-500 hover:text-red-400 text-[10px] px-1" title="Zrušit známku">✕</button>` : ''}
                         </div>
                     </td>
                     <td class="p-3">
@@ -3465,7 +3465,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                     </td>
                     <td class="p-3 text-center">
                         <div class="flex items-center justify-center gap-1.5">
-                            <button onclick="explainExamQuestion('${escapeQuotes(q.title)}')" class="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-semibold px-2.5 py-1.5 rounded-lg transition shadow flex items-center gap-1 text-[11px]" title="Sestaví expertní prompt a vygeneruje studijní text v záložce Poznámky">
+                            <button onclick="explainExamQuestion('${escapeJsStringAttr(q.title)}')" class="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-semibold px-2.5 py-1.5 rounded-lg transition shadow flex items-center gap-1 text-[11px]" title="Sestaví expertní prompt a vygeneruje studijní text v záložce Poznámky">
                                 <span>💡</span> <span>Vysvětlit</span>
                             </button>
                             ${deleteBtnHtml}
@@ -4349,7 +4349,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                     </div>
                     ${noteHtml}
                 ` : `
-                    <div onclick="makeQmTitleEditable(event, '${q.id}')" class="font-medium text-slate-200 hover:text-emerald-300 cursor-pointer select-text leading-snug p-1 rounded hover:bg-slate-900 border border-transparent hover:border-emerald-500/40 transition" title="${t("qm.clickToEditTitle", "Klikněte pro přímou úpravu textu otázky")}">
+                    <div onclick="makeQmTitleEditable(event, '${escapeJsStringAttr(q.id)}')" class="font-medium text-slate-200 hover:text-emerald-300 cursor-pointer select-text leading-snug p-1 rounded hover:bg-slate-900 border border-transparent hover:border-emerald-500/40 transition" title="${t("qm.clickToEditTitle", "Klikněte pro přímou úpravu textu otázky")}">
                         ${escapeHtml(q.title)}
                     </div>
                     ${noteHtml}
@@ -4357,13 +4357,13 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
 
                 if (!viewer && qmInlineEditMode) {
                     topicCellHtml = `
-                        <input type="text" value="${escapeHtml(q.topic || fallbackTopic)}" onchange="updateQuestionInlineField('${q.id}', 'topic', this.value)" class="w-full bg-slate-950 text-emerald-300 border border-slate-700 rounded px-2 py-1 text-xs focus:border-emerald-500 focus:outline-none">
+                        <input type="text" value="${escapeHtml(q.topic || fallbackTopic)}" onchange="updateQuestionInlineField('${escapeJsStringAttr(q.id)}', 'topic', this.value)" class="w-full bg-slate-950 text-emerald-300 border border-slate-700 rounded px-2 py-1 text-xs focus:border-emerald-500 focus:outline-none">
                     `;
                     numberCellHtml = `
-                        <input type="text" value="${escapeHtml(q.number || String(originalIndex + 1))}" onchange="updateQuestionInlineField('${q.id}', 'number', this.value)" class="w-12 text-center bg-slate-950 text-white font-mono border border-slate-700 rounded px-1 py-1 text-xs focus:border-emerald-500 focus:outline-none">
+                        <input type="text" value="${escapeHtml(q.number || String(originalIndex + 1))}" onchange="updateQuestionInlineField('${escapeJsStringAttr(q.id)}', 'number', this.value)" class="w-12 text-center bg-slate-950 text-white font-mono border border-slate-700 rounded px-1 py-1 text-xs focus:border-emerald-500 focus:outline-none">
                     `;
                     titleCellHtml = `
-                        <input type="text" value="${escapeHtml(q.title)}" onchange="updateQuestionInlineField('${q.id}', 'title', this.value)" class="w-full bg-slate-950 text-white font-medium border border-emerald-500/80 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-emerald-400 focus:outline-none shadow-inner">
+                        <input type="text" value="${escapeHtml(q.title)}" onchange="updateQuestionInlineField('${escapeJsStringAttr(q.id)}', 'title', this.value)" class="w-full bg-slate-950 text-white font-medium border border-emerald-500/80 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-emerald-400 focus:outline-none shadow-inner">
                         ${noteHtml}
                     `;
                 }
@@ -4381,7 +4381,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                     <span class="text-[11px] text-slate-500 italic">${t("common.readOnly", "Pouze ke čtení")}</span>
                 ` : `
                     <div class="inline-flex items-center gap-1">
-                        <button onclick="editQuestionById('${q.id}')" class="p-1.5 rounded hover:bg-slate-800 text-slate-400 hover:text-emerald-400 transition" title="${t("qm.editInDialog", "Upravit otázku v dialogovém okně")}">✏️</button>
+                        <button onclick="editQuestionById('${escapeJsStringAttr(q.id)}')" class="p-1.5 rounded hover:bg-slate-800 text-slate-400 hover:text-emerald-400 transition" title="${t("qm.editInDialog", "Upravit otázku v dialogovém okně")}">✏️</button>
                         <button onclick="removeQuestion(${originalIndex})" class="p-1.5 rounded hover:bg-slate-800 text-slate-500 hover:text-red-400 transition" title="${t("qm.deleteQuestion", "Smazat otázku")}">🗑️</button>
                     </div>
                 `;
@@ -4473,26 +4473,26 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                         badgeColor = "bg-purple-950/70 text-purple-300 border-purple-800/60";
                     }
 
-                    const safeNameAttr = f.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    const safeNameAttr = escapeHtml(f);
                     const safeNameArg = encodeURIComponent(f);
                     const safeProjArg = encodeURIComponent(currentProject);
                     
                     const li = document.createElement("li");
                     li.className = "flex justify-between items-center bg-slate-900/90 hover:bg-slate-850 p-2 rounded-lg border border-slate-700/80 hover:border-slate-600 transition group";
                     li.innerHTML = `
-                        <div class="flex items-center gap-2 truncate pr-2 min-w-0 flex-1 cursor-pointer" onclick="openDocumentViewer(decodeURIComponent('${safeNameArg}'), '', currentProject)" title="Klikněte pro zobrazení náhledu souboru">
+                        <div class="flex items-center gap-2 truncate pr-2 min-w-0 flex-1 cursor-pointer" onclick="openDocumentViewer(decodeURIComponent('${escapeJsStringAttr(safeNameArg)}'), '', currentProject)" title="Klikněte pro zobrazení náhledu souboru">
                             <span class="text-sm shrink-0">${icon}</span>
                             <span class="text-[9px] font-mono px-1 py-0.5 rounded border uppercase shrink-0 ${badgeColor}">${extBadge}</span>
                             <span class="truncate text-slate-300 group-hover:text-emerald-300 text-xs font-medium transition">${safeNameAttr}</span>
                         </div>
                         <div class="flex items-center gap-1 shrink-0">
-                            <button onclick="openDocumentViewer(decodeURIComponent('${safeNameArg}'), '', currentProject)" class="text-slate-400 hover:text-emerald-400 p-1.5 rounded hover:bg-slate-800 transition outline-none" title="Prohlédnout materiál">
+                            <button onclick="openDocumentViewer(decodeURIComponent('${escapeJsStringAttr(safeNameArg)}'), '', currentProject)" class="text-slate-400 hover:text-emerald-400 p-1.5 rounded hover:bg-slate-800 transition outline-none" title="Prohlédnout materiál">
                                 👁️
                             </button>
                             <a href="/api/files/${safeProjArg}/${safeNameArg}/view" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-sky-400 p-1.5 rounded hover:bg-slate-800 transition outline-none inline-flex items-center" title="Otevřít v nové záložce">
                                 ↗
                             </a>
-                            <button onclick="deleteFile(decodeURIComponent('${safeNameArg}'))" class="text-red-400/60 hover:text-red-400 font-bold p-1.5 rounded hover:bg-slate-800 transition outline-none" title="Smazat soubor">
+                            <button onclick="deleteFile(decodeURIComponent('${escapeJsStringAttr(safeNameArg)}'))" class="text-red-400/60 hover:text-red-400 font-bold p-1.5 rounded hover:bg-slate-800 transition outline-none" title="Smazat soubor">
                                 ✕
                             </button>
                         </div>
@@ -4689,7 +4689,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                     ? `<span class="inline-block px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700 mr-1.5 shrink-0">${escapeHtml(q.topic)}</span>`
                     : "";
 
-                const editBtnHtml = viewer ? "" : `<button onclick="event.stopPropagation(); editQuestionById('${q.id}')" class="text-slate-500 hover:text-emerald-400 flex-shrink-0 transition text-xs md:text-sm px-1 outline-none" title="Upravit otázku (okruh, číslo, znění, poznámka)">✏️</button>`;
+                const editBtnHtml = viewer ? "" : `<button onclick="event.stopPropagation(); editQuestionById('${escapeJsStringAttr(q.id)}')" class="text-slate-500 hover:text-emerald-400 flex-shrink-0 transition text-xs md:text-sm px-1 outline-none" title="Upravit otázku (okruh, číslo, znění, poznámka)">✏️</button>`;
                 const deleteBtnHtml = viewer ? `<span class="text-slate-600">-</span>` : `<button onclick="removeQuestion(${idx})" class="text-red-500 hover:text-red-400 font-bold px-1 text-sm outline-none" title="Smazat otázku">✕</button>`;
 
                 tr.innerHTML = `
@@ -4884,8 +4884,8 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                     <td class="p-2 text-center w-8">
                         <input type="checkbox" ${q.notesSelected ? 'checked' : ''} onchange="toggleNotesQuestion(${idx}, this.checked)" class="accent-sky-500 cursor-pointer w-3.5 h-3.5">
                     </td>
-                    <td class="p-2 text-slate-200 text-xs font-medium truncate max-w-[200px]" title="${q.title}">
-                        <span class="text-slate-400 font-mono text-[10px] mr-1">${idx + 1}.</span>${q.title}
+                    <td class="p-2 text-slate-200 text-xs font-medium truncate max-w-[200px]" title="${escapeHtml(q.title)}">
+                        <span class="text-slate-400 font-mono text-[10px] mr-1">${idx + 1}.</span>${escapeHtml(q.title)}
                     </td>
                     <td class="p-2 text-center w-20">${badge}</td>
                 `;
@@ -5309,7 +5309,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                     updateDashboardStats();
                 } else {
                     alert("Chyba při generování: " + (data.detail || "Neznámá chyba"));
-                    document.getElementById("notesRenderedArea").innerHTML = `<div class="p-4 text-red-400">Generování selhalo: ${data.detail || 'Chyba serveru'}</div>`;
+                    document.getElementById("notesRenderedArea").innerHTML = `<div class="p-4 text-red-400">Generování selhalo: ${escapeHtml(data.detail || 'Chyba serveru')}</div>`;
                 }
             } catch (e) {
                 alert("Nelze se spojit se serverem: " + e.message);
@@ -5483,7 +5483,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                     span.className = "bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 px-2 py-0.5 rounded text-[11px] font-mono flex items-center gap-1.5 transition-all cursor-pointer group shadow-sm";
                     span.title = `Kliknutím otevřít ${s.filename} v prohlížeči`;
                     span.onclick = () => openDocumentViewer(s.filename, "", window.currentNotesProject || currentProject);
-                    span.innerHTML = `<strong>[${s.id}]</strong> <span class="truncate max-w-[200px] text-slate-200 group-hover:text-sky-300">${s.filename}</span> <span class="text-[10px] text-sky-400 font-bold ml-0.5 opacity-70 group-hover:opacity-100">↗</span>`;
+                    span.innerHTML = `<strong>[${escapeHtml(s.id)}]</strong> <span class="truncate max-w-[200px] text-slate-200 group-hover:text-sky-300">${escapeHtml(s.filename)}</span> <span class="text-[10px] text-sky-400 font-bold ml-0.5 opacity-70 group-hover:opacity-100">↗</span>`;
                     sourcesList.appendChild(span);
                 });
             } else {
@@ -5570,11 +5570,11 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                 const li = document.createElement("li");
                 li.className = "flex justify-between items-center bg-slate-900/80 p-2 rounded-lg border border-slate-700/60 group hover:border-sky-500/50 transition cursor-pointer";
                 li.innerHTML = `
-                    <div class="flex-1 min-w-0 pr-2" onclick="openSavedNote('${note.filename}')">
-                        <p class="text-xs font-semibold text-slate-200 truncate group-hover:text-sky-300" title="${note.title}">${note.title}</p>
+                    <div class="flex-1 min-w-0 pr-2" onclick="openSavedNote('${escapeJsStringAttr(note.filename)}')">
+                        <p class="text-xs font-semibold text-slate-200 truncate group-hover:text-sky-300" title="${escapeHtml(note.title)}">${escapeHtml(note.title)}</p>
                         <p class="text-[10px] text-slate-500">${(note.size / 1024).toFixed(1)} KB</p>
                     </div>
-                    <button onclick="deleteSavedNote('${note.filename}')" class="text-red-400 hover:text-red-300 font-bold px-1.5 opacity-50 group-hover:opacity-100 transition" title="Smazat">✕</button>
+                    <button onclick="deleteSavedNote('${escapeJsStringAttr(note.filename)}')" class="text-red-400 hover:text-red-300 font-bold px-1.5 opacity-50 group-hover:opacity-100 transition" title="Smazat">✕</button>
                 `;
                 list.appendChild(li);
             });
@@ -5676,8 +5676,8 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                     <td class="p-2 text-center w-8">
                         <input type="checkbox" ${q.cardsSelected ? 'checked' : ''} onchange="toggleCardsQuestion(${idx}, this.checked)" class="accent-amber-500 cursor-pointer w-3.5 h-3.5">
                     </td>
-                    <td class="p-2 text-slate-200 text-xs font-medium truncate max-w-[200px]" title="${q.title}">
-                        <span class="text-slate-400 font-mono text-[10px] mr-1">${idx + 1}.</span>${q.title}
+                    <td class="p-2 text-slate-200 text-xs font-medium truncate max-w-[200px]" title="${escapeHtml(q.title)}">
+                        <span class="text-slate-400 font-mono text-[10px] mr-1">${idx + 1}.</span>${escapeHtml(q.title)}
                     </td>
                     <td class="p-2 text-center w-20">${badge}</td>
                 `;
@@ -6029,7 +6029,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                 const label = resolved.source_file 
                     ? `${resolved.source_file}${resolved.source_page ? ` (s. ${resolved.source_page})` : ''}`
                     : resolved.source_ref;
-                badgeEl.innerHTML = `📖 <span class="hover:underline">${label}</span> <span class="text-[10px] text-sky-400 font-bold">↗</span>`;
+                badgeEl.innerHTML = `📖 <span class="hover:underline">${escapeHtml(label)}</span> <span class="text-[10px] text-sky-400 font-bold">↗</span>`;
                 badgeEl.className = "text-[11px] bg-sky-950/90 hover:bg-sky-900 text-sky-300 border border-sky-700/80 font-mono font-bold px-2.5 py-1 rounded-lg cursor-pointer transition flex items-center gap-1.5 shadow-sm";
                 badgeEl.title = resolved.source_file ? `Kliknutím otevřít ${resolved.source_file} (s. ${resolved.source_page || 1})` : "Zdroj kartičky";
                 badgeEl.onclick = (e) => {
@@ -6101,14 +6101,14 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                     ? `${resolved.source_file} (s. ${resolved.source_page || 1}) - Kliknutím otevřít` 
                     : (resolved.source_ref || '');
 
-                const cleanFront = (c.front || '').replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
-                const cleanBack = (c.back || '').replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+                const cleanFront = escapeHtml(decodeHtmlEntities((c.front || '').replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim()));
+                const cleanBack = escapeHtml(decodeHtmlEntities((c.back || '').replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim()));
 
                 tr.innerHTML = `
                     <td class="p-2 text-center text-slate-400 font-mono">${idx + 1}</td>
                     <td class="p-2 truncate font-semibold text-slate-200" title="${cleanFront}">${cleanFront}</td>
                     <td class="p-2 truncate text-slate-400" title="${cleanBack}">${cleanBack}</td>
-                    <td class="p-2 text-center text-sky-400 font-mono text-[10px] cursor-pointer hover:underline truncate" title="${srcTitle}" onclick="event.stopPropagation(); if ('${resolved.source_file}') openDocumentViewer('${resolved.source_file}', '${resolved.clean_page}', currentProject); else selectCardFromTable(${idx});">${srcLabel}</td>
+                    <td class="p-2 text-center text-sky-400 font-mono text-[10px] cursor-pointer hover:underline truncate" title="${escapeHtml(srcTitle)}" onclick="event.stopPropagation(); if ('${escapeJsStringAttr(resolved.source_file)}') openDocumentViewer('${escapeJsStringAttr(resolved.source_file)}', '${escapeJsStringAttr(resolved.clean_page)}', currentProject); else selectCardFromTable(${idx});">${srcLabel}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -6193,11 +6193,11 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                 const li = document.createElement("li");
                 li.className = "flex justify-between items-center bg-slate-900/80 p-2 rounded-lg border border-slate-700/60 group hover:border-amber-500/50 transition cursor-pointer";
                 li.innerHTML = `
-                    <div class="flex-1 min-w-0 pr-2" onclick="openSavedDeck('${deck.filename}')">
-                        <p class="text-xs font-semibold text-slate-200 truncate group-hover:text-amber-300" title="${deck.question}">${deck.question}</p>
+                    <div class="flex-1 min-w-0 pr-2" onclick="openSavedDeck('${escapeJsStringAttr(deck.filename)}')">
+                        <p class="text-xs font-semibold text-slate-200 truncate group-hover:text-amber-300" title="${escapeHtml(deck.question)}">${escapeHtml(deck.question)}</p>
                         <p class="text-[10px] text-amber-400 font-bold">${deck.count} kartiček</p>
                     </div>
-                    <button onclick="deleteSavedDeck('${deck.filename}')" class="text-red-400 hover:text-red-300 font-bold px-1.5 opacity-50 group-hover:opacity-100 transition" title="Smazat">✕</button>
+                    <button onclick="deleteSavedDeck('${escapeJsStringAttr(deck.filename)}')" class="text-red-400 hover:text-red-300 font-bold px-1.5 opacity-50 group-hover:opacity-100 transition" title="Smazat">✕</button>
                 `;
                 list.appendChild(li);
             });
@@ -6441,13 +6441,13 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                     div.innerHTML = `
                         <div class="flex items-center justify-between gap-2">
                             <label class="flex items-center gap-2 flex-1 cursor-pointer select-none">
-                                <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleTestsCategory('${escapeHtml(cat)}', this.checked)" class="accent-purple-500 cursor-pointer w-4 h-4 rounded">
+                                <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleTestsCategory('${escapeJsStringAttr(cat)}', this.checked)" class="accent-purple-500 cursor-pointer w-4 h-4 rounded">
                                 <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="font-semibold text-slate-100 text-xs">${escapeHtml(cat)}</span>
                                     <span class="text-[10px] bg-slate-800 text-purple-300 px-1.5 py-0.5 rounded border border-slate-700 font-mono font-medium">${qList.length} ${qList.length === 1 ? 'otázka' : (qList.length < 5 ? 'otázky' : 'otázek')}</span>
                                 </div>
                             </label>
-                            <button type="button" onclick="toggleExpandTestsCategory('${escapeHtml(cat)}')" class="text-slate-400 hover:text-purple-300 text-xs px-1.5 py-0.5 rounded transition" title="Zobrazit otázky v kategorii">
+                            <button type="button" onclick="toggleExpandTestsCategory('${escapeJsStringAttr(cat)}')" class="text-slate-400 hover:text-purple-300 text-xs px-1.5 py-0.5 rounded transition" title="Zobrazit otázky v kategorii">
                                 ${isExpanded ? '▲ skrýt' : '▼ náhled'}
                             </button>
                         </div>
@@ -7015,7 +7015,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                         }
 
                         optDiv.innerHTML = `
-                            <span class="w-6 h-6 rounded-lg font-mono font-bold text-xs flex items-center justify-center border shrink-0 ${badgeStyle}">${opt.id}</span>
+                            <span class="w-6 h-6 rounded-lg font-mono font-bold text-xs flex items-center justify-center border shrink-0 ${badgeStyle}">${escapeHtml(opt.id)}</span>
                             <span class="text-xs leading-relaxed flex-1">${renderMarkdownWithKaTeX(opt.text)}</span>
                             ${isSubmitted && isCorrectOpt ? '<span class="text-emerald-400 font-bold text-xs">✓ Správně</span>' : ''}
                             ${isSubmitted && isSelected && !isCorrectOpt ? '<span class="text-red-400 font-bold text-xs">✕ Vaše volba</span>' : ''}
@@ -7059,7 +7059,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
 
                         optDiv.innerHTML = `
                             <input type="checkbox" ${isSelected ? 'checked' : ''} ${isSubmitted ? 'disabled' : ''} class="w-4 h-4 cursor-pointer shrink-0 ${checkboxStyle}">
-                            <span class="w-5 h-5 rounded font-mono font-bold text-[11px] flex items-center justify-center bg-slate-800 text-purple-300 shrink-0 border border-slate-700">${opt.id}</span>
+                            <span class="w-5 h-5 rounded font-mono font-bold text-[11px] flex items-center justify-center bg-slate-800 text-purple-300 shrink-0 border border-slate-700">${escapeHtml(opt.id)}</span>
                             <span class="text-xs leading-relaxed flex-1">${renderMarkdownWithKaTeX(opt.text)}</span>
                             ${isSubmitted && isCorrectOpt ? '<span class="text-emerald-400 font-bold text-xs">✓ Správná</span>' : ''}
                             ${isSubmitted && !isCorrectOpt && isSelected ? '<span class="text-red-400 font-bold text-xs">✕ Chybná volba</span>' : ''}
@@ -7811,7 +7811,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                         : '';
 
                     item.innerHTML = `
-                        <div class="min-w-0 flex-1 cursor-pointer" onclick="loadSavedTest('${t.filename}')">
+                        <div class="min-w-0 flex-1 cursor-pointer" onclick="loadSavedTest('${escapeJsStringAttr(t.filename)}')">
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span class="text-xs font-semibold text-slate-200 truncate" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</span>
                                 ${isActive ? '<span class="text-[9px] bg-purple-600 text-white font-bold px-1.5 py-0.2 rounded shadow-sm whitespace-nowrap">🟢 Aktivní</span>' : ''}
@@ -7826,8 +7826,8 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                         </div>
                         <div class="flex flex-wrap items-center gap-1.5 shrink-0">
                             ${scorePill}
-                            <button onclick="loadSavedTest('${t.filename}')" class="p-1 hover:bg-slate-750 text-slate-300 hover:text-white rounded text-xs transition" title="Spustit / Prohlédnout test">▶️</button>
-                            <button onclick="deleteSavedTest('${t.filename}')" class="p-1 hover:bg-slate-750 text-slate-500 hover:text-rose-400 rounded text-xs transition" title="Smazat test">🗑️</button>
+                            <button onclick="loadSavedTest('${escapeJsStringAttr(t.filename)}')" class="p-1 hover:bg-slate-750 text-slate-300 hover:text-white rounded text-xs transition" title="Spustit / Prohlédnout test">▶️</button>
+                            <button onclick="deleteSavedTest('${escapeJsStringAttr(t.filename)}')" class="p-1 hover:bg-slate-750 text-slate-500 hover:text-rose-400 rounded text-xs transition" title="Smazat test">🗑️</button>
                         </div>
                     `;
                     container.appendChild(item);
@@ -8010,7 +8010,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
             } catch (err) {
                 console.error("Chyba při načítání vláken chatu:", err);
                 if (container) {
-                    container.innerHTML = `<div class="p-3 text-xs text-red-400 bg-red-950/40 rounded-lg border border-red-800">Chyba při načítání historie: ${err.message}</div>`;
+                    container.innerHTML = `<div class="p-3 text-xs text-red-400 bg-red-950/40 rounded-lg border border-red-800">Chyba při načítání historie: ${escapeHtml(err.message)}</div>`;
                 }
             }
         }
@@ -8101,13 +8101,13 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                 }
             }
 
-            const safeTitle = (t.title || "Nová konverzace").replace(/"/g, "&quot;");
+            const safeTitle = escapeHtml(t.title || "Nová konverzace");
             const projBadge = (t.project_id && (!currentProject || t.project_id !== currentProject)) 
-                ? `<span class="text-[9px] bg-slate-900 text-emerald-400 px-1 py-0.5 rounded border border-slate-700 truncate max-w-[80px]" title="Projekt: ${t.project_id}">${t.project_id}</span>` 
+                ? `<span class="text-[9px] bg-slate-900 text-emerald-400 px-1 py-0.5 rounded border border-slate-700 truncate max-w-[80px]" title="Projekt: ${escapeHtml(t.project_id)}">${escapeHtml(t.project_id)}</span>` 
                 : "";
 
             return `
-                <div id="thread-item-${t.id}" onclick="selectChatThread('${t.id}')" class="group relative p-2.5 rounded-xl border transition-all cursor-pointer flex flex-col gap-1 ${
+                <div id="thread-item-${escapeHtml(t.id)}" onclick="selectChatThread('${escapeJsStringAttr(t.id)}')" class="group relative p-2.5 rounded-xl border transition-all cursor-pointer flex flex-col gap-1 ${
                     isActive 
                         ? "bg-indigo-950/80 border-indigo-500 shadow-md text-white" 
                         : "bg-slate-900/70 hover:bg-slate-800/80 border-slate-800/80 hover:border-slate-700 text-slate-300"
@@ -8123,15 +8123,15 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                         <!-- Tlačítka rychlých akcí -->
                         <div class="flex items-center gap-0.5 shrink-0 opacity-80 group-hover:opacity-100 transition">
                             <!-- Pin button -->
-                            <button onclick="togglePinThread('${t.id}', event)" class="p-1 rounded hover:bg-slate-700/80 text-[11px] ${isPinned ? 'text-amber-400' : 'text-slate-500 hover:text-amber-300'}" title="${isPinned ? 'Odepnout z oblíbených' : 'Připnout do oblíbených'}">
+                            <button onclick="togglePinThread('${escapeJsStringAttr(t.id)}', event)" class="p-1 rounded hover:bg-slate-700/80 text-[11px] ${isPinned ? 'text-amber-400' : 'text-slate-500 hover:text-amber-300'}" title="${isPinned ? 'Odepnout z oblíbených' : 'Připnout do oblíbených'}">
                                 ${isPinned ? '📌' : '📍'}
                             </button>
                             <!-- Rename button -->
-                            <button onclick="renameChatThread('${t.id}', event)" class="p-1 rounded hover:bg-slate-700/80 text-[11px] text-slate-500 hover:text-indigo-300" title="Přejmenovat">
+                            <button onclick="renameChatThread('${escapeJsStringAttr(t.id)}', event)" class="p-1 rounded hover:bg-slate-700/80 text-[11px] text-slate-500 hover:text-indigo-300" title="Přejmenovat">
                                 ✏️
                             </button>
                             <!-- Delete button -->
-                            <button onclick="deleteChatThread('${t.id}', event)" class="p-1 rounded hover:bg-slate-700/80 text-[11px] text-slate-500 hover:text-red-400" title="Smazat">
+                            <button onclick="deleteChatThread('${escapeJsStringAttr(t.id)}', event)" class="p-1 rounded hover:bg-slate-700/80 text-[11px] text-slate-500 hover:text-red-400" title="Smazat">
                                 🗑️
                             </button>
                         </div>
@@ -8209,7 +8209,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                 renderAllChatMessages();
             } catch (err) {
                 console.error("Chyba selectChatThread:", err);
-                listEl.innerHTML = `<div class="p-4 text-xs text-red-400 bg-red-950/40 rounded-xl border border-red-800">Chyba při načítání zpráv konverzace: ${err.message}</div>`;
+                listEl.innerHTML = `<div class="p-4 text-xs text-red-400 bg-red-950/40 rounded-xl border border-red-800">Chyba při načítání zpráv konverzace: ${escapeHtml(err.message)}</div>`;
             }
         }
 
@@ -8594,7 +8594,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                 renderDocViewerSections(data.sections, targetPage);
             } catch (err) {
                 if (textContent) {
-                    textContent.innerHTML = `<div class="p-4 bg-red-950/40 border border-red-800 rounded-lg text-red-300">Nelze načíst textový náhled: ${err.message}</div>`;
+                    textContent.innerHTML = `<div class="p-4 bg-red-950/40 border border-red-800 rounded-lg text-red-300">Nelze načíst textový náhled: ${escapeHtml(err.message)}</div>`;
                 }
             }
         }
@@ -8792,7 +8792,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                     resetViewerReaderState();
                 }
             } catch (err) {
-                if (list) list.innerHTML = `<li class="text-red-400 text-center py-6">Chyba načítání: ${err.message}</li>`;
+                if (list) list.innerHTML = `<li class="text-red-400 text-center py-6">Chyba načítání: ${escapeHtml(err.message)}</li>`;
             }
         }
 
@@ -8928,7 +8928,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                 }
 
                 const isActive = filename === viewerActiveFilename;
-                const safeNameAttr = filename.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                const safeNameAttr = escapeHtml(filename);
                 const safeNameArg = encodeURIComponent(filename);
                 const safeProjArg = encodeURIComponent(currentProject);
 
@@ -8938,7 +8938,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                             ? 'bg-sky-950/70 border-sky-500 shadow-md ring-1 ring-sky-500/40'
                             : 'bg-slate-950/70 border-slate-800/80 hover:bg-slate-850 hover:border-slate-700'
                     }">
-                        <div class="flex items-start gap-2.5 pr-2 min-w-0 flex-1" onclick="selectViewerDocument(decodeURIComponent('${safeNameArg}'))" title="${safeNameAttr}">
+                        <div class="flex items-start gap-2.5 pr-2 min-w-0 flex-1" onclick="selectViewerDocument(decodeURIComponent('${escapeJsStringAttr(safeNameArg)}'))" title="${safeNameAttr}">
                             <span class="text-base shrink-0 mt-0.5">${icon}</span>
                             <div class="min-w-0 flex-1">
                                 <div class="text-xs font-semibold leading-snug line-clamp-2 break-words ${isActive ? 'text-sky-200 font-bold' : 'text-slate-300 group-hover:text-white'} transition">
@@ -8953,7 +8953,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                             <a href="/api/files/${safeProjArg}/${safeNameArg}/view" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-sky-300 p-1.5 rounded-lg hover:bg-slate-800 text-xs transition inline-flex items-center" title="Otevřít originál v nové záložce">
                                 ↗
                             </a>
-                            <button type="button" onclick="deleteFileFromViewer(decodeURIComponent('${safeNameArg}'))" class="text-slate-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-800 text-xs transition" title="Smazat soubor">
+                            <button type="button" onclick="deleteFileFromViewer(decodeURIComponent('${escapeJsStringAttr(safeNameArg)}'))" class="text-slate-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-800 text-xs transition" title="Smazat soubor">
                                 🗑️
                             </button>
                         </div>
@@ -9108,7 +9108,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                 renderViewerSections(data.sections, targetPage);
             } catch (err) {
                 if (textContent) {
-                    textContent.innerHTML = `<div class="p-4 bg-red-950/40 border border-red-800 rounded-xl text-red-300 text-xs">Nelze načíst strukturovaný náhled: ${err.message}</div>`;
+                    textContent.innerHTML = `<div class="p-4 bg-red-950/40 border border-red-800 rounded-xl text-red-300 text-xs">Nelze načíst strukturovaný náhled: ${escapeHtml(err.message)}</div>`;
                 }
             }
         }
@@ -9939,10 +9939,10 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
             if (msg.sources && msg.sources.length > 0) {
                 window.chatSources = msg.sources;
                 const srcCards = msg.sources.map(s => `
-                    <div id="source-item-${s.id || ''}" class="p-2 bg-slate-950/80 hover:bg-slate-900 rounded border border-slate-800 hover:border-sky-500/60 text-[11px] space-y-1 transition-all cursor-pointer group" onclick="openDocumentViewer('${s.filename || ''}', '${s.page || ''}', currentProject)" title="Kliknutím otevřít ${s.filename || ''}">
+                    <div id="source-item-${escapeHtml(s.id || '')}" class="p-2 bg-slate-950/80 hover:bg-slate-900 rounded border border-slate-800 hover:border-sky-500/60 text-[11px] space-y-1 transition-all cursor-pointer group" onclick="openDocumentViewer('${escapeJsStringAttr(s.filename || '')}', '${escapeJsStringAttr(s.page || '')}', currentProject)" title="Kliknutím otevřít ${escapeHtml(s.filename || '')}">
                         <div class="font-bold text-emerald-400 group-hover:text-sky-300 flex items-center justify-between">
                             <span class="flex items-center gap-1.5 truncate">
-                                <span>📄</span> [Zdroj ${s.id || '?'}] ${s.filename || 'Dokument'}
+                                <span>📄</span> [Zdroj ${escapeHtml(s.id || '?')}] ${escapeHtml(s.filename || 'Dokument')}
                             </span>
                             <span class="text-[10px] text-sky-400 font-mono font-bold">↗</span>
                         </div>
@@ -10283,7 +10283,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                     <div class="flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
                         <div class="flex items-center gap-2 truncate">
                             <span class="text-[10px] font-bold bg-slate-800 text-teal-300 px-1.5 py-0.5 rounded border border-slate-700">${ext}</span>
-                            <span class="text-slate-200 truncate font-medium">${f.name}</span>
+                            <span class="text-slate-200 truncate font-medium">${escapeHtml(f.name)}</span>
                             <span class="text-slate-500 text-[10px]">(${sizeKb} KB)</span>
                         </div>
                         <button onclick="removeSelectedLessonFile(${idx})" class="text-slate-400 hover:text-red-400 px-1 font-bold">✕</button>
@@ -10493,13 +10493,13 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
             }
 
             container.innerHTML = chapters.map((ch, idx) => `
-                <div onclick="playLessonChapter(${ch.seconds})" id="chapterItem-${idx}" class="chapter-item cursor-pointer p-2 rounded-lg bg-slate-900/80 hover:bg-slate-750 border border-slate-800 hover:border-teal-500/50 flex items-center justify-between transition group">
+                <div onclick="playLessonChapter(${Number(ch.seconds) || 0})" id="chapterItem-${idx}" class="chapter-item cursor-pointer p-2 rounded-lg bg-slate-900/80 hover:bg-slate-750 border border-slate-800 hover:border-teal-500/50 flex items-center justify-between transition group">
                     <div class="flex items-center gap-2 truncate">
                         <span class="text-xs font-mono font-bold bg-slate-800 group-hover:bg-teal-900 group-hover:text-teal-300 text-teal-400 px-2 py-0.5 rounded border border-slate-700 transition">
-                            ${ch.time || '00:00'}
+                            ${escapeHtml(ch.time || '00:00')}
                         </span>
                         <span class="text-xs font-medium text-slate-200 group-hover:text-white truncate">
-                            ${ch.title || `Kapitola ${idx + 1}`}
+                            ${escapeHtml(ch.title || `Kapitola ${idx + 1}`)}
                         </span>
                     </div>
                     <span class="text-xs text-slate-500 group-hover:text-teal-400 shrink-0 ml-2">▶</span>
@@ -11234,13 +11234,13 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                         <div class="flex items-start gap-2">
                             <div class="text-2xl mt-1">${icon}</div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-xs text-slate-200 font-mono font-bold truncate" title="${f}">${f}</p>
-                                <p class="text-[10px] ${typeColor} uppercase font-bold mt-1">${f.split('.').pop()}</p>
+                                <p class="text-xs text-slate-200 font-mono font-bold truncate" title="${escapeHtml(f)}">${escapeHtml(f)}</p>
+                                <p class="text-[10px] ${typeColor} uppercase font-bold mt-1">${escapeHtml(f.split('.').pop())}</p>
                             </div>
                         </div>
                         <div class="flex flex-wrap justify-between items-center mt-2 border-t border-slate-800 pt-2 gap-2">
-                            ${isAudio ? `<button onclick="openPodcastPlayer('${f}')" class="text-[11px] bg-emerald-900/50 hover:bg-emerald-800 text-emerald-400 px-2 py-1 rounded transition font-bold text-center border border-emerald-700/50 whitespace-nowrap">▶ Přehrát s textem</button>` : `<a href="/audio/${f}" target="_blank" class="text-xs bg-emerald-900/50 hover:bg-emerald-800 text-emerald-400 px-2 py-1 rounded transition">Otevřít</a>`}
-                            <button onclick="deleteExplorerFile('${f}')" class="text-xs text-red-500 hover:text-red-400 font-bold px-2 py-1 rounded transition opacity-50 group-hover:opacity-100">Smazat</button>
+                            ${isAudio ? `<button onclick="openPodcastPlayer('${escapeJsStringAttr(f)}')" class="text-[11px] bg-emerald-900/50 hover:bg-emerald-800 text-emerald-400 px-2 py-1 rounded transition font-bold text-center border border-emerald-700/50 whitespace-nowrap">▶ Přehrát s textem</button>` : `<a href="/audio/${escapeHtml(f)}" target="_blank" class="text-xs bg-emerald-900/50 hover:bg-emerald-800 text-emerald-400 px-2 py-1 rounded transition">Otevřít</a>`}
+                            <button onclick="deleteExplorerFile('${escapeJsStringAttr(f)}')" class="text-xs text-red-500 hover:text-red-400 font-bold px-2 py-1 rounded transition opacity-50 group-hover:opacity-100">Smazat</button>
                         </div>
                     `;
                     grid.appendChild(card);
@@ -12222,7 +12222,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                                                     title="${isDisabled ? t("settings.unblockAccount", "Odblokovat účet") : t("settings.blockAccount", "Zablokovat účet")}">
                                                     ${isDisabled ? t("settings.btnUnblock", "🔓 Odblokovat") : t("settings.btnBlock", "🔒 Zablokovat")}
                                                 </button>
-                                                <button type="button" onclick="adminDeleteUser(${u.id}, '${escapeHtml(u.username)}')" class="px-2 py-1 rounded-lg bg-red-950/60 hover:bg-red-900 border border-red-800/80 text-red-300 text-xs transition active:scale-95 cursor-pointer" title="${t("settings.deleteUserTitle", "Smazat uživatele")}">
+                                                <button type="button" onclick="adminDeleteUser(${u.id}, '${escapeJsStringAttr(u.username)}')" class="px-2 py-1 rounded-lg bg-red-950/60 hover:bg-red-900 border border-red-800/80 text-red-300 text-xs transition active:scale-95 cursor-pointer" title="${t("settings.deleteUserTitle", "Smazat uživatele")}">
                                                     🗑️
                                                 </button>
                                             ` : `
@@ -12926,17 +12926,17 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
 
                 row.innerHTML = `
                     <!-- UZEL ROADMAPY (3D BUTTON) -->
-                    <button onclick="openMedulingoQuestion('${q.id}')" 
+                    <button onclick="openMedulingoQuestion('${escapeJsStringAttr(q.id)}')" 
                             class="duo-node w-16 h-16 rounded-full border-4 flex items-center justify-center text-xl cursor-pointer ${nodeBg}"
-                            title="${q.title} - ${nodeStatusText}">
+                            title="${escapeHtml(q.title)} - ${escapeHtml(nodeStatusText)}">
                         ${nodeIcon}
                     </button>
 
                     <!-- INFORMAČNÍ KARTA OTÁZKY -->
-                    <div onclick="openMedulingoQuestion('${q.id}')" 
+                    <div onclick="openMedulingoQuestion('${escapeJsStringAttr(q.id)}')" 
                          class="mt-2.5 bg-slate-900/90 hover:bg-slate-850 p-2.5 px-4 rounded-2xl border ${isCurrent ? 'border-emerald-500/80 shadow-lg shadow-emerald-950/50' : 'border-slate-800'} text-center max-w-[280px] cursor-pointer group transition-all">
                         <div class="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-                            <span>Otázka ${q.number}</span> &bull; 
+                            <span>Otázka ${escapeHtml(q.number)}</span> &bull; 
                             <span class="text-emerald-400 truncate">${escapeHtml(q.topic)}</span>
                         </div>
                         <h4 class="text-xs font-bold text-slate-100 group-hover:text-emerald-300 transition truncate mt-0.5" title="${escapeHtml(q.title)}">
@@ -13446,11 +13446,11 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
                     const label = resolved.source_file 
                         ? `${resolved.source_file}${resolved.clean_page ? ` (s. ${resolved.clean_page})` : ''}`
                         : (resolved.source_ref || "Zobrazit zdroj");
-                    const safeFile = (resolved.source_file || "").replace(/'/g, "\\'");
-                    const safeId = (resolved.source_id || "").replace(/'/g, "\\'");
-                    const safePage = (resolved.clean_page || "").replace(/'/g, "\\'");
-                    const safeProj = ((activeMedQuestion && activeMedQuestion.project) || currentProject || "").replace(/'/g, "\\'");
-                    ref.innerHTML = `<span class="cursor-pointer hover:underline text-sky-400 flex items-center gap-1 font-mono text-[11px]" onclick="event.stopPropagation(); handleCitationClick(event, '${safeFile || safeId}', '${safePage}', '${safeProj}')" title="Kliknutím otevřít zdroj">📖 ${label} ↗</span>`;
+                    const safeFile = escapeJsStringAttr(resolved.source_file || "");
+                    const safeId = escapeJsStringAttr(resolved.source_id || "");
+                    const safePage = escapeJsStringAttr(resolved.clean_page || "");
+                    const safeProj = escapeJsStringAttr((activeMedQuestion && activeMedQuestion.project) || currentProject || "");
+                    ref.innerHTML = `<span class="cursor-pointer hover:underline text-sky-400 flex items-center gap-1 font-mono text-[11px]" onclick="event.stopPropagation(); handleCitationClick(event, '${safeFile || safeId}', '${safePage}', '${safeProj}')" title="Kliknutím otevřít zdroj">📖 ${escapeHtml(label)} ↗</span>`;
                 } else {
                     ref.innerHTML = "";
                 }
@@ -13760,7 +13760,7 @@ ${contextSnippets}`;
                 let optsHtml = "";
                 opts.forEach(opt => {
                     optsHtml += `
-                        <button onclick="toggleMedTestOption(${qIdx}, '${opt.id}')" id="medOptBtn-${qIdx}-${opt.id}" 
+                        <button onclick="toggleMedTestOption(${qIdx}, '${escapeJsStringAttr(opt.id)}')" id="medOptBtn-${qIdx}-${opt.id}" 
                                 class="w-full text-left p-3.5 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 hover:bg-slate-900 text-xs text-slate-200 transition flex items-start gap-3 group">
                             <span id="medOptBadge-${qIdx}-${opt.id}" class="w-6 h-6 rounded-lg bg-slate-800 group-hover:bg-slate-750 text-slate-400 font-bold flex items-center justify-center flex-shrink-0 border border-slate-700 text-xs transition">${opt.id}</span>
                             <span class="flex-1 min-w-0 pt-0.5 leading-relaxed">${escapeHtml(opt.text)}</span>

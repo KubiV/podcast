@@ -113,7 +113,7 @@ Commit: `404b279` – `fix(security): Sanitize rendered markdown with DOMPurify`
 
 ## 1.5 ⚠ Bezpečný tiskový náhled (nálezy S4, S5)
 
-Commit: `fix(security): Sanitize print preview HTML and harden print jobs` (hash doplní další krok)
+Commit: `ed02958` – `fix(security): Sanitize print preview HTML and harden print jobs`
 
 **Zabezpečeno:**
 - Nový `core/html_sanitizer.py`: allowlist sanitizer postavený jen na standardní knihovně (`html.parser`), **bez nové závislosti**.
@@ -129,7 +129,7 @@ Commit: `fix(security): Sanitize print preview HTML and harden print jobs` (hash
   - `webbrowser.open` se spustí jen pro požadavek z loopbacku bez `X-Forwarded-For`, tedy jen z lokální desktopové aplikace.
   - `/print_preview/{id}` posílá CSP `default-src 'none'`. `script-src` povoluje jen hash vlastního auto-print skriptu a obou `onclick` tlačítek šablony.
 
-**Odchylka od schváleného plánu:** bod „zakázat viewerům tisk“ jsem **neprovedl**. Middleware tisk pozorovatelům povoluje záměrně (`main.py`), protože jde o čtecí funkci. Se sanitizací na serveru a CSP už k zákazu není bezpečnostní důvod. Pokud ho chceš i tak, je to jednořádková změna v middleware.
+**Odchylka od schváleného plánu (schválena uživatelem po kroku 1.5):** bod „zakázat viewerům tisk“ jsem **neprovedl**. Middleware tisk pozorovatelům povoluje záměrně (`main.py`), protože jde o čtecí funkci. Se sanitizací na serveru a CSP už k zákazu není bezpečnostní důvod. Pokud ho chceš i tak, je to jednořádková změna v middleware.
 
 **Změna chování (záměrná):** z tiskového HTML mizí skripty, event handlery (včetně `onclick` citací, které na tiskové stránce stejně nefungovaly), `id`, nepovolené tagy (jejich text zůstává) a nebezpečné URL.
 
@@ -146,3 +146,44 @@ Commit: `fix(security): Sanitize print preview HTML and harden print jobs` (hash
 **Zjištěné chyby (zapsáno, neopraveno):**
 - Tisková šablona nenačítá KaTeX CSS, takže se vzorce v náhledu tisknou dvakrát (MathML i HTML) a odmocniny mají rozbitou čáru. Chyba existovala už dřív, sanitizace na ní nic nemění (DOM je identický).
 - `/print_preview/{id}` neověřuje, kdo úlohu vytvořil. Kdokoli přihlášený se znalostí 10hex ID ji může zobrazit. S ohledem na sanitizaci jde o nízké riziko, zapsáno pro další kolo.
+
+## 1.6 ⚠ Escapování inline handlerů a vykreslovaných hodnot (nálezy F2, F3, F6)
+
+Commit: `fix(security): Escape interpolated values in inline handlers and HTML` (hash doplní další krok)
+
+**Odchylka od plánu (k odsouhlasení):** plán počítal s přepisem inline handlerů na `data-*` a delegované listenery. Zvolil jsem **escapování podle kontextu** se stejným bezpečnostním účinkem:
+- pro JS řetězec v `on*="…('…')"` slouží `escapeJsStringAttr` (nejdřív JS, pak HTML escapování),
+- pro atributy a text slouží `escapeHtml`.
+
+Důvod: pro běžné hodnoty se výstup nemění a nemusí se sahat na logiku událostí (`this.value`, `this.checked`, `stopPropagation`), na kterou neexistují testy. Přechod na delegované listenery zůstává vhodný pro kroky 3.5/4.8 (rozdělení `app.js`, frontendové helpery).
+
+**Zabezpečeno (`static/js/app.js`):**
+- 54 interpolací v inline handlerech převedeno na `escapeJsStringAttr(...)`. Přitom zmizely nefunkční `escapeQuotes(...)` a `escapeHtml(...)` použité v JS kontextu. Jde o projekty, ID otázek, ID chat vláken, názvy souborů poznámek, sad, testů, audia a podkladů, kategorie testů, ID odpovědí, zdroje kartiček a uživatelská jména.
+- Medulingo citace (`handleCitationClick`) používají `escapeJsStringAttr` místo `replace(/'/g, …)`.
+- 44 HTML sinků dostalo `escapeHtml`:
+  - otázky (název, téma, číslo, známka, datum) v plánovači, kalendáři a tabulkách,
+  - názvy poznámek, sad, testů a audia,
+  - zdroje v chatu a v poznámkách, kartičky (`cleanFront`/`cleanBack`: dekódování entit a pak escapování),
+  - kapitoly lekce (`ch.seconds` vynuceno jako číslo),
+  - chybové zprávy `e.message`/`data.detail` v `innerHTML`,
+  - `id` vláken a zdrojů a `href` audia.
+- `safeNameAttr` a `safeTitle` (vlastní neúplné escapování) nahrazeny `escapeHtml`.
+- `index.html`: cache-busting `app.js?v=2.6`.
+
+**Zabezpečeno (backend):** `services/auth_service.py` přidává `validate_new_username`. Nové registrace i prvotní admin smí mít v uživatelském jménu jen písmena (vč. diakritiky), číslice a `_ . - @`, délka 3–64 znaků. Stávající účty se nekontrolují a přihlášení funguje beze změny. Tím se zavírá řetězec „neautentizovaná registrace → XSS v admin panelu“.
+
+**Ověření před/po (prohlížeč):** dva dočasné servery, `HEAD` (před 1.6) a pracovní strom. Oba dostaly stejná data přes `tests/frontend/seed_xss_data.py` s běžnými i škodlivými hodnotami. Harness `tests/frontend/handlers_check.js` zaznamenal všechna přiřazení `innerHTML`, nahradil 42 cílových handlerů záznamníky a klikl na 58 prvků.
+- **Před:** `window.__xss` se spustil. Škodlivé ID vlákna rozbilo `onclick` (handler dostal `thread_x`), handlery škodlivých souborů se nezavolaly vůbec.
+- **Po:** `window.__xss` se nespustil. Všechny handlery dostaly přesné původní hodnoty, včetně škodlivých. Běžná volání (`doc_ok.txt`, `q1`, `thread_ok1`, `kardio.pdf`, data kalendáře) jsou identická.
+- **Rozdíly v HTML u běžných dat:** jen `&` → `&amp;` (stejné vykreslení). Čtyři navíc přiřazení `innerHTML` pochází z `decodeHtmlEntities` (textarea, obsah se neparsuje jako HTML).
+
+**Testy:** nový `tests/test_auth_validation.py` (4 testy). Před změnou selhaly 2 testy se 7 selháními (5 neplatných jmen a admin), po změně prochází vše.
+
+**Oprava testovací infrastruktury:** `AuthService(...)` přepisuje globální singleton `AuthService._instance`. Nový test i stávající `test_services.test_auth_service_toggle_user_active` ho teď po sobě obnovují. Bez toho by test spuštěný před autorizačními testy rozbil 73 dalších testů. Dosud se to neprojevilo jen díky abecednímu pořadí souborů.
+
+**Ověření vůči baseline:** 58/58 testů OK, `ruff check` beze změny (2× UP038), F401 131, `ruff format` OK, seznam OpenAPI cest identický, `node --check` OK.
+
+**Zbývá:**
+- V `app.js` je dál 219× `innerHTML`. Prošel jsem místa s daty od jiných uživatelů, z AI a z importu, která uvádí audit. Hodnoty z `t()` (překlady) a čísla jsem nechal beze změny.
+- Funkce `t()` interpoluje parametry bez escapování (F7 z auditu, podezření). Ty jsou dnes převážně čísla a data, nezměněno.
+- Funkce `escapeQuotes` po kroku už nemá žádné volání. Smaže se v kroku 4.6 (mrtvý kód), aby tento krok zůstal čistě bezpečnostní.

@@ -44,6 +44,8 @@ class TestServices(unittest.TestCase):
         self.assertEqual(resolved.get("source_page"), "12")
 
     def test_auth_service_toggle_user_active(self):
+        previous_instance = AuthService.get_instance()
+        self.addCleanup(setattr, AuthService, "_instance", previous_instance)
         with tempfile.TemporaryDirectory() as tmpdir:
             auth = AuthService(tmpdir)
             admin_data, _ = auth.create_initial_admin("admin_user", "password123")

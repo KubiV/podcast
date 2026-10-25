@@ -10,10 +10,24 @@
 
 import hashlib
 import os
+import re
 import secrets
 import sqlite3
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
+
+# Povolené znaky pro nová uživatelská jména (písmena vč. diakritiky, číslice, _ . - @).
+# Stávající účty se nekontrolují; jméno se zobrazuje v administraci a nesmí obsahovat HTML/uvozovky.
+USERNAME_RE = re.compile(r"[\w.@-]{3,64}")
+
+
+def validate_new_username(username: str) -> str | None:
+    """Vrátí chybovou hlášku, pokud jméno pro nový účet nevyhovuje, jinak None."""
+    if len(username) < 3:
+        return "Uživatelské jméno musí mít alespoň 3 znaky."
+    if not USERNAME_RE.fullmatch(username):
+        return "Uživatelské jméno smí obsahovat jen písmena, číslice a znaky _ . - @ (nejvýše 64 znaků)."
+    return None
 
 
 class AuthService:
@@ -347,8 +361,9 @@ class AuthService:
             return None, "Administrátorský účet již byl vytvořen. Další registrace podléhají běžnému schválení."
 
         username = username.strip()
-        if len(username) < 3:
-            return None, "Uživatelské jméno musí mít alespoň 3 znaky."
+        username_error = validate_new_username(username)
+        if username_error:
+            return None, username_error
         if len(password) < 6:
             return None, "Heslo musí mít alespoň 6 znaků."
 
@@ -384,8 +399,9 @@ class AuthService:
             return None, "Registrace nových účtů je v současnosti administrátorem vypnuta."
 
         username = username.strip()
-        if len(username) < 3:
-            return None, "Uživatelské jméno musí mít alespoň 3 znaky."
+        username_error = validate_new_username(username)
+        if username_error:
+            return None, username_error
         if len(password) < 6:
             return None, "Heslo musí mít alespoň 6 znaků."
 
