@@ -731,8 +731,16 @@ Commit: `d3960ab` – `refactor(frontend): Move Authentication section into auth
 
 ### 3.5.4 Language switcher → `static/js/language.js`
 
-Commit: `refactor(frontend): Move Language switcher section into language.js` (hash doplní další krok)
+Commit: `44a30aa` – `refactor(frontend): Move Language switcher section into language.js`
 
 - Řádky 11448–11478 původního `app.js` (31 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/language.js` s krátkou hlavičkou. `app.js` 11478 → 11447 ř.
 - `index.html`: `language.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`language.js` `?v=2.10`.
+- **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
+
+### 3.5.5 Settings and BYOK → `static/js/settings.js`
+
+Commit: `refactor(frontend): Move Settings and BYOK section into settings.js` (hash doplní další krok)
+
+- Řádky 11282–11447 původního `app.js` (166 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/settings.js` s krátkou hlavičkou. `app.js` 11447 → 11281 ř.
+- `index.html`: `settings.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`settings.js` `?v=2.11`.
 - **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
