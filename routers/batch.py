@@ -1,4 +1,3 @@
-import asyncio
 import os
 import traceback
 import uuid
@@ -8,8 +7,9 @@ from fastapi import APIRouter, BackgroundTasks, Body, HTTPException
 
 from core.authz import require_project_access
 from core.clients import require_allowed_model
-from core.logger import BatchState, active_batches, send_batch_event, send_log
-from core.utils import friendly_api_error, is_terminal_auth_error, sanitize_name
+from core.logger import BatchState, active_batches, send_log
+from core.utils import sanitize_name
+from services.batch import BatchTexts, run_question_batch
 from services.flashcards_service import internal_generate_flashcards
 from services.notes_service import internal_generate_notes
 from services.podcast_service import (
@@ -19,6 +19,51 @@ from services.podcast_service import (
 )
 
 router = APIRouter()
+
+
+PODCAST_BATCH_TEXTS = BatchTexts(
+    started="🚀 Spouštím dávkové zpracování podcastů pro {questions} otázek...",
+    cancelled_by_user="🛑 Dávkové zpracování bylo zrušeno uživatelem!",
+    processing="▶️ [{idx}/{total}] Zpracovávám otázku: {title}",
+    question_done="🎉 Hotovo [{idx}/{total}].",
+    question_failed="⚠️ Otázku '{title}' se nepodařilo dokončit: {error}. Pokračuji v dávce...",
+    sweep_round="🌙 [Noční kontrola podcastů – kolo {round}/{max_rounds}]: Znovu zkouším {count} nedokončených otázek...",
+    sweep_retry="🔄 Doplňovací pokus podcastu: {title}...",
+    finished_cancelled="🏁 Dávkové zpracování podcastů bylo zrušeno.",
+    finished_completed="🏁 Dávkové zpracování podcastů kompletně dokončeno ({total}/{total} hotovo)!",
+    finished_with_errors="🏁 Dávka podcastů dokončena: {done}/{total} hotovo, {pending} neúspěšných.",
+    aborted="❌ Dávkové zpracování přerušeno chybou: {error}",
+)
+
+NOTES_BATCH_TEXTS = BatchTexts(
+    started="🚀 Spouštím dávkové generování studijních textů pro {questions} otázek...",
+    cancelled_by_user="🛑 Dávkové generování poznámek bylo zrušeno uživatelem!",
+    processing="📝 [{idx}/{total}] Generuji studijní text: {title}",
+    question_done="🎉 Text k otázce [{idx}/{total}] vygenerován a uložen.",
+    question_failed="⚠️ Otázku '{title}' se nepodařilo vygenerovat: {error}. Pokračuji v dávce...",
+    sweep_round="🌙 [Noční kontrola textů – kolo {round}/{max_rounds}]: Znovu zkouším {count} nedokončených otázek...",
+    sweep_retry="🔄 Doplňovací pokus textu: {title}...",
+    finished_cancelled="🏁 Dávkové generování studijních textů bylo zrušeno.",
+    finished_completed="🏁 Dávkové generování textů kompletně dokončeno ({total}/{total} hotovo)!",
+    finished_with_errors="🏁 Dávka textů dokončena: {done}/{total} hotovo, {pending} neúspěšných.",
+    aborted="❌ Dávkové generování textů přerušeno: {error}",
+)
+
+
+def flashcards_batch_texts(count: int) -> BatchTexts:
+    return BatchTexts(
+        started=f"🚀 Spouštím dávkové generování kartiček ({count} ks/otázka) pro {{questions}} otázek...",
+        cancelled_by_user="🛑 Dávkové generování kartiček bylo zrušeno uživatelem!",
+        processing=f"🗂️ [{{idx}}/{{total}}] Generuji {count} kartiček: {{title}}",
+        question_done="🎉 Kartičky k otázce [{idx}/{total}] vytvořeny a uloženy.",
+        question_failed="⚠️ Otázku '{title}' se nepodařilo vygenerovat: {error}. Pokračuji v dávce...",
+        sweep_round="🌙 [Noční kontrola kartiček – kolo {round}/{max_rounds}]: Znovu zkouším {count} nedokončených otázek...",
+        sweep_retry="🔄 Doplňovací pokus kartiček: {title}...",
+        finished_cancelled="🏁 Dávkové generování kartiček bylo zrušeno.",
+        finished_completed="🏁 Dávkové generování kartiček kompletně dokončeno ({total}/{total} hotovo)!",
+        finished_with_errors="🏁 Dávka kartiček dokončena: {done}/{total} hotovo, {pending} neúspěšných.",
+        aborted="❌ Dávkové generování kartiček přerušeno: {error}",
+    )
 
 
 # --- ZRUŠENÍ DÁVKOVÉHO PROCESU ---
@@ -48,161 +93,24 @@ async def background_batch_process(
     batch_id: str,
     overnight_mode: bool = True,
 ):
-    batch = active_batches.get(project)
-    if not batch or batch.batch_id != batch_id:
-        return
-
-    pending_question_indexes = [question.get("q_index") for question in questions]
-    outcome = "completed"
-    failed_message = None
-    failed_questions = []
-
-    try:
-        await send_log(f"🚀 Spouštím dávkové zpracování podcastů pro {len(questions)} otázek...")
-        await send_batch_event(
-            project,
-            "started",
-            batch_id,
-            mode="podcast",
-            question_indexes=[question.get("q_index") for question in questions],
-        )
-
-        for idx, question_data in enumerate(questions):
-            if batch.cancel_requested:
-                await send_log("🛑 Dávkové zpracování bylo zrušeno uživatelem!")
-                outcome = "cancelled"
-                break
-
-            title = question_data.get("title")
-            question_index = question_data.get("q_index")
-            await send_log(f"▶️ [{idx + 1}/{len(questions)}] Zpracovávám otázku: {title}")
-
-            success = False
-            last_err = None
-            for attempt in range(3):
-                if batch.cancel_requested:
-                    break
-                try:
-                    script, _ = await internal_generate_script(title, custom_prompt, provider, project, gemini_model)
-                    if batch.cancel_requested:
-                        break
-                    safe_filename = f"{project}_Q{question_index}_{title[:15]}"
-                    await internal_generate_audio(script, safe_filename, provider, voice, output_format, title)
-                    success = True
-                    break
-                except Exception as err:
-                    last_err = err
-                    if attempt < 2 and not batch.cancel_requested:
-                        wait_s = (attempt + 1) * 5
-                        await send_log(
-                            f"⚠️ [Pokus {attempt + 1}/3] Otázka '{title[:35]}' selhala: {str(err)}. Opakuji za {wait_s} s..."
-                        )
-                        await asyncio.sleep(wait_s)
-
-            if success:
-                batch.completed_question_indexes.append(question_index)
-                if question_index in pending_question_indexes:
-                    pending_question_indexes.remove(question_index)
-                await send_batch_event(
-                    project,
-                    "question_completed",
-                    batch_id,
-                    mode="podcast",
-                    question_index=question_index,
-                )
-                await send_log(f"🎉 Hotovo [{idx + 1}/{len(questions)}].")
-            else:
-                await send_log(f"⚠️ Otázku '{title[:35]}' se nepodařilo dokončit: {str(last_err)}. Pokračuji v dávce...")
-                failed_questions.append(question_data)
-                await send_batch_event(
-                    project,
-                    "question_failed",
-                    batch_id,
-                    mode="podcast",
-                    question_index=question_index,
-                    error=str(last_err),
-                )
-
-            await asyncio.sleep(1.0)
-
-        # Noční kontrola kompletnosti: doplňovací kola pro neúspěšné otázky
-        if overnight_mode and failed_questions and not batch.cancel_requested:
-            max_sweeps = 2
-            sweep_idx = 0
-            while failed_questions and sweep_idx < max_sweeps and not batch.cancel_requested:
-                sweep_idx += 1
-                await send_log(
-                    f"🌙 [Noční kontrola podcastů – kolo {sweep_idx}/{max_sweeps}]: Znovu zkouším {len(failed_questions)} nedokončených otázek..."
-                )
-                await asyncio.sleep(6.0)
-                still_failed = []
-                for q_data in failed_questions:
-                    if batch.cancel_requested:
-                        break
-                    q_title = q_data.get("title")
-                    q_idx = q_data.get("q_index")
-                    await send_log(f"🔄 Doplňovací pokus podcastu: {q_title[:35]}...")
-                    try:
-                        script, _ = await internal_generate_script(
-                            q_title, custom_prompt, provider, project, gemini_model
-                        )
-                        if batch.cancel_requested:
-                            break
-                        safe_filename = f"{project}_Q{q_idx}_{q_title[:15]}"
-                        await internal_generate_audio(script, safe_filename, provider, voice, output_format, q_title)
-                        batch.completed_question_indexes.append(q_idx)
-                        if q_idx in pending_question_indexes:
-                            pending_question_indexes.remove(q_idx)
-                        await send_batch_event(
-                            project,
-                            "question_completed",
-                            batch_id,
-                            mode="podcast",
-                            question_index=q_idx,
-                        )
-                        await send_log(f"🎉 Úspěšně doplněno v noční kontrole: {q_title[:35]}")
-                    except Exception as sw_err:
-                        await send_log(f"⚠️ Doplňovací pokus pro '{q_title[:35]}' selhal: {str(sw_err)}")
-                        still_failed.append(q_data)
-                    await asyncio.sleep(1.0)
-                failed_questions = still_failed
-
+    async def produce(batch, title, question_index) -> bool:
+        script, _ = await internal_generate_script(title, custom_prompt, provider, project, gemini_model)
         if batch.cancel_requested:
-            outcome = "cancelled"
-            await send_log("🏁 Dávkové zpracování podcastů bylo zrušeno.")
-        elif len(pending_question_indexes) == 0:
-            outcome = "completed"
-            await send_log(
-                f"🏁 Dávkové zpracování podcastů kompletně dokončeno ({len(questions)}/{len(questions)} hotovo)!"
-            )
-        else:
-            outcome = "completed_with_errors"
-            await send_log(
-                f"🏁 Dávka podcastů dokončena: {len(batch.completed_question_indexes)}/{len(questions)} hotovo, {len(pending_question_indexes)} neúspěšných."
-            )
+            return False
+        safe_filename = f"{project}_Q{question_index}_{title[:15]}"
+        await internal_generate_audio(script, safe_filename, provider, voice, output_format, title)
+        return True
 
-    except Exception as e:
-        outcome = "failed"
-        failed_message = str(e)
-        await send_log(f"❌ Dávkové zpracování přerušeno chybou: {failed_message}")
-    finally:
-        try:
-            await send_batch_event(
-                project,
-                "finished",
-                batch_id,
-                mode="podcast",
-                outcome=outcome,
-                completed_question_indexes=batch.completed_question_indexes,
-                pending_question_indexes=pending_question_indexes,
-                error=failed_message,
-            )
-        finally:
-            # Bezpodmínečný úklid je klíčový: po chybě musí jít dávku ihned
-            # znovu spustit, bez restartování backendu.
-            current_batch = active_batches.get(project)
-            if current_batch and current_batch.batch_id == batch_id:
-                del active_batches[project]
+    await run_question_batch(
+        project=project,
+        batch_id=batch_id,
+        questions=questions,
+        mode="podcast",
+        overnight_mode=overnight_mode,
+        texts=PODCAST_BATCH_TEXTS,
+        produce=produce,
+        stop_on_auth_error=False,
+    )
 
 
 @router.post("/api/process-batch")
@@ -253,155 +161,20 @@ async def background_notes_batch_process(
     batch_id: str,
     overnight_mode: bool = True,
 ):
-    batch = active_batches.get(project)
-    if not batch or batch.batch_id != batch_id:
-        return
+    async def produce(batch, title, question_index) -> bool:
+        await internal_generate_notes(title, project, custom_prompt, gemini_model)
+        return True
 
-    pending_question_indexes = [question.get("q_index") for question in questions]
-    outcome = "completed"
-    failed_message = None
-    failed_questions = []
-
-    try:
-        await send_log(f"🚀 Spouštím dávkové generování studijních textů pro {len(questions)} otázek...")
-        await send_batch_event(
-            project,
-            "started",
-            batch_id,
-            mode="notes",
-            question_indexes=[question.get("q_index") for question in questions],
-        )
-
-        for idx, question_data in enumerate(questions):
-            if batch.cancel_requested:
-                await send_log("🛑 Dávkové generování poznámek bylo zrušeno uživatelem!")
-                outcome = "cancelled"
-                break
-
-            title = question_data.get("title")
-            question_index = question_data.get("q_index")
-            await send_log(f"📝 [{idx + 1}/{len(questions)}] Generuji studijní text: {title}")
-
-            success = False
-            last_err = None
-            for attempt in range(3):
-                if batch.cancel_requested:
-                    break
-                try:
-                    await internal_generate_notes(title, project, custom_prompt, gemini_model)
-                    success = True
-                    break
-                except Exception as err:
-                    last_err = err
-                    if is_terminal_auth_error(err):
-                        await send_log(f"🛑 Fatální chyba autorizace: {friendly_api_error(err, 'Gemini')}")
-                        batch.cancel_requested = True
-                        break
-                    if attempt < 2 and not batch.cancel_requested:
-                        wait_s = (attempt + 1) * 5
-                        await send_log(
-                            f"⚠️ [Pokus {attempt + 1}/3] Otázka '{title[:35]}' selhala: {str(err)}. Opakuji za {wait_s} s..."
-                        )
-                        await asyncio.sleep(wait_s)
-
-            if success:
-                batch.completed_question_indexes.append(question_index)
-                if question_index in pending_question_indexes:
-                    pending_question_indexes.remove(question_index)
-                await send_batch_event(
-                    project,
-                    "question_completed",
-                    batch_id,
-                    mode="notes",
-                    question_index=question_index,
-                )
-                await send_log(f"🎉 Text k otázce [{idx + 1}/{len(questions)}] vygenerován a uložen.")
-            else:
-                await send_log(
-                    f"⚠️ Otázku '{title[:35]}' se nepodařilo vygenerovat: {str(last_err)}. Pokračuji v dávce..."
-                )
-                failed_questions.append(question_data)
-                await send_batch_event(
-                    project,
-                    "question_failed",
-                    batch_id,
-                    mode="notes",
-                    question_index=question_index,
-                    error=str(last_err),
-                )
-
-            await asyncio.sleep(1.0)
-
-        # Noční kontrola kompletnosti: doplňovací kola pro neúspěšné otázky
-        if overnight_mode and failed_questions and not batch.cancel_requested:
-            max_sweeps = 2
-            sweep_idx = 0
-            while failed_questions and sweep_idx < max_sweeps and not batch.cancel_requested:
-                sweep_idx += 1
-                await send_log(
-                    f"🌙 [Noční kontrola textů – kolo {sweep_idx}/{max_sweeps}]: Znovu zkouším {len(failed_questions)} nedokončených otázek..."
-                )
-                await asyncio.sleep(6.0)
-                still_failed = []
-                for q_data in failed_questions:
-                    if batch.cancel_requested:
-                        break
-                    q_title = q_data.get("title")
-                    q_idx = q_data.get("q_index")
-                    await send_log(f"🔄 Doplňovací pokus textu: {q_title[:35]}...")
-                    try:
-                        await internal_generate_notes(q_title, project, custom_prompt, gemini_model)
-                        batch.completed_question_indexes.append(q_idx)
-                        if q_idx in pending_question_indexes:
-                            pending_question_indexes.remove(q_idx)
-                        await send_batch_event(
-                            project,
-                            "question_completed",
-                            batch_id,
-                            mode="notes",
-                            question_index=q_idx,
-                        )
-                        await send_log(f"🎉 Úspěšně doplněno v noční kontrole: {q_title[:35]}")
-                    except Exception as sw_err:
-                        await send_log(f"⚠️ Doplňovací pokus pro '{q_title[:35]}' selhal: {str(sw_err)}")
-                        still_failed.append(q_data)
-                    await asyncio.sleep(1.0)
-                failed_questions = still_failed
-
-        if batch.cancel_requested:
-            outcome = "cancelled"
-            await send_log("🏁 Dávkové generování studijních textů bylo zrušeno.")
-        elif len(pending_question_indexes) == 0:
-            outcome = "completed"
-            await send_log(
-                f"🏁 Dávkové generování textů kompletně dokončeno ({len(questions)}/{len(questions)} hotovo)!"
-            )
-        else:
-            outcome = "completed_with_errors"
-            await send_log(
-                f"🏁 Dávka textů dokončena: {len(batch.completed_question_indexes)}/{len(questions)} hotovo, {len(pending_question_indexes)} neúspěšných."
-            )
-
-    except Exception as e:
-        outcome = "failed"
-        failed_message = str(e)
-        await send_log(f"❌ Dávkové generování textů přerušeno: {failed_message}")
-    finally:
-        try:
-            await send_batch_event(
-                project,
-                "finished",
-                batch_id,
-                mode="notes",
-                outcome=outcome,
-                completed_question_indexes=batch.completed_question_indexes,
-                pending_question_indexes=pending_question_indexes,
-                error=failed_message,
-            )
-        finally:
-            current_batch = active_batches.get(project)
-            if current_batch and current_batch.batch_id == batch_id:
-                del active_batches[project]
+    await run_question_batch(
+        project=project,
+        batch_id=batch_id,
+        questions=questions,
+        mode="notes",
+        overnight_mode=overnight_mode,
+        texts=NOTES_BATCH_TEXTS,
+        produce=produce,
+        stop_on_auth_error=True,
+    )
 
 
 @router.post("/api/process-notes-batch")
@@ -447,155 +220,20 @@ async def background_flashcards_batch_process(
     batch_id: str,
     overnight_mode: bool = True,
 ):
-    batch = active_batches.get(project)
-    if not batch or batch.batch_id != batch_id:
-        return
+    async def produce(batch, title, question_index) -> bool:
+        await internal_generate_flashcards(title, project, count, custom_prompt, gemini_model)
+        return True
 
-    pending_question_indexes = [question.get("q_index") for question in questions]
-    outcome = "completed"
-    failed_message = None
-    failed_questions = []
-
-    try:
-        await send_log(f"🚀 Spouštím dávkové generování kartiček ({count} ks/otázka) pro {len(questions)} otázek...")
-        await send_batch_event(
-            project,
-            "started",
-            batch_id,
-            mode="flashcards",
-            question_indexes=[question.get("q_index") for question in questions],
-        )
-
-        for idx, question_data in enumerate(questions):
-            if batch.cancel_requested:
-                await send_log("🛑 Dávkové generování kartiček bylo zrušeno uživatelem!")
-                outcome = "cancelled"
-                break
-
-            title = question_data.get("title")
-            question_index = question_data.get("q_index")
-            await send_log(f"🗂️ [{idx + 1}/{len(questions)}] Generuji {count} kartiček: {title}")
-
-            success = False
-            last_err = None
-            for attempt in range(3):
-                if batch.cancel_requested:
-                    break
-                try:
-                    await internal_generate_flashcards(title, project, count, custom_prompt, gemini_model)
-                    success = True
-                    break
-                except Exception as err:
-                    last_err = err
-                    if is_terminal_auth_error(err):
-                        await send_log(f"🛑 Fatální chyba autorizace: {friendly_api_error(err, 'Gemini')}")
-                        batch.cancel_requested = True
-                        break
-                    if attempt < 2 and not batch.cancel_requested:
-                        wait_s = (attempt + 1) * 5
-                        await send_log(
-                            f"⚠️ [Pokus {attempt + 1}/3] Otázka '{title[:35]}' selhala: {str(err)}. Opakuji za {wait_s} s..."
-                        )
-                        await asyncio.sleep(wait_s)
-
-            if success:
-                batch.completed_question_indexes.append(question_index)
-                if question_index in pending_question_indexes:
-                    pending_question_indexes.remove(question_index)
-                await send_batch_event(
-                    project,
-                    "question_completed",
-                    batch_id,
-                    mode="flashcards",
-                    question_index=question_index,
-                )
-                await send_log(f"🎉 Kartičky k otázce [{idx + 1}/{len(questions)}] vytvořeny a uloženy.")
-            else:
-                await send_log(
-                    f"⚠️ Otázku '{title[:35]}' se nepodařilo vygenerovat: {str(last_err)}. Pokračuji v dávce..."
-                )
-                failed_questions.append(question_data)
-                await send_batch_event(
-                    project,
-                    "question_failed",
-                    batch_id,
-                    mode="flashcards",
-                    question_index=question_index,
-                    error=str(last_err),
-                )
-
-            await asyncio.sleep(1.0)
-
-        # Noční kontrola kompletnosti: doplňovací kola pro neúspěšné otázky
-        if overnight_mode and failed_questions and not batch.cancel_requested:
-            max_sweeps = 2
-            sweep_idx = 0
-            while failed_questions and sweep_idx < max_sweeps and not batch.cancel_requested:
-                sweep_idx += 1
-                await send_log(
-                    f"🌙 [Noční kontrola kartiček – kolo {sweep_idx}/{max_sweeps}]: Znovu zkouším {len(failed_questions)} nedokončených otázek..."
-                )
-                await asyncio.sleep(6.0)
-                still_failed = []
-                for q_data in failed_questions:
-                    if batch.cancel_requested:
-                        break
-                    q_title = q_data.get("title")
-                    q_idx = q_data.get("q_index")
-                    await send_log(f"🔄 Doplňovací pokus kartiček: {q_title[:35]}...")
-                    try:
-                        await internal_generate_flashcards(q_title, project, count, custom_prompt, gemini_model)
-                        batch.completed_question_indexes.append(q_idx)
-                        if q_idx in pending_question_indexes:
-                            pending_question_indexes.remove(q_idx)
-                        await send_batch_event(
-                            project,
-                            "question_completed",
-                            batch_id,
-                            mode="flashcards",
-                            question_index=q_idx,
-                        )
-                        await send_log(f"🎉 Úspěšně doplněno v noční kontrole: {q_title[:35]}")
-                    except Exception as sw_err:
-                        await send_log(f"⚠️ Doplňovací pokus pro '{q_title[:35]}' selhal: {str(sw_err)}")
-                        still_failed.append(q_data)
-                    await asyncio.sleep(1.0)
-                failed_questions = still_failed
-
-        if batch.cancel_requested:
-            outcome = "cancelled"
-            await send_log("🏁 Dávkové generování kartiček bylo zrušeno.")
-        elif len(pending_question_indexes) == 0:
-            outcome = "completed"
-            await send_log(
-                f"🏁 Dávkové generování kartiček kompletně dokončeno ({len(questions)}/{len(questions)} hotovo)!"
-            )
-        else:
-            outcome = "completed_with_errors"
-            await send_log(
-                f"🏁 Dávka kartiček dokončena: {len(batch.completed_question_indexes)}/{len(questions)} hotovo, {len(pending_question_indexes)} neúspěšných."
-            )
-
-    except Exception as e:
-        outcome = "failed"
-        failed_message = str(e)
-        await send_log(f"❌ Dávkové generování kartiček přerušeno: {failed_message}")
-    finally:
-        try:
-            await send_batch_event(
-                project,
-                "finished",
-                batch_id,
-                mode="flashcards",
-                outcome=outcome,
-                completed_question_indexes=batch.completed_question_indexes,
-                pending_question_indexes=pending_question_indexes,
-                error=failed_message,
-            )
-        finally:
-            current_batch = active_batches.get(project)
-            if current_batch and current_batch.batch_id == batch_id:
-                del active_batches[project]
+    await run_question_batch(
+        project=project,
+        batch_id=batch_id,
+        questions=questions,
+        mode="flashcards",
+        overnight_mode=overnight_mode,
+        texts=flashcards_batch_texts(count),
+        produce=produce,
+        stop_on_auth_error=True,
+    )
 
 
 @router.post("/api/process-flashcards-batch")

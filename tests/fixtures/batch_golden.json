@@ -1,0 +1,3233 @@
+{
+ "flashcards/all_ok": {
+  "batch_still_active": false,
+  "calls": [
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 2 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování kartiček (7 ks/otázka) pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [1/3] Generuji 7 kartiček: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Kartičky k otázce [1/3] vytvořeny a uloženy."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [2/3] Generuji 7 kartiček: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Kartičky k otázce [2/3] vytvořeny a uloženy."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [3/3] Generuji 7 kartiček: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Kartičky k otázce [3/3] vytvořeny a uloženy."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové generování kartiček kompletně dokončeno (3/3 hotovo)!"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "error": null,
+     "mode": "flashcards",
+     "outcome": "completed",
+     "pending_question_indexes": [],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "flashcards/auth_error": {
+  "batch_still_active": false,
+  "calls": [
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování kartiček (7 ks/otázka) pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [1/3] Generuji 7 kartiček: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🛑 Fatální chyba autorizace: Gemini: přístup byl zamítnut (403 PERMISSION_DENIED). Google zablokoval přístup pro tento projekt (časté u free tier projektů). Řešení: Vytvořte nový API klíč v novém projektu na https://aistudio.google.com/app/apikey a uložte jej do .env."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 0 – kardiologie a srde' se nepodařilo vygenerovat: 403 PERMISSION_DENIED: API key not valid. Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "403 PERMISSION_DENIED: API key not valid",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🛑 Dávkové generování kartiček bylo zrušeno uživatelem!"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové generování kartiček bylo zrušeno."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [],
+     "error": null,
+     "mode": "flashcards",
+     "outcome": "cancelled",
+     "pending_question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "flashcards/cancel_during_first": {
+  "batch_still_active": false,
+  "calls": [
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování kartiček (7 ks/otázka) pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [1/3] Generuji 7 kartiček: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Kartičky k otázce [1/3] vytvořeny a uloženy."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🛑 Dávkové generování kartiček bylo zrušeno uživatelem!"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové generování kartiček bylo zrušeno."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      0
+     ],
+     "error": null,
+     "mode": "flashcards",
+     "outcome": "cancelled",
+     "pending_question_indexes": [
+      1,
+      2
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "flashcards/cancel_during_overnight": {
+  "batch_still_active": false,
+  "calls": [
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 2 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   5,
+   10,
+   1.0,
+   1.0,
+   1.0,
+   6.0,
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování kartiček (7 ks/otázka) pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [1/3] Generuji 7 kartiček: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 1/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (cards). Opakuji za 5 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 2/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (cards). Opakuji za 10 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 0 – kardiologie a srde' se nepodařilo vygenerovat: Generování selhalo (cards). Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "Generování selhalo (cards)",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [2/3] Generuji 7 kartiček: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Kartičky k otázce [2/3] vytvořeny a uloženy."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [3/3] Generuji 7 kartiček: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Kartičky k otázce [3/3] vytvořeny a uloženy."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🌙 [Noční kontrola kartiček – kolo 1/2]: Znovu zkouším 1 nedokončených otázek..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🔄 Doplňovací pokus kartiček: Otázka číslo 0 – kardiologie a srde..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Úspěšně doplněno v noční kontrole: Otázka číslo 0 – kardiologie a srde"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové generování kartiček bylo zrušeno."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      1,
+      2,
+      0
+     ],
+     "error": null,
+     "mode": "flashcards",
+     "outcome": "cancelled",
+     "pending_question_indexes": [],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "flashcards/fails_then_overnight_success": {
+  "batch_still_active": false,
+  "calls": [
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 2 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   5,
+   10,
+   1.0,
+   1.0,
+   1.0,
+   6.0,
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování kartiček (7 ks/otázka) pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [1/3] Generuji 7 kartiček: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 1/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (cards). Opakuji za 5 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 2/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (cards). Opakuji za 10 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 0 – kardiologie a srde' se nepodařilo vygenerovat: Generování selhalo (cards). Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "Generování selhalo (cards)",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [2/3] Generuji 7 kartiček: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Kartičky k otázce [2/3] vytvořeny a uloženy."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [3/3] Generuji 7 kartiček: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Kartičky k otázce [3/3] vytvořeny a uloženy."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🌙 [Noční kontrola kartiček – kolo 1/2]: Znovu zkouším 1 nedokončených otázek..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🔄 Doplňovací pokus kartiček: Otázka číslo 0 – kardiologie a srde..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Úspěšně doplněno v noční kontrole: Otázka číslo 0 – kardiologie a srde"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové generování kartiček kompletně dokončeno (3/3 hotovo)!"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      1,
+      2,
+      0
+     ],
+     "error": null,
+     "mode": "flashcards",
+     "outcome": "completed",
+     "pending_question_indexes": [],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "flashcards/fails_through_overnight": {
+  "batch_still_active": false,
+  "calls": [
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 2 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   5,
+   10,
+   1.0,
+   1.0,
+   1.0,
+   6.0,
+   1.0,
+   6.0,
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování kartiček (7 ks/otázka) pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [1/3] Generuji 7 kartiček: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 1/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (cards). Opakuji za 5 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 2/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (cards). Opakuji za 10 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 0 – kardiologie a srde' se nepodařilo vygenerovat: Generování selhalo (cards). Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "Generování selhalo (cards)",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [2/3] Generuji 7 kartiček: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Kartičky k otázce [2/3] vytvořeny a uloženy."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [3/3] Generuji 7 kartiček: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Kartičky k otázce [3/3] vytvořeny a uloženy."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🌙 [Noční kontrola kartiček – kolo 1/2]: Znovu zkouším 1 nedokončených otázek..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🔄 Doplňovací pokus kartiček: Otázka číslo 0 – kardiologie a srde..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Doplňovací pokus pro 'Otázka číslo 0 – kardiologie a srde' selhal: Generování selhalo (cards)"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🌙 [Noční kontrola kartiček – kolo 2/2]: Znovu zkouším 1 nedokončených otázek..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🔄 Doplňovací pokus kartiček: Otázka číslo 0 – kardiologie a srde..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Doplňovací pokus pro 'Otázka číslo 0 – kardiologie a srde' selhal: Generování selhalo (cards)"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávka kartiček dokončena: 2/3 hotovo, 1 neúspěšných."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      1,
+      2
+     ],
+     "error": null,
+     "mode": "flashcards",
+     "outcome": "completed_with_errors",
+     "pending_question_indexes": [
+      0
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "flashcards/failure_with_bad_title": {
+  "batch_still_active": false,
+  "calls": [
+   "cards:None"
+  ],
+  "raised": null,
+  "sleeps": [],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování kartiček (7 ks/otázka) pro 1 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_indexes": [
+      0
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [1/1] Generuji 7 kartiček: None"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "❌ Dávkové generování kartiček přerušeno: 'NoneType' object is not subscriptable"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [],
+     "error": "'NoneType' object is not subscriptable",
+     "mode": "flashcards",
+     "outcome": "failed",
+     "pending_question_indexes": [
+      0
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "flashcards/one_fails_no_overnight": {
+  "batch_still_active": false,
+  "calls": [
+   "cards:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "cards:Otázka číslo 2 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   1.0,
+   5,
+   10,
+   1.0,
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování kartiček (7 ks/otázka) pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [1/3] Generuji 7 kartiček: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Kartičky k otázce [1/3] vytvořeny a uloženy."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [2/3] Generuji 7 kartiček: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 1/3] Otázka 'Otázka číslo 1 – kardiologie a srde' selhala: Generování selhalo (cards). Opakuji za 5 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 2/3] Otázka 'Otázka číslo 1 – kardiologie a srde' selhala: Generování selhalo (cards). Opakuji za 10 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 1 – kardiologie a srde' se nepodařilo vygenerovat: Generování selhalo (cards). Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "Generování selhalo (cards)",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🗂️ [3/3] Generuji 7 kartiček: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "flashcards",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Kartičky k otázce [3/3] vytvořeny a uloženy."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávka kartiček dokončena: 2/3 hotovo, 1 neúspěšných."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      0,
+      2
+     ],
+     "error": null,
+     "mode": "flashcards",
+     "outcome": "completed_with_errors",
+     "pending_question_indexes": [
+      1
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "flashcards/stale_batch_id": {
+  "batch_still_active": true,
+  "calls": [],
+  "raised": null,
+  "sleeps": [],
+  "trace": []
+ },
+ "notes/all_ok": {
+  "batch_still_active": false,
+  "calls": [
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 2 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování studijních textů pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [1/3] Generuji studijní text: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Text k otázce [1/3] vygenerován a uložen."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [2/3] Generuji studijní text: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Text k otázce [2/3] vygenerován a uložen."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [3/3] Generuji studijní text: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Text k otázce [3/3] vygenerován a uložen."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové generování textů kompletně dokončeno (3/3 hotovo)!"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "error": null,
+     "mode": "notes",
+     "outcome": "completed",
+     "pending_question_indexes": [],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "notes/auth_error": {
+  "batch_still_active": false,
+  "calls": [
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování studijních textů pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [1/3] Generuji studijní text: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🛑 Fatální chyba autorizace: Gemini: přístup byl zamítnut (403 PERMISSION_DENIED). Google zablokoval přístup pro tento projekt (časté u free tier projektů). Řešení: Vytvořte nový API klíč v novém projektu na https://aistudio.google.com/app/apikey a uložte jej do .env."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 0 – kardiologie a srde' se nepodařilo vygenerovat: 403 PERMISSION_DENIED: API key not valid. Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "403 PERMISSION_DENIED: API key not valid",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🛑 Dávkové generování poznámek bylo zrušeno uživatelem!"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové generování studijních textů bylo zrušeno."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [],
+     "error": null,
+     "mode": "notes",
+     "outcome": "cancelled",
+     "pending_question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "notes/cancel_during_first": {
+  "batch_still_active": false,
+  "calls": [
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování studijních textů pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [1/3] Generuji studijní text: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Text k otázce [1/3] vygenerován a uložen."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🛑 Dávkové generování poznámek bylo zrušeno uživatelem!"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové generování studijních textů bylo zrušeno."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      0
+     ],
+     "error": null,
+     "mode": "notes",
+     "outcome": "cancelled",
+     "pending_question_indexes": [
+      1,
+      2
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "notes/cancel_during_overnight": {
+  "batch_still_active": false,
+  "calls": [
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 2 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   5,
+   10,
+   1.0,
+   1.0,
+   1.0,
+   6.0,
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování studijních textů pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [1/3] Generuji studijní text: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 1/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (notes). Opakuji za 5 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 2/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (notes). Opakuji za 10 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 0 – kardiologie a srde' se nepodařilo vygenerovat: Generování selhalo (notes). Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "Generování selhalo (notes)",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [2/3] Generuji studijní text: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Text k otázce [2/3] vygenerován a uložen."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [3/3] Generuji studijní text: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Text k otázce [3/3] vygenerován a uložen."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🌙 [Noční kontrola textů – kolo 1/2]: Znovu zkouším 1 nedokončených otázek..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🔄 Doplňovací pokus textu: Otázka číslo 0 – kardiologie a srde..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Úspěšně doplněno v noční kontrole: Otázka číslo 0 – kardiologie a srde"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové generování studijních textů bylo zrušeno."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      1,
+      2,
+      0
+     ],
+     "error": null,
+     "mode": "notes",
+     "outcome": "cancelled",
+     "pending_question_indexes": [],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "notes/fails_then_overnight_success": {
+  "batch_still_active": false,
+  "calls": [
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 2 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   5,
+   10,
+   1.0,
+   1.0,
+   1.0,
+   6.0,
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování studijních textů pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [1/3] Generuji studijní text: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 1/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (notes). Opakuji za 5 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 2/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (notes). Opakuji za 10 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 0 – kardiologie a srde' se nepodařilo vygenerovat: Generování selhalo (notes). Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "Generování selhalo (notes)",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [2/3] Generuji studijní text: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Text k otázce [2/3] vygenerován a uložen."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [3/3] Generuji studijní text: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Text k otázce [3/3] vygenerován a uložen."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🌙 [Noční kontrola textů – kolo 1/2]: Znovu zkouším 1 nedokončených otázek..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🔄 Doplňovací pokus textu: Otázka číslo 0 – kardiologie a srde..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Úspěšně doplněno v noční kontrole: Otázka číslo 0 – kardiologie a srde"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové generování textů kompletně dokončeno (3/3 hotovo)!"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      1,
+      2,
+      0
+     ],
+     "error": null,
+     "mode": "notes",
+     "outcome": "completed",
+     "pending_question_indexes": [],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "notes/fails_through_overnight": {
+  "batch_still_active": false,
+  "calls": [
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 2 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   5,
+   10,
+   1.0,
+   1.0,
+   1.0,
+   6.0,
+   1.0,
+   6.0,
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování studijních textů pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [1/3] Generuji studijní text: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 1/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (notes). Opakuji za 5 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 2/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (notes). Opakuji za 10 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 0 – kardiologie a srde' se nepodařilo vygenerovat: Generování selhalo (notes). Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "Generování selhalo (notes)",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [2/3] Generuji studijní text: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Text k otázce [2/3] vygenerován a uložen."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [3/3] Generuji studijní text: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Text k otázce [3/3] vygenerován a uložen."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🌙 [Noční kontrola textů – kolo 1/2]: Znovu zkouším 1 nedokončených otázek..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🔄 Doplňovací pokus textu: Otázka číslo 0 – kardiologie a srde..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Doplňovací pokus pro 'Otázka číslo 0 – kardiologie a srde' selhal: Generování selhalo (notes)"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🌙 [Noční kontrola textů – kolo 2/2]: Znovu zkouším 1 nedokončených otázek..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🔄 Doplňovací pokus textu: Otázka číslo 0 – kardiologie a srde..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Doplňovací pokus pro 'Otázka číslo 0 – kardiologie a srde' selhal: Generování selhalo (notes)"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávka textů dokončena: 2/3 hotovo, 1 neúspěšných."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      1,
+      2
+     ],
+     "error": null,
+     "mode": "notes",
+     "outcome": "completed_with_errors",
+     "pending_question_indexes": [
+      0
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "notes/failure_with_bad_title": {
+  "batch_still_active": false,
+  "calls": [
+   "notes:None"
+  ],
+  "raised": null,
+  "sleeps": [],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování studijních textů pro 1 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_indexes": [
+      0
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [1/1] Generuji studijní text: None"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "❌ Dávkové generování textů přerušeno: 'NoneType' object is not subscriptable"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [],
+     "error": "'NoneType' object is not subscriptable",
+     "mode": "notes",
+     "outcome": "failed",
+     "pending_question_indexes": [
+      0
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "notes/one_fails_no_overnight": {
+  "batch_still_active": false,
+  "calls": [
+   "notes:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "notes:Otázka číslo 2 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   1.0,
+   5,
+   10,
+   1.0,
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové generování studijních textů pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [1/3] Generuji studijní text: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Text k otázce [1/3] vygenerován a uložen."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [2/3] Generuji studijní text: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 1/3] Otázka 'Otázka číslo 1 – kardiologie a srde' selhala: Generování selhalo (notes). Opakuji za 5 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 2/3] Otázka 'Otázka číslo 1 – kardiologie a srde' selhala: Generování selhalo (notes). Opakuji za 10 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 1 – kardiologie a srde' se nepodařilo vygenerovat: Generování selhalo (notes). Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "Generování selhalo (notes)",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "📝 [3/3] Generuji studijní text: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "notes",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Text k otázce [3/3] vygenerován a uložen."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávka textů dokončena: 2/3 hotovo, 1 neúspěšných."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      0,
+      2
+     ],
+     "error": null,
+     "mode": "notes",
+     "outcome": "completed_with_errors",
+     "pending_question_indexes": [
+      1
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "notes/stale_batch_id": {
+  "batch_still_active": true,
+  "calls": [],
+  "raised": null,
+  "sleeps": [],
+  "trace": []
+ },
+ "podcast/all_ok": {
+  "batch_still_active": false,
+  "calls": [
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "audio:batch_proj_Q0_Otázka číslo 0 ",
+   "script:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "audio:batch_proj_Q1_Otázka číslo 1 ",
+   "script:Otázka číslo 2 – kardiologie a srdeční selhání",
+   "audio:batch_proj_Q2_Otázka číslo 2 "
+  ],
+  "raised": null,
+  "sleeps": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové zpracování podcastů pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [1/3] Zpracovávám otázku: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Hotovo [1/3]."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [2/3] Zpracovávám otázku: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Hotovo [2/3]."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [3/3] Zpracovávám otázku: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Hotovo [3/3]."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové zpracování podcastů kompletně dokončeno (3/3 hotovo)!"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "error": null,
+     "mode": "podcast",
+     "outcome": "completed",
+     "pending_question_indexes": [],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "podcast/auth_error": {
+  "batch_still_active": false,
+  "calls": [
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "audio:batch_proj_Q0_Otázka číslo 0 ",
+   "script:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "audio:batch_proj_Q1_Otázka číslo 1 ",
+   "script:Otázka číslo 2 – kardiologie a srdeční selhání",
+   "audio:batch_proj_Q2_Otázka číslo 2 "
+  ],
+  "raised": null,
+  "sleeps": [
+   5,
+   1.0,
+   1.0,
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové zpracování podcastů pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [1/3] Zpracovávám otázku: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 1/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: 403 PERMISSION_DENIED: API key not valid. Opakuji za 5 s..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Hotovo [1/3]."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [2/3] Zpracovávám otázku: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Hotovo [2/3]."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [3/3] Zpracovávám otázku: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Hotovo [3/3]."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové zpracování podcastů kompletně dokončeno (3/3 hotovo)!"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "error": null,
+     "mode": "podcast",
+     "outcome": "completed",
+     "pending_question_indexes": [],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "podcast/cancel_between_podcast_steps": {
+  "batch_still_active": false,
+  "calls": [
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové zpracování podcastů pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [1/3] Zpracovávám otázku: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 0 – kardiologie a srde' se nepodařilo dokončit: None. Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "None",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🛑 Dávkové zpracování bylo zrušeno uživatelem!"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové zpracování podcastů bylo zrušeno."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [],
+     "error": null,
+     "mode": "podcast",
+     "outcome": "cancelled",
+     "pending_question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "podcast/cancel_during_first": {
+  "batch_still_active": false,
+  "calls": [
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové zpracování podcastů pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [1/3] Zpracovávám otázku: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 0 – kardiologie a srde' se nepodařilo dokončit: None. Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "None",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🛑 Dávkové zpracování bylo zrušeno uživatelem!"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové zpracování podcastů bylo zrušeno."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [],
+     "error": null,
+     "mode": "podcast",
+     "outcome": "cancelled",
+     "pending_question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "podcast/cancel_during_overnight": {
+  "batch_still_active": false,
+  "calls": [
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "script:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "audio:batch_proj_Q1_Otázka číslo 1 ",
+   "script:Otázka číslo 2 – kardiologie a srdeční selhání",
+   "audio:batch_proj_Q2_Otázka číslo 2 ",
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   5,
+   10,
+   1.0,
+   1.0,
+   1.0,
+   6.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové zpracování podcastů pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [1/3] Zpracovávám otázku: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 1/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (script). Opakuji za 5 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 2/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (script). Opakuji za 10 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 0 – kardiologie a srde' se nepodařilo dokončit: Generování selhalo (script). Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "Generování selhalo (script)",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [2/3] Zpracovávám otázku: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Hotovo [2/3]."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [3/3] Zpracovávám otázku: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Hotovo [3/3]."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🌙 [Noční kontrola podcastů – kolo 1/2]: Znovu zkouším 1 nedokončených otázek..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🔄 Doplňovací pokus podcastu: Otázka číslo 0 – kardiologie a srde..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové zpracování podcastů bylo zrušeno."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      1,
+      2
+     ],
+     "error": null,
+     "mode": "podcast",
+     "outcome": "cancelled",
+     "pending_question_indexes": [
+      0
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "podcast/fails_then_overnight_success": {
+  "batch_still_active": false,
+  "calls": [
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "script:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "audio:batch_proj_Q1_Otázka číslo 1 ",
+   "script:Otázka číslo 2 – kardiologie a srdeční selhání",
+   "audio:batch_proj_Q2_Otázka číslo 2 ",
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "audio:batch_proj_Q0_Otázka číslo 0 "
+  ],
+  "raised": null,
+  "sleeps": [
+   5,
+   10,
+   1.0,
+   1.0,
+   1.0,
+   6.0,
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové zpracování podcastů pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [1/3] Zpracovávám otázku: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 1/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (script). Opakuji za 5 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 2/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (script). Opakuji za 10 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 0 – kardiologie a srde' se nepodařilo dokončit: Generování selhalo (script). Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "Generování selhalo (script)",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [2/3] Zpracovávám otázku: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Hotovo [2/3]."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [3/3] Zpracovávám otázku: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Hotovo [3/3]."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🌙 [Noční kontrola podcastů – kolo 1/2]: Znovu zkouším 1 nedokončených otázek..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🔄 Doplňovací pokus podcastu: Otázka číslo 0 – kardiologie a srde..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Úspěšně doplněno v noční kontrole: Otázka číslo 0 – kardiologie a srde"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávkové zpracování podcastů kompletně dokončeno (3/3 hotovo)!"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      1,
+      2,
+      0
+     ],
+     "error": null,
+     "mode": "podcast",
+     "outcome": "completed",
+     "pending_question_indexes": [],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "podcast/fails_through_overnight": {
+  "batch_still_active": false,
+  "calls": [
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "script:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "audio:batch_proj_Q1_Otázka číslo 1 ",
+   "script:Otázka číslo 2 – kardiologie a srdeční selhání",
+   "audio:batch_proj_Q2_Otázka číslo 2 ",
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání"
+  ],
+  "raised": null,
+  "sleeps": [
+   5,
+   10,
+   1.0,
+   1.0,
+   1.0,
+   6.0,
+   1.0,
+   6.0,
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové zpracování podcastů pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [1/3] Zpracovávám otázku: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 1/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (script). Opakuji za 5 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 2/3] Otázka 'Otázka číslo 0 – kardiologie a srde' selhala: Generování selhalo (script). Opakuji za 10 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 0 – kardiologie a srde' se nepodařilo dokončit: Generování selhalo (script). Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "Generování selhalo (script)",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [2/3] Zpracovávám otázku: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Hotovo [2/3]."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [3/3] Zpracovávám otázku: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Hotovo [3/3]."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🌙 [Noční kontrola podcastů – kolo 1/2]: Znovu zkouším 1 nedokončených otázek..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🔄 Doplňovací pokus podcastu: Otázka číslo 0 – kardiologie a srde..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Doplňovací pokus pro 'Otázka číslo 0 – kardiologie a srde' selhal: Generování selhalo (script)"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🌙 [Noční kontrola podcastů – kolo 2/2]: Znovu zkouším 1 nedokončených otázek..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🔄 Doplňovací pokus podcastu: Otázka číslo 0 – kardiologie a srde..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Doplňovací pokus pro 'Otázka číslo 0 – kardiologie a srde' selhal: Generování selhalo (script)"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávka podcastů dokončena: 2/3 hotovo, 1 neúspěšných."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      1,
+      2
+     ],
+     "error": null,
+     "mode": "podcast",
+     "outcome": "completed_with_errors",
+     "pending_question_indexes": [
+      0
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "podcast/failure_with_bad_title": {
+  "batch_still_active": false,
+  "calls": [
+   "script:None"
+  ],
+  "raised": null,
+  "sleeps": [],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové zpracování podcastů pro 1 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_indexes": [
+      0
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [1/1] Zpracovávám otázku: None"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "❌ Dávkové zpracování přerušeno chybou: 'NoneType' object is not subscriptable"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [],
+     "error": "'NoneType' object is not subscriptable",
+     "mode": "podcast",
+     "outcome": "failed",
+     "pending_question_indexes": [
+      0
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "podcast/one_fails_no_overnight": {
+  "batch_still_active": false,
+  "calls": [
+   "script:Otázka číslo 0 – kardiologie a srdeční selhání",
+   "audio:batch_proj_Q0_Otázka číslo 0 ",
+   "script:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "script:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "script:Otázka číslo 1 – kardiologie a srdeční selhání",
+   "script:Otázka číslo 2 – kardiologie a srdeční selhání",
+   "audio:batch_proj_Q2_Otázka číslo 2 "
+  ],
+  "raised": null,
+  "sleeps": [
+   1.0,
+   5,
+   10,
+   1.0,
+   1.0
+  ],
+  "trace": [
+   [
+    "log",
+    {
+     "message": "🚀 Spouštím dávkové zpracování podcastů pro 3 otázek..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_indexes": [
+      0,
+      1,
+      2
+     ],
+     "type": "started"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [1/3] Zpracovávám otázku: Otázka číslo 0 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 0,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Hotovo [1/3]."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [2/3] Zpracovávám otázku: Otázka číslo 1 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 1/3] Otázka 'Otázka číslo 1 – kardiologie a srde' selhala: Generování selhalo (script). Opakuji za 5 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ [Pokus 2/3] Otázka 'Otázka číslo 1 – kardiologie a srde' selhala: Generování selhalo (script). Opakuji za 10 s..."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "⚠️ Otázku 'Otázka číslo 1 – kardiologie a srde' se nepodařilo dokončit: Generování selhalo (script). Pokračuji v dávce..."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "error": "Generování selhalo (script)",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 1,
+     "type": "question_failed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "▶️ [3/3] Zpracovávám otázku: Otázka číslo 2 – kardiologie a srdeční selhání"
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "mode": "podcast",
+     "project": "batch_proj",
+     "question_index": 2,
+     "type": "question_completed"
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🎉 Hotovo [3/3]."
+    }
+   ],
+   [
+    "log",
+    {
+     "message": "🏁 Dávka podcastů dokončena: 2/3 hotovo, 1 neúspěšných."
+    }
+   ],
+   [
+    "batch",
+    {
+     "batch_id": "batch-1",
+     "completed_question_indexes": [
+      0,
+      2
+     ],
+     "error": null,
+     "mode": "podcast",
+     "outcome": "completed_with_errors",
+     "pending_question_indexes": [
+      1
+     ],
+     "project": "batch_proj",
+     "type": "finished"
+    }
+   ]
+  ]
+ },
+ "podcast/stale_batch_id": {
+  "batch_still_active": true,
+  "calls": [],
+  "raised": null,
+  "sleeps": [],
+  "trace": []
+ }
+}

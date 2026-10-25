@@ -613,7 +613,7 @@ Samostatná oprava chyby z kroku 3.2 na pokyn uživatele. Není to refaktoring, 
 
 ## 3.3 Rozdělení `services/test_service.py` (885 ř.) do balíčku `services/practice_tests/` (nález A4)
 
-Commit: `refactor(tests): Split test_service into services/practice_tests package` (hash doplní další krok)
+Commit: `b13f67c` – `refactor(tests): Split test_service into services/practice_tests package`
 
 Čistý refaktoring, bez změny chování.
 
@@ -634,3 +634,37 @@ Bloky rozřezal skript podle řádků, včetně komentářů nad definicemi. **A
 **Ověření:** 140/140 testů OK ve dvou bězích, včetně golden masteru (parsery, normalizace, sanitizace a velikosti dávek přes fasádu) a CRUD testů úložiště testů. Seznam OpenAPI cest identický. `ruff check` beze změny (2× UP038), F401 127 → 123 (nepoužité `typing` importy původního modulu se nepřenesly), `ruff format` OK.
 
 **Pokrytí:** `generate_practice_test` a `generate_more_test_questions` nemají vlastní charakterizační test. Zde stačí, že jsou AST-identické a všechna jména jsou definovaná (F821). Případný test generování s `FakeGeminiClient` patří do kroku 4.x (sloučení parserů JSON).
+
+## 3.4 Společná kostra dávkového zpracování (nález A5)
+
+Commit: `refactor(batch): Share one batch skeleton across podcast, notes and flashcards` (hash doplní další krok)
+
+Čistý refaktoring, bez změny chování.
+
+**Nejdřív charakterizace (golden master průběhu):**
+- `tests/fixtures/batch_cases.py`: spouští každou dávkovou funkci routeru ve 3 režimech a 10 scénářích, celkem 28 průběhů. Scénáře:
+  - úspěch,
+  - selhání bez noční kontroly i s ní (doplnění se zdaří nebo ne),
+  - zrušení během zpracování i během noční kontroly,
+  - fatální chyba autorizace,
+  - zrušení mezi scénářem a audiem podcastu,
+  - chyba uvnitř dávky (`title=None`),
+  - cizí `batch_id`.
+- Zaznamenává se úplný průběh: všechny logy a dávkové události v pořadí (přes `core.logger.publish_event`), plán čekání, volání generátorů a úklid `active_batches`.
+- `tests/fixtures/batch_golden.json` je vygenerovaný na původním kódu a deterministický. `tests/test_batch.py` (4 testy) ho porovnává a explicitně dokumentuje rozdíly mezi režimy:
+  - chyba autorizace zastaví poznámky a kartičky, ne podcast,
+  - zrušení mezi kroky podcastu označí otázku jako `question_failed` s chybou `"None"`,
+  - úklid po chybě, cizí `batch_id` se ignoruje.
+
+**Refaktoring:**
+- Nový `services/batch.py` (202 ř.) obsahuje `run_question_batch`, tedy kostru: stav, 3 pokusy s čekáním 5/10 s, zrušení, dvě noční kola, události a bezpodmínečný úklid. Dále `BatchTexts` se šablonami všech logů režimu.
+- `routers/batch.py` (634 → 272 ř.):
+  - Tři `background_*` funkce mají stejné názvy a signatury. Dodají jen texty a `produce(batch, title, q_index)`: podcast má dva kroky a mezi nimi kontrolu zrušení (`False` = přerušeno), poznámky a kartičky jeden krok.
+  - Fatální chybu autorizace řídí `stop_on_auth_error` (podcast `False`).
+  - Zrušení uprostřed noční kontroly ukončí celé kolo stejně jako dřív (`break`, zbylé otázky se do `still_failed` nepřidají).
+- Odstraněny jen importy, které přesun udělal nepotřebnými (`asyncio`, `send_batch_event`, `friendly_api_error`, `is_terminal_auth_error`). Nepoužité importy, které tam byly už dřív, zůstávají pro krok 4.1.
+
+**Ověření:**
+- Golden master prošel napoprvé: **všech 28 průběhů je identických**, tedy každý log, událost, čekání i volání.
+- Mutační kontrola nové kostry: vypnutí detekce chyby autorizace, záměna textů režimu, změna jednoho textu noční kontroly a hlášky autorizace. Zachyceno 4 ze 4.
+- 144/144 testů OK ve dvou bězích, seznam OpenAPI cest identický. `ruff check` beze změny (2× UP038), F401 123, `ruff format` OK.
