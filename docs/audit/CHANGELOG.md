@@ -723,8 +723,16 @@ Commit: `309a9d0` – `refactor(frontend): Move Medulingo section into medulingo
 
 ### 3.5.3 Authentication → `static/js/auth.js`
 
-Commit: `refactor(frontend): Move Authentication section into auth.js` (hash doplní další krok)
+Commit: `d3960ab` – `refactor(frontend): Move Authentication section into auth.js`
 
 - Řádky 11479–12664 původního `app.js` (1186 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/auth.js` s krátkou hlavičkou. `app.js` 12664 → 11478 ř.
 - `index.html`: `auth.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`auth.js` `?v=2.9`.
+- **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
+
+### 3.5.4 Language switcher → `static/js/language.js`
+
+Commit: `refactor(frontend): Move Language switcher section into language.js` (hash doplní další krok)
+
+- Řádky 11448–11478 původního `app.js` (31 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/language.js` s krátkou hlavičkou. `app.js` 11478 → 11447 ř.
+- `index.html`: `language.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`language.js` `?v=2.10`.
 - **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
