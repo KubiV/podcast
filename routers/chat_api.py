@@ -517,7 +517,7 @@ async def get_lesson_endpoint(project_id: str):
 @router.delete("/api/lessons/{project_id}")
 async def delete_lesson_endpoint(project_id: str):
     safe_id = sanitize_name(project_id)
-    from chat_service import delete_lesson_records
+    from services.chat_service import delete_lesson_records
 
     delete_lesson_records(safe_id)
 

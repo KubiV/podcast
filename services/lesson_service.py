@@ -208,7 +208,7 @@ async def index_lesson_text_to_chroma(project_id: str, combined_text: str, lesso
 
     collection.add(documents=chunks, metadatas=metadatas, ids=ids)
     try:
-        from chat_service import index_chunks_to_fts
+        from services.chat_service import index_chunks_to_fts
 
         fts_chunks = [
             {

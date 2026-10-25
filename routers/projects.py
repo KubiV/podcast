@@ -147,7 +147,7 @@ async def delete_project(project_id: str, request: Request):
 
     # 3. Smazání SQLite záznamů (FTS index, chat, lekce)
     try:
-        from chat_service import delete_project_records
+        from services.chat_service import delete_project_records
 
         delete_project_records(safe_proj)
     except Exception as e:
@@ -237,7 +237,7 @@ async def rename_project(project_id: str, request: Request, payload: dict = Body
 
     # 3. Přejmenování v SQLite (chat, lekce, FTS)
     try:
-        from chat_service import rename_project_records
+        from services.chat_service import rename_project_records
 
         rename_project_records(old_proj, new_proj)
     except Exception as e:
@@ -310,7 +310,7 @@ async def clear_project_data(project_id: str, payload: dict = Body(...)):
     cleared = []
 
     if clear_chat:
-        from chat_service import clear_project_messages
+        from services.chat_service import clear_project_messages
 
         clear_project_messages(safe_proj)
         cleared.append("chat")

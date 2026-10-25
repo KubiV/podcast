@@ -903,7 +903,7 @@ Commit: `4574b15` – `fix(ai): Use per-user BYOK key for chat and lessons`
 
 ### 4.4 Jedna `sanitize_name` pro test a Medulingo (R1)
 
-Commit: `refactor: Use core sanitize_name in practice tests and Medulingo` (hash doplní další krok)
+Commit: `402e6e5` – `refactor: Use core sanitize_name in practice tests and Medulingo`
 
 - Lokální kopie `sanitize_name` v `services/practice_tests/storage.py` a `services/medulingo_service.py` jsou pryč. Oba moduly teď importují `core.utils.sanitize_name`, takže pod svými jmény jsou dál dostupné i přes fasádu `services.test_service` a shim `medulingo_service`.
 - Jediný rozdíl mezi variantami: `core` ořezává okrajová `_` (a pro prázdný či `None` vstup vrací `""`).
@@ -918,4 +918,22 @@ Commit: `refactor: Use core sanitize_name in practice tests and Medulingo` (hash
   - `test_sanitizer_variants_differ` teď ověřuje, že varianty test/Medulingo *jsou* `core.utils.sanitize_name`.
   - Golden master `services_golden.json` je záměrně přegenerovaný. Změnilo se přesně 6 hodnot (3 vstupy × 2 varianty, jen ořezané okrajové `_`), nic dalšího.
 - **Ověření:** `ruff check` / `ruff format --check` OK. Běžná sada 157 OK (4 přeskočené smoke), smoke 4/4 OK, celé OpenAPI schéma bajtově shodné s HEAD.
+
+### 4.5 Přímé importy `services.chat_service`, smazané kořenové shimy (R9, A7)
+
+Commit: `refactor: Import services directly and remove root shim modules` (hash doplní další krok)
+
+- 15 lokálních importů `from chat_service import …` míří teď přímo na fasádu `from services.chat_service import …`. Audit jich počítal 14, 15. přibyl v `services/projects/transfer.py` při kroku 3.2a.
+  - Dotčené soubory: `routers/files.py` (2), `routers/chat_api.py` (1), `routers/projects.py` (3), `services/lesson_service.py` (1), `services/rag_service.py` (2), `services/projects/transfer.py` (6).
+  - Importy zůstávají lokální uvnitř funkcí (cyklus `rag_service ↔ chat_service`), změnila se jen cesta modulu.
+  - Všech 12 importovaných jmen fasáda exportuje (ověřeno skriptem).
+- Smazáno 5 kořenových shimů `auth_service.py`, `chat_service.py`, `lesson_service.py`, `medulingo_service.py`, `test_service.py` (jen `import *` z `services.*`). V gitu už je nic neimportuje.
+- `medstudio.spec`: hiddenimports `'chat_service'`, `'lesson_service'` → `'services.chat_service'`, `'services.lesson_service'`.
+- Nezměněno (patří do fáze 5, dokumentace): `docs/ARCHITECTURE.md` popisuje služby jménem souboru (`chat_service.py` …) bez cesty `services/`.
+- **Ověření:**
+  - `ruff check` / `ruff format --check` OK. Běžná sada 157 OK (4 přeskočené smoke), smoke 4/4 OK, celé OpenAPI schéma bajtově shodné s HEAD.
+  - **PyInstaller build:** `pyinstaller --noconfirm --clean medstudio.spec` s `--distpath/--workpath` ve scratchpadu, aby repo zůstalo čisté. PyInstaller 6.22.3 z venv, macOS, build za 75 s.
+  - V PYZ jsou všechny moduly `core`/`routers`/`services`/`prompts` včetně `services.chat_service` a `services.lesson_service`. Ve `warn-medstudio.txt` nechybí žádný vlastní modul.
+  - **Spuštění zabalené aplikace** (`--browser`, `BROWSER=true` kvůli tomu, aby se neotevíralo okno, prázdný dočasný `AIMEDSTUDIO_DATA_DIR`, bez API klíčů): `/health` 200, `/` 200, `/api/auth/status` OK.
+  - Projekt jsem v ní prošel přes setup admina → vytvoření → přejmenování → vyčištění → smazání. Všechno 200, v logu žádná chyba importu ani SQLite. Přejmenování, vyčištění a smazání procházejí lokálními importy `services.chat_service`.
 

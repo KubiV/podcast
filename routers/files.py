@@ -95,7 +95,7 @@ async def delete_file(filename: str, project: str):
             pass
 
         try:
-            from chat_service import delete_chunks_from_fts
+            from services.chat_service import delete_chunks_from_fts
 
             delete_chunks_from_fts(project_id=safe_proj, source=filename)
         except Exception:
@@ -236,7 +236,7 @@ async def reindex_project_files(project: str, background_tasks: BackgroundTasks)
         pass
 
     try:
-        from chat_service import delete_chunks_from_fts
+        from services.chat_service import delete_chunks_from_fts
 
         delete_chunks_from_fts(project_id=safe_proj)
     except Exception:

@@ -115,7 +115,7 @@ def get_export_info(safe_proj: str, proj_dir: str) -> dict[str, Any]:
     chat_threads_count = 0
     chat_messages_count = 0
     try:
-        from chat_service import get_db_connection
+        from services.chat_service import get_db_connection
 
         with get_db_connection() as conn:
             r1 = conn.execute("SELECT COUNT(*) FROM chat_threads WHERE project_id = ?", (safe_proj,)).fetchone()
@@ -250,7 +250,7 @@ def build_export_archive(
         zf.writestr("chroma_vectors.json", json.dumps(chroma_dump))
 
         # 3. SQLite záznamy (FTS5 BM25 index + chat)
-        from chat_service import export_project_sqlite_data
+        from services.chat_service import export_project_sqlite_data
 
         db_data = export_project_sqlite_data(safe_proj)
         if not include_chat:
@@ -402,7 +402,7 @@ async def import_archive(
             get_chroma_client().delete_collection(name=f"proj_{final_proj}")
         except Exception:
             pass
-        from chat_service import delete_project_records
+        from services.chat_service import delete_project_records
 
         delete_project_records(final_proj)
         shutil.rmtree(target_dir, ignore_errors=True)
@@ -458,7 +458,7 @@ async def import_archive(
             for i in range(0, total, batch_size):
                 b_ids = ids[i : i + batch_size]
                 if new_ids:
-                    from chat_service import imported_chunk_id
+                    from services.chat_service import imported_chunk_id
 
                     b_ids = [imported_chunk_id(cid, final_proj) for cid in b_ids]
                 b_docs = docs[i : i + batch_size]
@@ -483,7 +483,7 @@ async def import_archive(
             if not include_chat:
                 db_data["chat_threads"] = []
                 db_data["chat_messages"] = []
-            from chat_service import import_project_sqlite_data
+            from services.chat_service import import_project_sqlite_data
 
             import_project_sqlite_data(final_proj, db_data, overwrite=overwrite, new_ids=new_ids)
         except Exception as dbe:
@@ -491,7 +491,7 @@ async def import_archive(
 
     # Pojistka: Synchronizace FTS s ChromaDB
     try:
-        from chat_service import sync_project_fts
+        from services.chat_service import sync_project_fts
 
         sync_project_fts(final_proj)
     except Exception as se:

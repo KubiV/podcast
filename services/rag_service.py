@@ -200,7 +200,7 @@ async def index_file_to_chroma(file_path: str, filename: str, project_name: str)
 
         collection.add(documents=docs, metadatas=metadatas, ids=ids)
         try:
-            from chat_service import index_chunks_to_fts
+            from services.chat_service import index_chunks_to_fts
 
             fts_chunks = [
                 {
@@ -254,7 +254,7 @@ async def query_rag_context_with_sources(
 ) -> tuple[str, list[dict[str, Any]], str]:
     safe_proj = sanitize_name(project)
     await send_log(f"🔍 Hybridní RAG: Prohledávám materiály pro téma: '{question[:50]}...'")
-    from chat_service import retrieve_chat_context
+    from services.chat_service import retrieve_chat_context
 
     sub_queries = decompose_question_to_subqueries(question)
     query_to_use = " ".join(sub_queries) if sub_queries else question

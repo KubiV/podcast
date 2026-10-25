@@ -37,8 +37,8 @@ hiddenimports = [
     'mutagen.mp3',
     'ffmpeg',
     'webview',
-    'chat_service',
-    'lesson_service',
+    'services.chat_service',
+    'services.lesson_service',
 ]
 
 hiddenimports += collect_submodules('chromadb')
