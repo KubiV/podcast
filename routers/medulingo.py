@@ -115,6 +115,7 @@ async def medulingo_generate_pack_endpoint(request: Request, payload: MedulingoG
             results["notes"] = {"status": "ok", "filename": n_file}
             if target_q:
                 target_q["notesStatus"] = "Done"
+                target_q["notes_file"] = n_file
         except Exception as e:
             await send_log(f"⚠️ [Medulingo] Chyba generování textu: {e}")
             results["notes"] = {"status": "error", "error": str(e)}

@@ -14,6 +14,11 @@ from prompts.notes import DEFAULT_NOTES_PROMPT
 from services.ai_service import call_gemini_with_retries
 
 
+def notes_filename(project: str, question: str) -> str:
+    """Název souboru studijního textu k otázce. Stejný při uložení i při hledání (Medulingo)."""
+    return f"{sanitize_name(project)}_{sanitize_name(question[:40])}.md"
+
+
 def sanitize_markdown_tables(text: str) -> str:
     """
     Opraví případné slití řádků tabulek, normalizuje escape sekvence a zajistí
@@ -84,10 +89,8 @@ async def internal_generate_notes(
 
     notes_markdown = sanitize_markdown_tables(notes_markdown)
 
-    safe_title = sanitize_name(question[:40])
-    safe_proj = sanitize_name(project)
-    notes_filename = f"{safe_proj}_{safe_title}.md"
-    file_path = safe_join(NOTES_DIR, notes_filename)
+    file_name = notes_filename(project, question)
+    file_path = safe_join(NOTES_DIR, file_name)
 
     meta_header = (
         f"<!-- METADATA\n"
@@ -98,5 +101,5 @@ async def internal_generate_notes(
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(meta_header + notes_markdown)
 
-    await send_log(f"✅ Studijní text úspěšně uložen do souboru {notes_filename}.")
-    return notes_markdown, unique_sources, notes_filename
+    await send_log(f"✅ Studijní text úspěšně uložen do souboru {file_name}.")
+    return notes_markdown, unique_sources, file_name

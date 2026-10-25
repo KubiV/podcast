@@ -1199,7 +1199,7 @@ Commit: `d188262` – `docs: Update architecture overview and add security model
 
 ### 5.4 CI: GitHub Actions (D5) – se souhlasem
 
-Commit: `ci: Add GitHub Actions workflow for ruff and unit tests` (hash doplní další krok)
+Commit: `d4ff190` – `ci: Add GitHub Actions workflow for ruff and unit tests`
 
 - Schváleno: matice Python 3.11 + 3.14, ruff 0.16.10 pinnutý ve workflow (bez změny `requirements-dev.txt`), frontend smoke jen ručně.
 - **`.github/workflows/ci.yml`:**
@@ -1213,4 +1213,34 @@ Commit: `ci: Add GitHub Actions workflow for ruff and unit tests` (hash doplní 
   - `ruff check --target-version py311` nenašel nepodporovanou syntaxi;
   - testy v čistém checkoutu HEAD (git worktree, jako v CI) 173 OK (6 přeskočených), v kořeni nevznikla žádná data.
 - **Neověřeno:** běh na GitHubu, zejména Python 3.11 (lokálně není k dispozici) a instalace závislostí na Ubuntu. Akce jsou uvedené podle hlavní verze (`checkout@v4`, `setup-python@v5`), ne podle SHA. Nic není pushnuté.
+
+---
+
+# Opravy po refaktoringu (hlášené při používání)
+
+## Medulingo nezobrazí vygenerovaný studijní text u dlouhých otázek
+
+Commit: `fix(medulingo): Find study notes for questions with long titles` (hash doplní další krok)
+
+- **Hlášení:** po vygenerování textu v Medulingu (otázka „Nehodgkinské lymfomy, chronická lymfocytární leukemie a příbuzné chorobné stavy“) log hlásí uložení souboru, ale karta dál ukazuje „Pro tuto otázku ještě nebyl vygenerován studijní text“.
+- **Příčina:** existovala už před refaktoringem, kód je stejný jako v `main`.
+  - `internal_generate_notes` ukládá `{projekt}_{sanitize_name(otázka[:40])}.md`.
+  - `MedulingoService.match_question_assets` hledal **celý** normalizovaný název otázky v názvu souboru (nebo `q{číslo}`).
+  - U otázek delších než 40 znaků shoda nikdy nenastala. Záložní `notesStatus == "Done"` sice nastavil `has_notes`, ale bez `notes_file`, takže se text nenačetl.
+  - Ověřeno nad reálnými daty, jen pro čtení: `has_notes: True, notes_file: None`.
+- **Oprava:**
+  - `services/notes_service.py`: nová `notes_filename(projekt, otázka)`, jediné místo, kde vzniká název souboru. `internal_generate_notes` ji používá, výsledný název je stejný jako dřív.
+  - `MedulingoService.match_question_assets` zkouší postupně (1) `notes_file` uložený u otázky, pokud soubor existuje, (2) přesný název z `notes_filename`, (3) dosavadní podobnost názvu jako poslední možnost.
+  - `routers/medulingo.py`: po vygenerování textu v Medulingu se k otázce v plánovači uloží `notes_file`, obdobně jako `test_file` u testů.
+- **Test** `tests/test_medulingo_notes.py` (4 testy):
+  - dlouhý název najde text podle uloženého názvu a vrátí podtémata;
+  - `notes_file` u otázky má přednost;
+  - neexistující `notes_file` spadne na přesný název;
+  - přes endpoint `generate-pack` (falešný generátor) se `notes_file` uloží do plánovače a `/api/medulingo/question/{id}` text hned najde.
+  - Na původním kódu všechny 4 selžou.
+- **Ověření:**
+  - sada 177 OK (6 přeskočených), smoke 6/6 OK, `ruff check` / `ruff format --check` OK;
+  - nad reálnými daty (jen čtení) se pro „Nehodgkinské lymfomy…“ najde `Interna_Nehodgkinské_lymfomy_chronická_lymfocyt.md` a všechny 3 otázky s textem mají soubor;
+  - časy změn `auth.db`, `chat_history.db` a plánovače zůstaly beze změny.
+- **Mimo rozsah:** podcast se páruje podle `q{číslo}_`, ale frontend pojmenovává soubory podle `q_index`. Případný nesoulad jsem neověřoval.
 

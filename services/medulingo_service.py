@@ -6,6 +6,7 @@ from typing import Any
 
 from core.utils import sanitize_name
 from prompts.medulingo import MEDULINGO_PODCAST_PROMPT  # noqa: F401 – re-export pro routers/medulingo.py
+from services.notes_service import notes_filename
 
 
 # Helper for string normalization
@@ -199,15 +200,22 @@ class MedulingoService:
         q_norm = normalize_name(title)
         num_tag = f"q{number}" if number else ""
 
-        # Match Notes
+        # Match Notes: 1. soubor uložený u otázky, 2. přesný název, pod kterým se text k otázce ukládá
+        # (název otázky zkrácený na 40 znaků), 3. podobnost názvu
         has_notes = False
         notes_file = None
-        for nf in assets["notes"]:
-            nf_norm = normalize_name(nf)
-            if q_norm and (q_norm in nf_norm or (num_tag and num_tag in nf_norm)):
+        for candidate in (q.get("notes_file"), notes_filename(project, title) if title else None):
+            if candidate and candidate in assets["notes"]:
                 has_notes = True
-                notes_file = nf
+                notes_file = candidate
                 break
+        if not has_notes:
+            for nf in assets["notes"]:
+                nf_norm = normalize_name(nf)
+                if q_norm and (q_norm in nf_norm or (num_tag and num_tag in nf_norm)):
+                    has_notes = True
+                    notes_file = nf
+                    break
 
         # Fallback to planner status
         if not has_notes and q.get("notesStatus") == "Done":
