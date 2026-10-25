@@ -1172,10 +1172,6 @@ ${contextSnippets}`;
             });
         }
 
-        function selectMedTestOption(qIdx, optId) {
-            toggleMedTestOption(qIdx, optId);
-        }
-
         async function evaluateMedulingoTest() {
             if (medTestQuestions.length === 0 || medTestEvaluated) return;
 

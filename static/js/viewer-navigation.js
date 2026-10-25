@@ -933,10 +933,6 @@
             }
         }
 
-        async function clearCurrentChatHistory() {
-            deleteCurrentChatThread();
-        }
-
         function exportCurrentChatHistory() {
             if (currentChatThreadId) {
                 window.location.href = `/api/chat/threads/${encodeURIComponent(currentChatThreadId)}/export`;

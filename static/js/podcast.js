@@ -55,11 +55,6 @@
             }
         }
 
-        function showStatus(message, type = "info") {
-            const icon = type === "success" ? "✅" : type === "error" ? "❌" : "ℹ️";
-            appendConsoleLog(`${icon} ${message}`);
-        }
-
         function setBatchControls(isRunning) {
             const btnSel = document.getElementById("btnBatchSelected");
             const btnMiss = document.getElementById("btnBatchMissing");

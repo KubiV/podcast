@@ -210,26 +210,6 @@
             }
         }
 
-        function updateQuestionTitle(idx) {
-            if (isViewerMode()) {
-                showGlobalToast(t("toast.viewerRestrictedQuestion", "👁️ Režim pozorovatele: Nemáte oprávnění měnit stav ani obsah zkouškových otázek."), "warning");
-                return;
-            }
-            const newTitle = prompt("Upravit znění otázky:", questions[idx].title);
-            if(newTitle && newTitle.trim()) {
-                questions[idx].title = newTitle.trim();
-                if (!questions[idx].topic || questions[idx].topic === "Všeobecné") {
-                    const parsed = parseQuestionString(questions[idx].title, idx + 1);
-                    if (parsed && parsed.topic !== "Všeobecné") questions[idx].topic = parsed.topic;
-                    if (parsed && parsed.number) questions[idx].number = parsed.number;
-                }
-                saveProjectQuestions(false);
-                if(selectedQuestionIndex === idx) {
-                    document.getElementById("activeQuestionTitle").textContent = questions[idx].title;
-                }
-            }
-        }
-
         function removeQuestion(idx) {
             if (isViewerMode()) {
                 showGlobalToast(t("toast.viewerRestrictedQuestion", "👁️ Režim pozorovatele: Nemáte oprávnění měnit stav ani obsah zkouškových otázek."), "warning");

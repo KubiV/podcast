@@ -921,7 +921,7 @@ Commit: `402e6e5` – `refactor: Use core sanitize_name in practice tests and Me
 
 ### 4.5 Přímé importy `services.chat_service`, smazané kořenové shimy (R9, A7)
 
-Commit: `refactor: Import services directly and remove root shim modules` (hash doplní další krok)
+Commit: `9b68fe4` – `refactor: Import services directly and remove root shim modules`
 
 - 15 lokálních importů `from chat_service import …` míří teď přímo na fasádu `from services.chat_service import …`. Audit jich počítal 14, 15. přibyl v `services/projects/transfer.py` při kroku 3.2a.
   - Dotčené soubory: `routers/files.py` (2), `routers/chat_api.py` (1), `routers/projects.py` (3), `services/lesson_service.py` (1), `services/rag_service.py` (2), `services/projects/transfer.py` (6).
@@ -936,4 +936,26 @@ Commit: `refactor: Import services directly and remove root shim modules` (hash 
   - V PYZ jsou všechny moduly `core`/`routers`/`services`/`prompts` včetně `services.chat_service` a `services.lesson_service`. Ve `warn-medstudio.txt` nechybí žádný vlastní modul.
   - **Spuštění zabalené aplikace** (`--browser`, `BROWSER=true` kvůli tomu, aby se neotevíralo okno, prázdný dočasný `AIMEDSTUDIO_DATA_DIR`, bez API klíčů): `/health` 200, `/` 200, `/api/auth/status` OK.
   - Projekt jsem v ní prošel přes setup admina → vytvoření → přejmenování → vyčištění → smazání. Všechno 200, v logu žádná chyba importu ani SQLite. Přejmenování, vyčištění a smazání procházejí lokálními importy `services.chat_service`.
+
+### 4.6 Mrtvý kód (R10, F9, F7)
+
+Commit: `refactor: Remove dead helpers in core/context.py and frontend` (hash doplní další krok)
+
+- **`core/context.py` (R10):** odstraněny `get_current_user`, `set_current_user`, `set_current_language`. Kód pracuje přímo s `current_user_var`/`current_language_var`.
+  - `get_current_language` zůstává, používá ji `services/chat/grounded_chat.py`.
+- **Frontend (F9), 6 funkcí:**
+  - `loadQuestionsFromStorage`, `loadExamPlanner` (`planner.js`);
+  - `updateQuestionTitle` (`materials.js`);
+  - `clearCurrentChatHistory` (`viewer-navigation.js`);
+  - `showStatus` (`podcast.js`);
+  - `selectMedTestOption` (`medulingo.js`).
+- **`escapeQuotes` (F7, `planner.js`):** po kroku 1.6 bez volání, jak bylo slíbeno.
+- **Ověření, že jde o mrtvý kód:**
+  - u každého jména 0 výskytů mimo definici v celém repu (`static/` včetně `index.html` a šablon v JS, Python, testy, skripty; bez `docs/`);
+  - frontend nevolá funkce dynamicky (`window[...]` se nevyskytuje);
+  - hranice funkcí určil parser TypeScriptu a odstranila se přesně deklarace s předchozím prázdným řádkem;
+  - `node --check` všech skriptů OK.
+- i18n klíče z F9 (249/jazyk bez statické reference) se podle plánu **nemažou**, mohou se skládat dynamicky. Klíč `toast.viewerRestrictedQuestion` z odstraněné `updateQuestionTitle` zůstal.
+- Cache-busting `?v=` u pěti upravených skriptů se nezvyšoval: starší verze v cache obsahuje jen navíc nevolané funkce, chování je stejné.
+- **Ověření:** `ruff check` / `ruff format --check` OK. Běžná sada 157 OK (4 přeskočené smoke), smoke 4/4 OK (313 funkcí z inline handlerů dál existuje, průchod všemi sekcemi bez chyb), celé OpenAPI schéma bajtově shodné s HEAD.
 

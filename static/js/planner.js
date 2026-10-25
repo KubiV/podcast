@@ -73,11 +73,6 @@
             }
         }
 
-        function escapeQuotes(str) {
-            if (!str) return "";
-            return String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, " ");
-        }
-
         function calculatePlannerMetrics() {
             const todayStr = getLocalDateString();
             const examDate = examPlanner.examDate || "";
@@ -589,14 +584,6 @@
 
         async function saveExamPlanner(showToast = false) {
             await saveProjectQuestions(showToast);
-        }
-
-        function loadQuestionsFromStorage() {
-            loadProjectQuestionsAndPlanner();
-        }
-
-        function loadExamPlanner() {
-            loadProjectQuestionsAndPlanner();
         }
 
         function onPlannerConfigChange() {

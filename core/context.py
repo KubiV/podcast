@@ -15,25 +15,9 @@ current_user_var: ContextVar[dict[str, Any] | None] = ContextVar("current_user_v
 current_language_var: ContextVar[str] = ContextVar("current_language_var", default="cs")
 
 
-def get_current_user() -> dict[str, Any] | None:
-    return current_user_var.get()
-
-
-def set_current_user(user: dict[str, Any] | None) -> None:
-    current_user_var.set(user)
-
-
 def get_current_language() -> str:
     lang = current_language_var.get()
     return lang if lang in ("cs", "en", "fr") else "cs"
-
-
-def set_current_language(lang: str) -> None:
-    norm = (lang or "cs").lower().strip()
-    if norm in ("cs", "en", "fr"):
-        current_language_var.set(norm)
-    else:
-        current_language_var.set("cs")
 
 
 def get_language_directive(lang: str) -> str:
