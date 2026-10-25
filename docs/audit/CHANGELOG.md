@@ -586,7 +586,7 @@ Commit: `057d593` – `refactor(projects): Move project export/import into servi
 
 ## 3.2a Oprava: import kopie projektu přebíral vlákna a FTS metadata originálu
 
-Commit: `fix(projects): Give copy imports their own thread and chunk IDs` (hash doplní další krok)
+Commit: `40bf6d2` – `fix(projects): Give copy imports their own thread and chunk IDs`
 
 Samostatná oprava chyby z kroku 3.2 na pokyn uživatele. Není to refaktoring, chování se mění záměrně.
 
@@ -610,3 +610,27 @@ Samostatná oprava chyby z kroku 3.2 na pokyn uživatele. Není to refaktoring, 
 - **Kolize metadat chunků mezi projekty se stejnojmenným souborem.** ID chunku `{soubor}_chunk_{i}` (`services/rag_service.py:197`) nezávisí na projektu a `project_chunks_meta.chunk_id` je globální primární klíč. `index_chunks_to_fts` při konfliktu (`ON CONFLICT(chunk_id) DO UPDATE SET source, page`) `project_id` nezmění, takže metadata patří **prvnímu** projektu, který daný název souboru zaindexoval. Druhý projekt má řádky FTS, ale žádná metadata. `sync_project_fts` pak pro něj chunky považuje za chybějící a při každé synchronizaci je maže a znovu vkládá do FTS.
 - Přímý dopad na výsledky vyhledávání jsem nezjistil, protože FTS i dense hledání filtrují podle projektu. Jde o zbytečnou práci a nekonzistentní data.
 - Správná oprava je primární klíč `(project_id, chunk_id)` s migrací tabulky. Navrhuji ji jako samostatný krok.
+
+## 3.3 Rozdělení `services/test_service.py` (885 ř.) do balíčku `services/practice_tests/` (nález A4)
+
+Commit: `refactor(tests): Split test_service into services/practice_tests package` (hash doplní další krok)
+
+Čistý refaktoring, bez změny chování.
+
+| Modul | Řádků | Obsah |
+|---|---|---|
+| `services/practice_tests/parsing.py` | 212 | `extract_all_question_objects`, `parse_and_validate_test_json` |
+| `services/practice_tests/evaluation.py` | 91 | `normalize_text`, `evaluate_open_answer` |
+| `services/practice_tests/storage.py` | 138 | `sanitize_name`, `TestStorageManager` |
+| `services/practice_tests/generator.py` | 461 | `calculate_batch_sizes`, `generate_practice_test`, `generate_more_test_questions` |
+| `services/test_service.py` | 23 | **fasáda**, re-export včetně `DEFAULT_TEST_PROMPT_SYSTEM` |
+
+**Odchylky od plánu:**
+- Balíček se jmenuje `practice_tests` místo `services/tests/`, aby se nepletl s testovací sadou `tests/`.
+- Hodnocení otevřených odpovědí (`evaluation.py`) je samostatný čtvrtý modul. Plán počítal s parser/storage/generator, ale hodnocení nepatří ani do jednoho z nich.
+
+Bloky rozřezal skript podle řádků, včetně komentářů nad definicemi. **AST všech 9 definic je identický s originálem.** Importy jsou dopočítané (ruff: žádné F821/F401). Zastaralý komentář `# Moved DEFAULT_TEST_PROMPT_SYSTEM to prompts.test` se nepřenesl.
+
+**Ověření:** 140/140 testů OK ve dvou bězích, včetně golden masteru (parsery, normalizace, sanitizace a velikosti dávek přes fasádu) a CRUD testů úložiště testů. Seznam OpenAPI cest identický. `ruff check` beze změny (2× UP038), F401 127 → 123 (nepoužité `typing` importy původního modulu se nepřenesly), `ruff format` OK.
+
+**Pokrytí:** `generate_practice_test` a `generate_more_test_questions` nemají vlastní charakterizační test. Zde stačí, že jsou AST-identické a všechna jména jsou definovaná (F821). Případný test generování s `FakeGeminiClient` patří do kroku 4.x (sloučení parserů JSON).
