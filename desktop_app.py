@@ -111,7 +111,9 @@ def run_desktop_app():
             confirm_close=False,
         )
         print("Spouštím desktopové okno...")
-        webview.start()
+        # Bez anonymního režimu (výchozí v pywebview) si okno pamatuje cookies a localStorage mezi spuštěními:
+        # přihlášení („Zůstat přihlášený“) i volbu nezobrazovat úvodní obrazovku.
+        webview.start(private_mode=False)
     except Exception as e:
         print(f"Nativní okno pywebview se nepodařilo otevřít ({e}). Otevírám webový prohlížeč...")
         webbrowser.open(url)

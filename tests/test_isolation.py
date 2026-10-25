@@ -21,7 +21,7 @@ import tempfile
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CODE = ("core", "services", "routers", "prompts", "tests", "static", "main.py")
+CODE = ("core", "services", "routers", "prompts", "tests", "static", "main.py", "desktop_app.py")
 PROBE = """
 import json, sys, unittest
 loader = unittest.TestLoader()

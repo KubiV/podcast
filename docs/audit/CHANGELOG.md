@@ -1220,7 +1220,7 @@ Commit: `d4ff190` – `ci: Add GitHub Actions workflow for ruff and unit tests`
 
 ## Medulingo nezobrazí vygenerovaný studijní text u dlouhých otázek
 
-Commit: `fix(medulingo): Find study notes for questions with long titles` (hash doplní další krok)
+Commit: `d3814f0` – `fix(medulingo): Find study notes for questions with long titles`
 
 - **Hlášení:** po vygenerování textu v Medulingu (otázka „Nehodgkinské lymfomy, chronická lymfocytární leukemie a příbuzné chorobné stavy“) log hlásí uložení souboru, ale karta dál ukazuje „Pro tuto otázku ještě nebyl vygenerován studijní text“.
 - **Příčina:** existovala už před refaktoringem, kód je stejný jako v `main`.
@@ -1243,4 +1243,20 @@ Commit: `fix(medulingo): Find study notes for questions with long titles` (hash 
   - nad reálnými daty (jen čtení) se pro „Nehodgkinské lymfomy…“ najde `Interna_Nehodgkinské_lymfomy_chronická_lymfocyt.md` a všechny 3 otázky s textem mají soubor;
   - časy změn `auth.db`, `chat_history.db` a plánovače zůstaly beze změny.
 - **Mimo rozsah:** podcast se páruje podle `q{číslo}_`, ale frontend pojmenovává soubory podle `q_index`. Případný nesoulad jsem neověřoval.
+
+## Desktopové okno zapomíná přihlášení a volbu úvodní obrazovky
+
+Commit: `fix(desktop): Keep cookies and local storage between app launches` (hash doplní další krok)
+
+- **Hlášení:** po spuštění `desktop_app.py` se i po zaškrtnutí „nezobrazovat“ znovu ukazuje úvodní obrazovka a přihlášení nevydrží.
+- **Příčina:** existovala už před refaktoringem (`desktop_app.py` se proti `main` liší jen odebraným nepoužitým importem). `webview.start()` v pywebview 6.2.1 má výchozí `private_mode=True` (ověřeno v signatuře). WebView v anonymním režimu po zavření zahodí cookies (`medstudio_session`) i localStorage (`aiMedStudio_welcomed_v2`).
+- **Oprava:** `webview.start(private_mode=False)` s komentářem proč. Cookies a localStorage se ukládají do úložiště WebView na disku, stejně jako v prohlížeči.
+- **Test** `tests/test_desktop_app.py`:
+  - nahradí modul `webview` záznamníkem a spustí launcher v režimu vzdáleného serveru (bez okna a bez lokálního serveru);
+  - ověří `private_mode=False`;
+  - na původním kódu selže (`None is not False`).
+- `tests/test_isolation.py`: do kopie kódu v sandboxu přidán `desktop_app.py`. Nový test ho importuje a discovery v sandboxu by jinak selhala.
+  - Commit jsem nejdřív vytvořil s padající sadou (2 selhání v `test_isolation`), protože příkazy nebyly zřetězené přes `&&`. Opraveno přes `--amend` před dalším krokem; commit nebyl pushnutý ani nikde odkázaný.
+- **Ověření:** sada 178 OK (6 přeskočených), `ruff check` / `ruff format --check` OK. Skutečné okno jsem neotevíral, ověření po restartu aplikace zůstává na uživateli.
+- **Poznámka:** localStorage je vázaný na origin včetně portu. Když je 8000 obsazený a aplikace naběhne na jiném portu, úvodní obrazovka se tam ukáže jednou znovu. Cookies na portu nezávisí.
 
