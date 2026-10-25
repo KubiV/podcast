@@ -417,7 +417,7 @@ Krok mění jen testy, kód aplikace beze změny.
 
 ## 2.2 Charakterizační testy CRUD endpointů
 
-Commit: `test: Add characterization tests for CRUD endpoints` (hash doplní další krok)
+Commit: `90ed888` – `test: Add characterization tests for CRUD endpoints`
 
 Krok mění jen testy, kód aplikace beze změny.
 
@@ -438,3 +438,31 @@ Krok mění jen testy, kód aplikace beze změny.
 - **Dohledání testu podle id hledá podřetězec** v názvech souborů všech projektů a vrátí první shodu podle pořadí `os.listdir` (`TestStorageManager.get_test`). Krátké id (např. `t1`) může vrátit test jiného projektu. U cizího privátního projektu to po kroku 1.1 skončí 403.
 
 **Ověření vůči baseline:** 109/109 testů OK ve dvou po sobě jdoucích bězích. `ruff check` beze změny (2× UP038), F401 130, `ruff format` OK.
+
+## 2.3 Charakterizace čistých funkcí služeb (golden master)
+
+Commit: `test: Add golden-master characterization of service helpers` (hash doplní další krok)
+
+Krok mění jen testy, kód aplikace beze změny.
+
+- `tests/fixtures/service_cases.py`: sady vstupů a `compute_all()` pro 14 skupin funkcí:
+  - 7 variant sanitizace a normalizace názvů na 16 vstupech (diakritika, traversal, emoji, uvozovky…),
+  - obě mapy fallback modelů,
+  - tři parsery výstupu AI (`clean_and_parse_json`, `parse_and_validate_test_json`, `extract_all_question_objects`) na 21 vzorcích. Vzorky pokrývají fence, text okolo, čárky navíc, useknutí a vnoření, u testových otázek i všechny tvary možností a správných odpovědí, typy `true_false`/`open_ended` a neznámý typ,
+  - český FTS dotaz a stemmer, rozklad lístku na podotázky,
+  - `chunk_text` a `chunk_sections_with_metadata` s výchozími i malými parametry,
+  - `clean_leaked_thoughts`, kapitoly lekce, čištění skriptu pro TTS, opravy markdown tabulek, velikosti dávek testů, ikony kategorií.
+- `tests/fixtures/services_golden.json`: zachycené výstupy (617+ řádků). Vygeneroval je `python -m tests.fixtures.generate_services_golden` na nezměněném kódu a generování je deterministické (dvakrát stejný výsledek). **Golden se mění jen záměrně**, např. když plán vědomě sjednotí chování (4.2, 4.4). Rozdíl v diffu golden souboru pak ukazuje přesnou změnu chování.
+- `tests/test_services_characterization.py` (5 testů):
+  - Explicitní testy rozdílů duplicitních implementací:
+    - `sanitize_project_name` mění diakritiku na `_`, takže ID projektu v chatu, FTS a Chroma se liší od `uploads/`,
+    - ořezávání okrajových `_` se v jednotlivých variantách liší,
+    - `safe_filename` bere jen basename,
+    - fallback mapy se liší pro neznámé modely a `gemini-2.5-pro`,
+    - obecný parser JSON vyhazuje výjimku, testový vrací `[]`.
+  - Porovnání všech skupin s golden souborem.
+- **Mutační kontrola:** změna sanitizace, stemmeru (projeví se i na FTS dotazu), `chunk_text`, velikostí dávek, fallback mapy, čištění úvah a parseru JSON. Golden test zachytil 7 z 7.
+
+**Zjištění (zapsáno, neopraveno):** neznámý typ testové otázky (např. `"open"` místo `"open_ended"`) se změní na `single_choice` a bez možností se tiše zahodí.
+
+**Ověření vůči baseline:** 114/114 testů OK ve dvou bězích. `ruff check` beze změny (2× UP038), F401 130, `ruff format` OK.

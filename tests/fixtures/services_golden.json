@@ -1,0 +1,976 @@
+{
+ "batch_sizes": {
+  "0": [
+   0
+  ],
+  "1": [
+   1
+  ],
+  "12": [
+   6,
+   6
+  ],
+  "13": [
+   5,
+   4,
+   4
+  ],
+  "20": [
+   5,
+   5,
+   5,
+   5
+  ],
+  "5": [
+   5
+  ],
+  "6": [
+   6
+  ],
+  "7": [
+   4,
+   3
+  ]
+ },
+ "category_icons": {
+  "": "🩺",
+  "Hematologie": "🩸",
+  "Kardiologie – srdce": "❤️",
+  "Neznámá kategorie": "🩺",
+  "Pneumologie": "🫁"
+ },
+ "chapters": {
+  "0": [
+   {
+    "seconds": 0,
+    "time": "00:00",
+    "title": "Klinický kontext a jádro problému"
+   },
+   {
+    "seconds": 150,
+    "time": "02:30",
+    "title": "Patofyziologie v analogii"
+   },
+   {
+    "seconds": 300,
+    "time": "05:00",
+    "title": "Diagnostický rozbor a tabulky"
+   },
+   {
+    "seconds": 450,
+    "time": "07:30",
+    "title": "Léčebná strategie a perly"
+   },
+   {
+    "seconds": 600,
+    "time": "10:00",
+    "title": "Závěrečné shrnutí"
+   }
+  ],
+  "1": [
+   {
+    "seconds": 0,
+    "time": "00:00",
+    "title": "Klinický kontext a jádro problému"
+   },
+   {
+    "seconds": 150,
+    "time": "02:30",
+    "title": "Patofyziologie v analogii"
+   },
+   {
+    "seconds": 300,
+    "time": "05:00",
+    "title": "Diagnostický rozbor a tabulky"
+   },
+   {
+    "seconds": 450,
+    "time": "07:30",
+    "title": "Léčebná strategie a perly"
+   },
+   {
+    "seconds": 600,
+    "time": "10:00",
+    "title": "Závěrečné shrnutí"
+   }
+  ],
+  "2": [
+   {
+    "seconds": 0,
+    "time": "00:00",
+    "title": "Klinický kontext a jádro problému"
+   },
+   {
+    "seconds": 150,
+    "time": "02:30",
+    "title": "Patofyziologie v analogii"
+   },
+   {
+    "seconds": 300,
+    "time": "05:00",
+    "title": "Diagnostický rozbor a tabulky"
+   },
+   {
+    "seconds": 450,
+    "time": "07:30",
+    "title": "Léčebná strategie a perly"
+   },
+   {
+    "seconds": 600,
+    "time": "10:00",
+    "title": "Závěrečné shrnutí"
+   }
+  ]
+ },
+ "chunk_sections": {
+  "default": [
+   {
+    "document": "Strana 1: obsah1_0 obsah1_1 obsah1_2 obsah1_3 obsah1_4 obsah1_5 obsah1_6 obsah1_7 obsah1_8 obsah1_9 obsah1_10 obsah1_11 obsah1_12 obsah1_13 obsah1_14 obsah1_15 obsah1_16 obsah1_17 obsah1_18 obsah1_19 obsah1_20 obsah1_21 obsah1_22 obsah1_23 obsah1_24 obsah1_25 obsah1_26 obsah1_27 obsah1_28 obsah1_29 obsah1_30 obsah1_31 obsah1_32 obsah1_33 obsah1_34 obsah1_35 obsah1_36 obsah1_37 obsah1_38 obsah1_39 obsah1_40 obsah1_41 obsah1_42 obsah1_43 obsah1_44 obsah1_45 obsah1_46 obsah1_47 obsah1_48 obsah1_49 obsah1_50 obsah1_51 obsah1_52 obsah1_53 obsah1_54 obsah1_55 obsah1_56 obsah1_57 obsah1_58 obsah1_59\n\nStrana 2: obsah2_0 obsah2_1 obsah2_2 obsah2_3 obsah2_4 obsah2_5 obsah2_6 obsah2_7 obsah2_8 obsah2_9 obsah2_10 obsah2_11 obsah2_12 obsah2_13 obsah2_14 obsah2_15 obsah2_16 obsah2_17 obsah2_18 obsah2_19 obsah2_20 obsah2_21 obsah2_22 obsah2_23 obsah2_24 obsah2_25 obsah2_26 obsah2_27 obsah2_28 obsah2_29 obsah2_30 obsah2_31 obsah2_32 obsah2_33 obsah2_34 obsah2_35 obsah2_36 obsah2_37 obsah2_38 obsah2_39 obsah2_40 obsah2_41 obsah2_42 obsah2_43 obsah2_44 obsah2_45 obsah2_46 obsah2_47 obsah2_48 obsah2_49 obsah2_50 obsah2_51 obsah2_52 obsah2_53 obsah2_54 obsah2_55 obsah2_56 obsah2_57 obsah2_58 obsah2_59\n\nStrana 3: obsah3_0 obsah3_1 obsah3_2 obsah3_3 obsah3_4 obsah3_5 obsah3_6 obsah3_7 obsah3_8 obsah3_9 obsah3_10 obsah3_11 obsah3_12 obsah3_13 obsah3_14 obsah3_15 obsah3_16 obsah3_17 obsah3_18 obsah3_19 obsah3_20 obsah3_21 obsah3_22 obsah3_23 obsah3_24 obsah3_25 obsah3_26 obsah3_27 obsah3_28 obsah3_29 obsah3_30 obsah3_31 obsah3_32 obsah3_33 obsah3_34 obsah3_35 obsah3_36 obsah3_37 obsah3_38 obsah3_39 obsah3_40 obsah3_41 obsah3_42 obsah3_43 obsah3_44 obsah3_45 obsah3_46 obsah3_47 obsah3_48 obsah3_49 obsah3_50 obsah3_51 obsah3_52 obsah3_53 obsah3_54 obsah3_55 obsah3_56 obsah3_57 obsah3_58 obsah3_59\n\nStrana 4: obsah4_0 obsah4_1 obsah4_2 obsah4_3 obsah4_4 obsah4_5 obsah4_6 obsah4_7 obsah4_8 obsah4_9 obsah4_10 obsah4_11 obsah4_12 obsah4_13 obsah4_14 obsah4_15 obsah4_16 obsah4_17 obsah4_18 obsah4_19 obsah4_20 obsah4_21 obsah4_22 obsah4_23 obsah4_24 obsah4_25 obsah4_26 obsah4_27 obsah4_28 obsah4_29 obsah4_30 obsah4_31 obsah4_32 obsah4_33 obsah4_34 obsah4_35 obsah4_36 obsah4_37 obsah4_38 obsah4_39 obsah4_40 obsah4_41 obsah4_42 obsah4_43 obsah4_44 obsah4_45 obsah4_46 obsah4_47 obsah4_48 obsah4_49 obsah4_50 obsah4_51 obsah4_52 obsah4_53 obsah4_54 obsah4_55 obsah4_56 obsah4_57 obsah4_58 obsah4_59\n\nStrana 5: obsah5_0 obsah5_1 obsah5_2 obsah5_3 obsah5_4 obsah5_5 obsah5_6 obsah5_7 obsah5_8 obsah5_9 obsah5_10 obsah5_11 obsah5_12 obsah5_13 obsah5_14 obsah5_15 obsah5_16 obsah5_17 obsah5_18 obsah5_19 obsah5_20 obsah5_21 obsah5_22 obsah5_23 obsah5_24 obsah5_25 obsah5_26 obsah5_27 obsah5_28 obsah5_29 obsah5_30 obsah5_31 obsah5_32 obsah5_33 obsah5_34 obsah5_35 obsah5_36 obsah5_37 obsah5_38 obsah5_39 obsah5_40 obsah5_41 obsah5_42 obsah5_43 obsah5_44 obsah5_45 obsah5_46 obsah5_47 obsah5_48 obsah5_49 obsah5_50 obsah5_51 obsah5_52 obsah5_53 obsah5_54 obsah5_55 obsah5_56 obsah5_57 obsah5_58 obsah5_59\n\nJiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument.",
+    "page": "1",
+    "source": "skripta.pdf"
+   }
+  ],
+  "small": [
+   {
+    "document": "Strana 1: obsah1_0 obsah1_1 obsah1_2 obsah1_3 obsah1_4 obsah1_5 obsah1_6 obsah1_7 obsah1_8 obsah1_9 obsah1_10 obsah1_11 obsah1_12 obsah1_13 obsah1_14 obsah1_15 obsah1_16 obsah1_17 obsah1_18 obsah1_19 obsah1_20 obsah1_21 obsah1_22 obsah1_23 obsah1_24 obsah1_25 obsah1_26 obsah1_27 obsah1_28 obsah1_29 obsah1_30 obsah1_31 obsah1_32 obsah1_33 obsah1_34 obsah1_35 obsah1_36 obsah1_37 obsah1_38 obsah1_39 obsah1_40 obsah1_41 obsah1_42 obsah1_43 obsah1_44 obsah1_45 obsah1_46 obsah1_47 obsah1_48 obsah1_49 obsah1_50 obsah1_51 obsah1_52 obsah1_53 obsah1_54 obsah1_55 obsah1_56 obsah1_57 obsah1_58 obsah1_59",
+    "page": "1",
+    "source": "skripta.pdf"
+   },
+   {
+    "document": "obsah1_50 obsah1_51 obsah1_52 obsah1_53 obsah1_54 obsah1_55 obsah1_56 obsah1_57 obsah1_58 obsah1_59\n\nStrana 2: obsah2_0 obsah2_1 obsah2_2 obsah2_3 obsah2_4 obsah2_5 obsah2_6 obsah2_7 obsah2_8 obsah2_9 obsah2_10 obsah2_11 obsah2_12 obsah2_13 obsah2_14 obsah2_15 obsah2_16 obsah2_17 obsah2_18 obsah2_19 obsah2_20 obsah2_21 obsah2_22 obsah2_23 obsah2_24 obsah2_25 obsah2_26 obsah2_27 obsah2_28 obsah2_29 obsah2_30 obsah2_31 obsah2_32 obsah2_33 obsah2_34 obsah2_35 obsah2_36 obsah2_37 obsah2_38 obsah2_39 obsah2_40 obsah2_41 obsah2_42 obsah2_43 obsah2_44 obsah2_45 obsah2_46 obsah2_47 obsah2_48 obsah2_49 obsah2_50 obsah2_51 obsah2_52 obsah2_53 obsah2_54 obsah2_55 obsah2_56 obsah2_57 obsah2_58 obsah2_59",
+    "page": "1–2",
+    "source": "skripta.pdf"
+   },
+   {
+    "document": "obsah2_50 obsah2_51 obsah2_52 obsah2_53 obsah2_54 obsah2_55 obsah2_56 obsah2_57 obsah2_58 obsah2_59\n\nStrana 3: obsah3_0 obsah3_1 obsah3_2 obsah3_3 obsah3_4 obsah3_5 obsah3_6 obsah3_7 obsah3_8 obsah3_9 obsah3_10 obsah3_11 obsah3_12 obsah3_13 obsah3_14 obsah3_15 obsah3_16 obsah3_17 obsah3_18 obsah3_19 obsah3_20 obsah3_21 obsah3_22 obsah3_23 obsah3_24 obsah3_25 obsah3_26 obsah3_27 obsah3_28 obsah3_29 obsah3_30 obsah3_31 obsah3_32 obsah3_33 obsah3_34 obsah3_35 obsah3_36 obsah3_37 obsah3_38 obsah3_39 obsah3_40 obsah3_41 obsah3_42 obsah3_43 obsah3_44 obsah3_45 obsah3_46 obsah3_47 obsah3_48 obsah3_49 obsah3_50 obsah3_51 obsah3_52 obsah3_53 obsah3_54 obsah3_55 obsah3_56 obsah3_57 obsah3_58 obsah3_59",
+    "page": "2–3",
+    "source": "skripta.pdf"
+   },
+   {
+    "document": "obsah3_50 obsah3_51 obsah3_52 obsah3_53 obsah3_54 obsah3_55 obsah3_56 obsah3_57 obsah3_58 obsah3_59\n\nStrana 4: obsah4_0 obsah4_1 obsah4_2 obsah4_3 obsah4_4 obsah4_5 obsah4_6 obsah4_7 obsah4_8 obsah4_9 obsah4_10 obsah4_11 obsah4_12 obsah4_13 obsah4_14 obsah4_15 obsah4_16 obsah4_17 obsah4_18 obsah4_19 obsah4_20 obsah4_21 obsah4_22 obsah4_23 obsah4_24 obsah4_25 obsah4_26 obsah4_27 obsah4_28 obsah4_29 obsah4_30 obsah4_31 obsah4_32 obsah4_33 obsah4_34 obsah4_35 obsah4_36 obsah4_37 obsah4_38 obsah4_39 obsah4_40 obsah4_41 obsah4_42 obsah4_43 obsah4_44 obsah4_45 obsah4_46 obsah4_47 obsah4_48 obsah4_49 obsah4_50 obsah4_51 obsah4_52 obsah4_53 obsah4_54 obsah4_55 obsah4_56 obsah4_57 obsah4_58 obsah4_59",
+    "page": "3–4",
+    "source": "skripta.pdf"
+   },
+   {
+    "document": "obsah4_50 obsah4_51 obsah4_52 obsah4_53 obsah4_54 obsah4_55 obsah4_56 obsah4_57 obsah4_58 obsah4_59\n\nStrana 5: obsah5_0 obsah5_1 obsah5_2 obsah5_3 obsah5_4 obsah5_5 obsah5_6 obsah5_7 obsah5_8 obsah5_9 obsah5_10 obsah5_11 obsah5_12 obsah5_13 obsah5_14 obsah5_15 obsah5_16 obsah5_17 obsah5_18 obsah5_19 obsah5_20 obsah5_21 obsah5_22 obsah5_23 obsah5_24 obsah5_25 obsah5_26 obsah5_27 obsah5_28 obsah5_29 obsah5_30 obsah5_31 obsah5_32 obsah5_33 obsah5_34 obsah5_35 obsah5_36 obsah5_37 obsah5_38 obsah5_39 obsah5_40 obsah5_41 obsah5_42 obsah5_43 obsah5_44 obsah5_45 obsah5_46 obsah5_47 obsah5_48 obsah5_49 obsah5_50 obsah5_51 obsah5_52 obsah5_53 obsah5_54 obsah5_55 obsah5_56 obsah5_57 obsah5_58 obsah5_59",
+    "page": "4–5",
+    "source": "skripta.pdf"
+   },
+   {
+    "document": "obsah5_50 obsah5_51 obsah5_52 obsah5_53 obsah5_54 obsah5_55 obsah5_56 obsah5_57 obsah5_58 obsah5_59\n\nJiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument. Jiný dokument.",
+    "page": "5–1",
+    "source": "skripta.pdf"
+   }
+  ]
+ },
+ "chunk_text": {
+  "default": [
+   "Odstavec 0. Věta 0.0 o tématu číslo 0 a jeho souvislostech. Věta 0.1 o tématu číslo 0 a jeho souvislostech. Věta 0.2 o tématu číslo 0 a jeho souvislostech. Věta 0.3 o tématu číslo 0 a jeho souvislostech. Věta 0.4 o tématu číslo 0 a jeho souvislostech. Věta 0.5 o tématu číslo 0 a jeho souvislostech.\n\nOdstavec 1. Věta 1.0 o tématu číslo 1 a jeho souvislostech. Věta 1.1 o tématu číslo 1 a jeho souvislostech. Věta 1.2 o tématu číslo 1 a jeho souvislostech. Věta 1.3 o tématu číslo 1 a jeho souvislostech. Věta 1.4 o tématu číslo 1 a jeho souvislostech. Věta 1.5 o tématu číslo 1 a jeho souvislostech.\n\nOdstavec 2. Věta 2.0 o tématu číslo 2 a jeho souvislostech. Věta 2.1 o tématu číslo 2 a jeho souvislostech. Věta 2.2 o tématu číslo 2 a jeho souvislostech. Věta 2.3 o tématu číslo 2 a jeho souvislostech. Věta 2.4 o tématu číslo 2 a jeho souvislostech. Věta 2.5 o tématu číslo 2 a jeho souvislostech.\n\nOdstavec 3. Věta 3.0 o tématu číslo 3 a jeho souvislostech. Věta 3.1 o tématu číslo 3 a jeho souvislostech. Věta 3.2 o tématu číslo 3 a jeho souvislostech. Věta 3.3 o tématu číslo 3 a jeho souvislostech. Věta 3.4 o tématu číslo 3 a jeho souvislostech. Věta 3.5 o tématu číslo 3 a jeho souvislostech.\n\nOdstavec 4. Věta 4.0 o tématu číslo 4 a jeho souvislostech. Věta 4.1 o tématu číslo 4 a jeho souvislostech. Věta 4.2 o tématu číslo 4 a jeho souvislostech. Věta 4.3 o tématu číslo 4 a jeho souvislostech. Věta 4.4 o tématu číslo 4 a jeho souvislostech. Věta 4.5 o tématu číslo 4 a jeho souvislostech.\n\nOdstavec 5. Věta 5.0 o tématu číslo 5 a jeho souvislostech. Věta 5.1 o tématu číslo 5 a jeho souvislostech. Věta 5.2 o tématu číslo 5 a jeho souvislostech. Věta 5.3 o tématu číslo 5 a jeho souvislostech. Věta 5.4 o tématu číslo 5 a jeho souvislostech. Věta 5.5 o tématu číslo 5 a jeho souvislostech.\n\nOdstavec 6. Věta 6.0 o tématu číslo 6 a jeho souvislostech. Věta 6.1 o tématu číslo 6 a jeho souvislostech. Věta 6.2 o tématu číslo 6 a jeho souvislostech. Věta 6.3 o tématu číslo 6 a jeho souvislostech. Věta 6.4 o tématu číslo 6 a jeho souvislostech. Věta 6.5 o tématu číslo 6 a jeho souvislostech.\n\nOdstavec 7. Věta 7.0 o tématu číslo 7 a jeho souvislostech. Věta 7.1 o tématu číslo 7 a jeho souvislostech. Věta 7.2 o tématu číslo 7 a jeho souvislostech. Věta 7.3 o tématu číslo 7 a jeho souvislostech. Věta 7.4 o tématu číslo 7 a jeho souvislostech. Věta 7.5 o tématu číslo 7 a jeho souvislostech.\n\nOdstavec 8. Věta 8.0 o tématu číslo 8 a jeho souvislostech. Věta 8.1 o tématu číslo 8 a jeho souvislostech. Věta 8.2 o tématu číslo 8 a jeho souvislostech. Věta 8.3 o tématu číslo 8 a jeho souvislostech. Věta 8.4 o tématu číslo 8 a jeho souvislostech. Věta 8.5 o tématu číslo 8 a jeho souvislostech.\n\nOdstavec 9. Věta 9.0 o tématu číslo 9 a jeho souvislostech. Věta 9.1 o tématu číslo 9 a jeho souvislostech. Věta 9.2 o tématu číslo 9 a jeho souvislostech. Věta 9.3 o tématu číslo 9 a jeho souvislostech. Věta 9.4 o tématu číslo 9 a jeho souvislostech. Věta 9.5 o tématu číslo 9 a jeho souvislostech.\n\nOdstavec 10. Věta 10.0 o tématu číslo 10 a jeho souvislostech. Věta 10.1 o tématu číslo 10 a jeho souvislostech. Věta 10.2 o tématu číslo 10 a jeho souvislostech. Věta 10.3 o tématu číslo 10 a jeho souvislostech. Věta 10.4 o tématu číslo 10 a jeho souvislostech. Věta 10.5 o tématu číslo 10 a jeho souvislostech.\n\nOdstavec 11. Věta 11.0 o tématu číslo 11 a jeho souvislostech. Věta 11.1 o tématu číslo 11 a jeho souvislostech. Věta 11.2 o tématu číslo 11 a jeho souvislostech. Věta 11.3 o tématu číslo 11 a jeho souvislostech. Věta 11.4 o tématu číslo 11 a jeho souvislostech. Věta 11.5 o tématu číslo 11 a jeho souvislostech."
+  ],
+  "empty": [],
+  "small": [
+   "Odstavec 0. Věta 0.0 o tématu číslo 0 a jeho souvislostech. Věta 0.1 o tématu číslo 0 a jeho souvislostech. Věta 0.2 o tématu číslo 0 a jeho souvislostech. Věta 0.3 o tématu číslo 0 a jeho souvislostech. Věta 0.4 o tématu číslo 0 a jeho souvislostech. Věta 0.5 o tématu číslo 0 a jeho souvislostech.",
+   "tu číslo 0 a jeho souvislostech. Věta 0.5 o tématu číslo 0 a jeho souvislostech.\n\nOdstavec 1. Věta 1.0 o tématu číslo 1 a jeho souvislostech. Věta 1.1 o tématu číslo 1 a jeho souvislostech. Věta 1.2 o tématu číslo 1 a jeho souvislostech. Věta 1.3 o tématu číslo 1 a jeho souvislostech. Věta 1.4 o tématu číslo 1 a jeho souvislostech. Věta 1.5 o tématu číslo 1 a jeho souvislostech.",
+   "tu číslo 1 a jeho souvislostech. Věta 1.5 o tématu číslo 1 a jeho souvislostech.\n\nOdstavec 2. Věta 2.0 o tématu číslo 2 a jeho souvislostech. Věta 2.1 o tématu číslo 2 a jeho souvislostech. Věta 2.2 o tématu číslo 2 a jeho souvislostech. Věta 2.3 o tématu číslo 2 a jeho souvislostech. Věta 2.4 o tématu číslo 2 a jeho souvislostech. Věta 2.5 o tématu číslo 2 a jeho souvislostech.",
+   "tu číslo 2 a jeho souvislostech. Věta 2.5 o tématu číslo 2 a jeho souvislostech.\n\nOdstavec 3. Věta 3.0 o tématu číslo 3 a jeho souvislostech. Věta 3.1 o tématu číslo 3 a jeho souvislostech. Věta 3.2 o tématu číslo 3 a jeho souvislostech. Věta 3.3 o tématu číslo 3 a jeho souvislostech. Věta 3.4 o tématu číslo 3 a jeho souvislostech. Věta 3.5 o tématu číslo 3 a jeho souvislostech.",
+   "tu číslo 3 a jeho souvislostech. Věta 3.5 o tématu číslo 3 a jeho souvislostech.\n\nOdstavec 4. Věta 4.0 o tématu číslo 4 a jeho souvislostech. Věta 4.1 o tématu číslo 4 a jeho souvislostech. Věta 4.2 o tématu číslo 4 a jeho souvislostech. Věta 4.3 o tématu číslo 4 a jeho souvislostech. Věta 4.4 o tématu číslo 4 a jeho souvislostech. Věta 4.5 o tématu číslo 4 a jeho souvislostech.",
+   "tu číslo 4 a jeho souvislostech. Věta 4.5 o tématu číslo 4 a jeho souvislostech.\n\nOdstavec 5. Věta 5.0 o tématu číslo 5 a jeho souvislostech. Věta 5.1 o tématu číslo 5 a jeho souvislostech. Věta 5.2 o tématu číslo 5 a jeho souvislostech. Věta 5.3 o tématu číslo 5 a jeho souvislostech. Věta 5.4 o tématu číslo 5 a jeho souvislostech. Věta 5.5 o tématu číslo 5 a jeho souvislostech.",
+   "tu číslo 5 a jeho souvislostech. Věta 5.5 o tématu číslo 5 a jeho souvislostech.\n\nOdstavec 6. Věta 6.0 o tématu číslo 6 a jeho souvislostech. Věta 6.1 o tématu číslo 6 a jeho souvislostech. Věta 6.2 o tématu číslo 6 a jeho souvislostech. Věta 6.3 o tématu číslo 6 a jeho souvislostech. Věta 6.4 o tématu číslo 6 a jeho souvislostech. Věta 6.5 o tématu číslo 6 a jeho souvislostech.",
+   "tu číslo 6 a jeho souvislostech. Věta 6.5 o tématu číslo 6 a jeho souvislostech.\n\nOdstavec 7. Věta 7.0 o tématu číslo 7 a jeho souvislostech. Věta 7.1 o tématu číslo 7 a jeho souvislostech. Věta 7.2 o tématu číslo 7 a jeho souvislostech. Věta 7.3 o tématu číslo 7 a jeho souvislostech. Věta 7.4 o tématu číslo 7 a jeho souvislostech. Věta 7.5 o tématu číslo 7 a jeho souvislostech.",
+   "tu číslo 7 a jeho souvislostech. Věta 7.5 o tématu číslo 7 a jeho souvislostech.\n\nOdstavec 8. Věta 8.0 o tématu číslo 8 a jeho souvislostech. Věta 8.1 o tématu číslo 8 a jeho souvislostech. Věta 8.2 o tématu číslo 8 a jeho souvislostech. Věta 8.3 o tématu číslo 8 a jeho souvislostech. Věta 8.4 o tématu číslo 8 a jeho souvislostech. Věta 8.5 o tématu číslo 8 a jeho souvislostech.",
+   "tu číslo 8 a jeho souvislostech. Věta 8.5 o tématu číslo 8 a jeho souvislostech.\n\nOdstavec 9. Věta 9.0 o tématu číslo 9 a jeho souvislostech. Věta 9.1 o tématu číslo 9 a jeho souvislostech. Věta 9.2 o tématu číslo 9 a jeho souvislostech. Věta 9.3 o tématu číslo 9 a jeho souvislostech. Věta 9.4 o tématu číslo 9 a jeho souvislostech. Věta 9.5 o tématu číslo 9 a jeho souvislostech.",
+   "tu číslo 9 a jeho souvislostech. Věta 9.5 o tématu číslo 9 a jeho souvislostech.\n\nOdstavec 10. Věta 10.0 o tématu číslo 10 a jeho souvislostech. Věta 10.1 o tématu číslo 10 a jeho souvislostech. Věta 10.2 o tématu číslo 10 a jeho souvislostech. Věta 10.3 o tématu číslo 10 a jeho souvislostech. Věta 10.4 o tématu číslo 10 a jeho souvislostech. Věta 10.5 o tématu číslo 10 a jeho souvislostech.",
+   "číslo 10 a jeho souvislostech. Věta 10.5 o tématu číslo 10 a jeho souvislostech.\n\nOdstavec 11. Věta 11.0 o tématu číslo 11 a jeho souvislostech. Věta 11.1 o tématu číslo 11 a jeho souvislostech. Věta 11.2 o tématu číslo 11 a jeho souvislostech. Věta 11.3 o tématu číslo 11 a jeho souvislostech. Věta 11.4 o tématu číslo 11 a jeho souvislostech. Věta 11.5 o tématu číslo 11 a jeho souvislostech."
+  ]
+ },
+ "clean_leaked_thoughts": {
+  "": "",
+  "<thought>interní úvaha</thought>Odpověď.": "Odpověď.",
+  "Normální text bez úvah.": "Normální text bez úvah.",
+  "Odpověď <think>neuzavřené": "Odpověď",
+  "Strict grounding check: ok\n\nSkutečná odpověď.": "Skutečná odpověď."
+ },
+ "czech_stem": {
+  "DNA": "DNA",
+  "a": "a",
+  "hypertenze": "hypertenz",
+  "hypertenzí": "hypertenz",
+  "inhibitory": "inhibitor",
+  "kardiomyopatie": "kardiomyopati",
+  "ledvinové": "ledvinov",
+  "ledviny": "ledvin",
+  "ledvinách": "ledvinác",
+  "léčba": "léčb",
+  "léčbou": "léčb",
+  "nemocnice": "nemocnic",
+  "plic": "pli",
+  "plicní": "plicn",
+  "selhání": "selhán",
+  "srdečního": "srdečníh",
+  "v": "v"
+ },
+ "fallback_models": {
+  "": {
+   "ai_service": "gemini-3.6-flash",
+   "lesson_service": null
+  },
+  "gemini-2.5-pro": {
+   "ai_service": "gemini-3.6-flash",
+   "lesson_service": null
+  },
+  "gemini-3.5-flash": {
+   "ai_service": "gemini-3.6-flash",
+   "lesson_service": null
+  },
+  "gemini-3.6-flash": {
+   "ai_service": "gemini-flash-latest",
+   "lesson_service": "gemini-flash-latest"
+  },
+  "gemini-3.6-pro": {
+   "ai_service": "gemini-3.6-flash",
+   "lesson_service": null
+  },
+  "gemini-3.8-flash": {
+   "ai_service": "gemini-3.6-flash",
+   "lesson_service": "gemini-3.6-flash"
+  },
+  "gemini-flash-latest": {
+   "ai_service": "gemini-3.6-flash",
+   "lesson_service": "gemini-3.6-flash"
+  },
+  "gemini-pro-latest": {
+   "ai_service": "gemini-3.6-flash",
+   "lesson_service": "gemini-3.6-flash"
+  },
+  "neznamy-model": {
+   "ai_service": "gemini-3.6-flash",
+   "lesson_service": null
+  }
+ },
+ "fts_query": {
+  "": "",
+  "\"citace\" OR AND NOT * (závorky)": "citace OR citac* OR AND OR NOT OR závorky OR závork*",
+  "ACE inhibitory a beta-blokátory": "ACE OR inhibitory OR inhibitor* OR beta OR bet* OR blokátory OR blokátor*",
+  "Diabetes mellitus 2. typu": "Diabetes OR Diabet* OR mellitus OR mellitu* OR typu OR typ*",
+  "Jaká je léčba srdečního selhání?": "léčba OR léčb* OR srdečního OR srdečníh* OR selhání OR selhán*",
+  "Lístek 1: a) Astma bronchiale, b) Lymfomy": "Lístek OR Líste* OR Astma OR Astm* OR bronchiale OR bronchial* OR Lymfomy OR Lymfom*",
+  "NYHA III–IV": "NYHA OR NYH* OR III",
+  "a i v": "",
+  "digoxin": "digoxin OR digoxi*",
+  "ledvinách ledviny ledvinové": "ledvinách OR ledvinác* OR ledviny OR ledvin* OR ledvinové OR ledvinov*"
+ },
+ "json_parsers": {
+  "": {
+   "clean_and_parse_json": {
+    "__error__": "ValueError"
+   },
+   "extract_all_question_objects": [],
+   "parse_and_validate_test_json": []
+  },
+  "Text {\"q\": \"první\"} mezi {\"q\": \"druhá\", \"x\": {\"y\": 1}} text": {
+   "clean_and_parse_json": [
+    {
+     "q": "první"
+    },
+    {
+     "q": "druhá",
+     "x": {
+      "y": 1
+     }
+    }
+   ],
+   "extract_all_question_objects": [],
+   "parse_and_validate_test_json": []
+  },
+  "Tohle není JSON.": {
+   "clean_and_parse_json": {
+    "__error__": "ValueError"
+   },
+   "extract_all_question_objects": [],
+   "parse_and_validate_test_json": []
+  },
+  "Zde jsou otázky:\n```json\n[{\"id\": \"q1\", \"question\": \"X?\"}]\n```\nDoufám, že pomohou.": {
+   "clean_and_parse_json": [
+    {
+     "id": "q1",
+     "question": "X?"
+    }
+   ],
+   "extract_all_question_objects": [
+    {
+     "id": "q1",
+     "question": "X?"
+    }
+   ],
+   "parse_and_validate_test_json": []
+  },
+  "[{\"a\": 1}, {\"b\": 2},]": {
+   "clean_and_parse_json": [
+    {
+     "a": 1
+    },
+    {
+     "b": 2
+    }
+   ],
+   "extract_all_question_objects": [],
+   "parse_and_validate_test_json": []
+  },
+  "[{\"q\": \"A\", \"n\": 1}, {\"q\": \"B\", \"n\": 2}]": {
+   "clean_and_parse_json": [
+    {
+     "n": 1,
+     "q": "A"
+    },
+    {
+     "n": 2,
+     "q": "B"
+    }
+   ],
+   "extract_all_question_objects": [],
+   "parse_and_validate_test_json": []
+  },
+  "[{\"question\": \"Bez textu?\", \"options\": []}, {\"question\": \"\", \"options\": [\"A) x\"]}, {\"question\": \"Druhá celá\", \"options\": [\"A) x\", \"B) y\"], \"correct\": \"A\"}, {\"question\": \"Useknutá\", \"opt": {
+   "clean_and_parse_json": [
+    {
+     "options": [],
+     "question": "Bez textu?"
+    },
+    {
+     "options": [
+      "A) x"
+     ],
+     "question": ""
+    },
+    {
+     "correct": "A",
+     "options": [
+      "A) x",
+      "B) y"
+     ],
+     "question": "Druhá celá"
+    }
+   ],
+   "extract_all_question_objects": [
+    {
+     "options": [],
+     "question": "Bez textu?"
+    },
+    {
+     "options": [
+      "A) x"
+     ],
+     "question": ""
+    },
+    {
+     "correct": "A",
+     "options": [
+      "A) x",
+      "B) y"
+     ],
+     "question": "Druhá celá"
+    }
+   ],
+   "parse_and_validate_test_json": [
+    {
+     "correct_answers": [
+      "A"
+     ],
+     "difficulty": "normal",
+     "explanation": "",
+     "id": 3,
+     "key_points": [],
+     "model_answer": "",
+     "options": [
+      {
+       "id": "A",
+       "text": "x"
+      },
+      {
+       "id": "B",
+       "text": "y"
+      }
+     ],
+     "question": "Druhá celá",
+     "scenario": "",
+     "source_file": "",
+     "source_page": "",
+     "source_quote": "",
+     "source_ref": "",
+     "topic": "Všeobecné",
+     "type": "single_choice"
+    }
+   ]
+  },
+  "[{\"question\": \"Celá\", \"options\": [{\"id\": \"A\"}]}, {\"question\": \"Useknut": {
+   "clean_and_parse_json": [
+    {
+     "options": [
+      {
+       "id": "A"
+      }
+     ],
+     "question": "Celá"
+    }
+   ],
+   "extract_all_question_objects": [
+    {
+     "options": [
+      {
+       "id": "A"
+      }
+     ],
+     "question": "Celá"
+    }
+   ],
+   "parse_and_validate_test_json": []
+  },
+  "[{\"question\": \"Řetězcové možnosti?\", \"options\": [\"A) Ano\", \"B. Ne\", \"Možná\"], \"answer\": [\"B\"]}]": {
+   "clean_and_parse_json": [
+    {
+     "answer": [
+      "B"
+     ],
+     "options": [
+      "A) Ano",
+      "B. Ne",
+      "Možná"
+     ],
+     "question": "Řetězcové možnosti?"
+    }
+   ],
+   "extract_all_question_objects": [
+    {
+     "answer": [
+      "B"
+     ],
+     "options": [
+      "A) Ano",
+      "B. Ne",
+      "Možná"
+     ],
+     "question": "Řetězcové možnosti?"
+    }
+   ],
+   "parse_and_validate_test_json": [
+    {
+     "correct_answers": [
+      "B"
+     ],
+     "difficulty": "normal",
+     "explanation": "",
+     "id": 1,
+     "key_points": [],
+     "model_answer": "['B']",
+     "options": [
+      {
+       "id": "A",
+       "text": "Ano"
+      },
+      {
+       "id": "B",
+       "text": "Ne"
+      },
+      {
+       "id": "C",
+       "text": "Možná"
+      }
+     ],
+     "question": "Řetězcové možnosti?",
+     "scenario": "",
+     "source_file": "",
+     "source_page": "",
+     "source_quote": "",
+     "source_ref": "",
+     "topic": "Všeobecné",
+     "type": "single_choice"
+    }
+   ]
+  },
+  "[{\"questions\": [{\"id\": \"q1\"}]}]": {
+   "clean_and_parse_json": [
+    {
+     "questions": [
+      {
+       "id": "q1"
+      }
+     ]
+    }
+   ],
+   "extract_all_question_objects": [],
+   "parse_and_validate_test_json": []
+  },
+  "[{\"text\": \"řádek 1\nřádek 2\tTab\"}]": {
+   "clean_and_parse_json": [
+    {
+     "text": "řádek 1\nřádek 2\tTab"
+    }
+   ],
+   "extract_all_question_objects": [],
+   "parse_and_validate_test_json": []
+  },
+  "[{\"type\": \"open\", \"prompt\": \"Popište léčbu.\", \"model_answer\": \"ACEi, BB.\"}]": {
+   "clean_and_parse_json": [
+    {
+     "model_answer": "ACEi, BB.",
+     "prompt": "Popište léčbu.",
+     "type": "open"
+    }
+   ],
+   "extract_all_question_objects": [],
+   "parse_and_validate_test_json": []
+  },
+  "[{\"type\": \"open_ended\", \"prompt\": \"Popište léčbu.\", \"model_answer\": \"ACEi, BB.\", \"key_points\": [\"ACEi\", \" \", \"BB\"]}]": {
+   "clean_and_parse_json": [
+    {
+     "key_points": [
+      "ACEi",
+      " ",
+      "BB"
+     ],
+     "model_answer": "ACEi, BB.",
+     "prompt": "Popište léčbu.",
+     "type": "open_ended"
+    }
+   ],
+   "extract_all_question_objects": [],
+   "parse_and_validate_test_json": [
+    {
+     "correct_answers": [],
+     "difficulty": "normal",
+     "explanation": "",
+     "id": 1,
+     "key_points": [
+      "ACEi",
+      "BB"
+     ],
+     "model_answer": "ACEi, BB.",
+     "options": [],
+     "question": "Popište léčbu.",
+     "scenario": "",
+     "source_file": "",
+     "source_page": "",
+     "source_quote": "",
+     "source_ref": "",
+     "topic": "Všeobecné",
+     "type": "open_ended"
+    }
+   ]
+  },
+  "[{\"type\": \"single_choice\", \"topic\": \"Kardio\", \"question\": \"Lék první volby?\", \"options\": [{\"id\": \"a\", \"text\": \"Digoxin\"}, {\"label\": \"B\", \"option\": \"Furosemid\"}], \"correct_answer\": \"b\", \"explanation\": \"Protože.\", \"source_ref\": \"[1, s. 4]\"}]": {
+   "clean_and_parse_json": [
+    {
+     "correct_answer": "b",
+     "explanation": "Protože.",
+     "options": [
+      {
+       "id": "a",
+       "text": "Digoxin"
+      },
+      {
+       "label": "B",
+       "option": "Furosemid"
+      }
+     ],
+     "question": "Lék první volby?",
+     "source_ref": "[1, s. 4]",
+     "topic": "Kardio",
+     "type": "single_choice"
+    }
+   ],
+   "extract_all_question_objects": [
+    {
+     "correct_answer": "b",
+     "explanation": "Protože.",
+     "options": [
+      {
+       "id": "a",
+       "text": "Digoxin"
+      },
+      {
+       "label": "B",
+       "option": "Furosemid"
+      }
+     ],
+     "question": "Lék první volby?",
+     "source_ref": "[1, s. 4]",
+     "topic": "Kardio",
+     "type": "single_choice"
+    }
+   ],
+   "parse_and_validate_test_json": [
+    {
+     "correct_answers": [
+      "B"
+     ],
+     "difficulty": "normal",
+     "explanation": "Protože.",
+     "id": 1,
+     "key_points": [],
+     "model_answer": "",
+     "options": [
+      {
+       "id": "A",
+       "text": "Digoxin"
+      },
+      {
+       "id": "B",
+       "text": "Furosemid"
+      }
+     ],
+     "question": "Lék první volby?",
+     "scenario": "",
+     "source_file": "",
+     "source_page": "",
+     "source_quote": "",
+     "source_ref": "[1, s. 4]",
+     "topic": "Kardio",
+     "type": "single_choice"
+    }
+   ]
+  },
+  "[{\"type\": \"true_false\", \"question\": \"Srdce má 4 oddíly.\", \"correct_answers\": [\"A\"]}]": {
+   "clean_and_parse_json": [
+    {
+     "correct_answers": [
+      "A"
+     ],
+     "question": "Srdce má 4 oddíly.",
+     "type": "true_false"
+    }
+   ],
+   "extract_all_question_objects": [
+    {
+     "correct_answers": [
+      "A"
+     ],
+     "question": "Srdce má 4 oddíly.",
+     "type": "true_false"
+    }
+   ],
+   "parse_and_validate_test_json": [
+    {
+     "correct_answers": [
+      "A"
+     ],
+     "difficulty": "normal",
+     "explanation": "",
+     "id": 1,
+     "key_points": [],
+     "model_answer": "",
+     "options": [
+      {
+       "id": "A",
+       "text": "Pravda"
+      },
+      {
+       "id": "B",
+       "text": "Nepravda"
+      }
+     ],
+     "question": "Srdce má 4 oddíly.",
+     "scenario": "",
+     "source_file": "",
+     "source_page": "",
+     "source_quote": "",
+     "source_ref": "",
+     "topic": "Všeobecné",
+     "type": "true_false"
+    }
+   ]
+  },
+  "```\n[1, 2, 3]\n```": {
+   "clean_and_parse_json": [
+    1,
+    2,
+    3
+   ],
+   "extract_all_question_objects": [],
+   "parse_and_validate_test_json": []
+  },
+  "```json\n[{\"front\": \"Co?\", \"back\": \"To.\"}]\n```": {
+   "clean_and_parse_json": [
+    {
+     "back": "To.",
+     "front": "Co?"
+    }
+   ],
+   "extract_all_question_objects": [],
+   "parse_and_validate_test_json": []
+  },
+  "```json\n{\"test\": [{\"type\": \"multi_choice\", \"text\": \"Které platí?\", \"choices\": {\"A\": \"První\", \"B\": \"Druhá\", \"C\": \"Třetí\"}, \"correct\": \"a, c\", \"difficulty\": \"HARD\"}]}\n```": {
+   "clean_and_parse_json": [
+    {
+     "test": [
+      {
+       "choices": {
+        "A": "První",
+        "B": "Druhá",
+        "C": "Třetí"
+       },
+       "correct": "a, c",
+       "difficulty": "HARD",
+       "text": "Které platí?",
+       "type": "multi_choice"
+      }
+     ]
+    }
+   ],
+   "extract_all_question_objects": [],
+   "parse_and_validate_test_json": [
+    {
+     "correct_answers": [
+      "A",
+      "C"
+     ],
+     "difficulty": "hard",
+     "explanation": "",
+     "id": 1,
+     "key_points": [],
+     "model_answer": "",
+     "options": [
+      {
+       "id": "A",
+       "text": "První"
+      },
+      {
+       "id": "B",
+       "text": "Druhá"
+      },
+      {
+       "id": "C",
+       "text": "Třetí"
+      }
+     ],
+     "question": "Které platí?",
+     "scenario": "",
+     "source_file": "",
+     "source_page": "",
+     "source_quote": "",
+     "source_ref": "",
+     "topic": "Všeobecné",
+     "type": "multi_choice"
+    }
+   ]
+  },
+  "{\"questions\": [{\"id\": \"q1\", \"question\": \"Vnořené?\"}]}": {
+   "clean_and_parse_json": [
+    {
+     "questions": [
+      {
+       "id": "q1",
+       "question": "Vnořené?"
+      }
+     ]
+    }
+   ],
+   "extract_all_question_objects": [
+    {
+     "id": "q1",
+     "question": "Vnořené?"
+    }
+   ],
+   "parse_and_validate_test_json": []
+  },
+  "{\"single\": true}": {
+   "clean_and_parse_json": [
+    {
+     "single": true
+    }
+   ],
+   "extract_all_question_objects": [],
+   "parse_and_validate_test_json": []
+  }
+ },
+ "markdown_tables": {
+  "Bez tabulky.": "Bez tabulky.",
+  "Text\n| A | B |\n|---|---|\n| 1 | 2 |\nPokračování": "Text\n\n| A | B |\n| ---|---|\n| 1 | 2 |\n\nPokračování",
+  "| A | B |\n\n\n| 1 | 2 |": "| A | B |\n| 1 | 2 |",
+  "| A | B |\n|---|---|\n| 1 | 2 || 3 | 4 |": "| A | B |\n| ---|---|\n| 1 | 2 |\n| 3 | 4 |"
+ },
+ "sanitizers": {
+  "": {
+   "chat_service.sanitize_project_name": "",
+   "core.security.safe_filename": "",
+   "core.utils.sanitize_name": "",
+   "medulingo_service.normalize_name": "",
+   "medulingo_service.sanitize_name": "",
+   "test_service.normalize_text": "",
+   "test_service.sanitize_name": ""
+  },
+  "  mezery okolo  ": {
+   "chat_service.sanitize_project_name": "mezery_okolo",
+   "core.security.safe_filename": "mezery_okolo",
+   "core.utils.sanitize_name": "mezery_okolo",
+   "medulingo_service.normalize_name": "mezeryokolo",
+   "medulingo_service.sanitize_name": "mezery_okolo",
+   "test_service.normalize_text": "mezery okolo",
+   "test_service.sanitize_name": "mezery_okolo"
+  },
+  "...": {
+   "chat_service.sanitize_project_name": "___",
+   "core.security.safe_filename": "",
+   "core.utils.sanitize_name": "...",
+   "medulingo_service.normalize_name": "",
+   "medulingo_service.sanitize_name": "...",
+   "test_service.normalize_text": "",
+   "test_service.sanitize_name": "..."
+  },
+  "../../etc/passwd": {
+   "chat_service.sanitize_project_name": "______etc_passwd",
+   "core.security.safe_filename": "passwd",
+   "core.utils.sanitize_name": ".._.._etc_passwd",
+   "medulingo_service.normalize_name": "etcpasswd",
+   "medulingo_service.sanitize_name": ".._.._etc_passwd",
+   "test_service.normalize_text": "etc passwd",
+   "test_service.sanitize_name": ".._.._etc_passwd"
+  },
+  "Interna II. – kardio": {
+   "chat_service.sanitize_project_name": "Interna_II____kardio",
+   "core.security.safe_filename": "Interna_II._kardio",
+   "core.utils.sanitize_name": "Interna_II._kardio",
+   "medulingo_service.normalize_name": "internaiikardio",
+   "medulingo_service.sanitize_name": "Interna_II._kardio",
+   "test_service.normalize_text": "interna ii kardio",
+   "test_service.sanitize_name": "Interna_II._kardio"
+  },
+  "Kardiologie": {
+   "chat_service.sanitize_project_name": "Kardiologie",
+   "core.security.safe_filename": "Kardiologie",
+   "core.utils.sanitize_name": "Kardiologie",
+   "medulingo_service.normalize_name": "kardiologie",
+   "medulingo_service.sanitize_name": "Kardiologie",
+   "test_service.normalize_text": "kardiologie",
+   "test_service.sanitize_name": "Kardiologie"
+  },
+  "Kardiologie_č": {
+   "chat_service.sanitize_project_name": "Kardiologie__",
+   "core.security.safe_filename": "Kardiologie_č",
+   "core.utils.sanitize_name": "Kardiologie_č",
+   "medulingo_service.normalize_name": "kardiologiec",
+   "medulingo_service.sanitize_name": "Kardiologie_č",
+   "test_service.normalize_text": "kardiologie_c",
+   "test_service.sanitize_name": "Kardiologie_č"
+  },
+  "Moje Zkouška 2026!": {
+   "chat_service.sanitize_project_name": "Moje_Zkou_ka_2026_",
+   "core.security.safe_filename": "Moje_Zkouška_2026",
+   "core.utils.sanitize_name": "Moje_Zkouška_2026",
+   "medulingo_service.normalize_name": "mojezkouska2026",
+   "medulingo_service.sanitize_name": "Moje_Zkouška_2026_",
+   "test_service.normalize_text": "moje zkouska 2026",
+   "test_service.sanitize_name": "Moje_Zkouška_2026_"
+  },
+  "__podtržítka__": {
+   "chat_service.sanitize_project_name": "__podtr__tka__",
+   "core.security.safe_filename": "podtržítka",
+   "core.utils.sanitize_name": "podtržítka",
+   "medulingo_service.normalize_name": "podtrzitka",
+   "medulingo_service.sanitize_name": "_podtržítka_",
+   "test_service.normalize_text": "__podtrzitka__",
+   "test_service.sanitize_name": "_podtržítka_"
+  },
+  "a'b\"c<d>": {
+   "chat_service.sanitize_project_name": "a_b_c_d_",
+   "core.security.safe_filename": "a_b_c_d",
+   "core.utils.sanitize_name": "a_b_c_d",
+   "medulingo_service.normalize_name": "abcd",
+   "medulingo_service.sanitize_name": "a_b_c_d_",
+   "test_service.normalize_text": "a b c d",
+   "test_service.sanitize_name": "a_b_c_d_"
+  },
+  "a//b\\c": {
+   "chat_service.sanitize_project_name": "a__b_c",
+   "core.security.safe_filename": "c",
+   "core.utils.sanitize_name": "a_b_c",
+   "medulingo_service.normalize_name": "abc",
+   "medulingo_service.sanitize_name": "a_b_c",
+   "test_service.normalize_text": "a b c",
+   "test_service.sanitize_name": "a_b_c"
+  },
+  "emoji 🫀 srdce": {
+   "chat_service.sanitize_project_name": "emoji___srdce",
+   "core.security.safe_filename": "emoji_srdce",
+   "core.utils.sanitize_name": "emoji_srdce",
+   "medulingo_service.normalize_name": "emojisrdce",
+   "medulingo_service.sanitize_name": "emoji_srdce",
+   "test_service.normalize_text": "emoji srdce",
+   "test_service.sanitize_name": "emoji_srdce"
+  },
+  "file;rm -rf.mp3": {
+   "chat_service.sanitize_project_name": "file_rm_-rf_mp3",
+   "core.security.safe_filename": "file_rm_-rf.mp3",
+   "core.utils.sanitize_name": "file_rm_-rf.mp3",
+   "medulingo_service.normalize_name": "filermrfmp3",
+   "medulingo_service.sanitize_name": "file_rm_-rf.mp3",
+   "test_service.normalize_text": "file rm rf mp3",
+   "test_service.sanitize_name": "file_rm_-rf.mp3"
+  },
+  "x.y.z": {
+   "chat_service.sanitize_project_name": "x_y_z",
+   "core.security.safe_filename": "x.y.z",
+   "core.utils.sanitize_name": "x.y.z",
+   "medulingo_service.normalize_name": "xyz",
+   "medulingo_service.sanitize_name": "x.y.z",
+   "test_service.normalize_text": "x y z",
+   "test_service.sanitize_name": "x.y.z"
+  },
+  "Ü-ber_Test-2": {
+   "chat_service.sanitize_project_name": "_-ber_Test-2",
+   "core.security.safe_filename": "Ü-ber_Test-2",
+   "core.utils.sanitize_name": "Ü-ber_Test-2",
+   "medulingo_service.normalize_name": "ubertest2",
+   "medulingo_service.sanitize_name": "Ü-ber_Test-2",
+   "test_service.normalize_text": "u ber_test 2",
+   "test_service.sanitize_name": "Ü-ber_Test-2"
+  },
+  "ščř ŽÝÁ": {
+   "chat_service.sanitize_project_name": "_______",
+   "core.security.safe_filename": "ščř_ŽÝÁ",
+   "core.utils.sanitize_name": "ščř_ŽÝÁ",
+   "medulingo_service.normalize_name": "scrzya",
+   "medulingo_service.sanitize_name": "ščř_ŽÝÁ",
+   "test_service.normalize_text": "scr zya",
+   "test_service.sanitize_name": "ščř_ŽÝÁ"
+  }
+ },
+ "subqueries": {
+  "": [
+   ""
+  ],
+  "\"citace\" OR AND NOT * (závorky)": [
+   "\"citace\" OR AND NOT * (závorky)"
+  ],
+  "ACE inhibitory a beta-blokátory": [
+   "ACE inhibitory a beta-blokátory"
+  ],
+  "Diabetes mellitus 2. typu": [
+   "Diabetes mellitus 2. typu"
+  ],
+  "Jaká je léčba srdečního selhání?": [
+   "Jaká je léčba srdečního selhání?"
+  ],
+  "Lístek 1: a) Astma bronchiale, b) Lymfomy": [
+   "Lístek 1: a) Astma bronchiale, b) Lymfomy",
+   "Astma bronchiale",
+   "Lymfomy"
+  ],
+  "NYHA III–IV": [
+   "NYHA III–IV"
+  ],
+  "a i v": [
+   "a i v"
+  ],
+  "digoxin": [
+   "digoxin"
+  ],
+  "ledvinách ledviny ledvinové": [
+   "ledvinách ledviny ledvinové"
+  ]
+ },
+ "tts_clean": {
+  "0": "Text úvodu je tady.\n\nDelší text diagnostiky slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo \n\nKrátká léčba.",
+  "1": "Skript bez kapitol, jen text slova slova slova slova slova slova slova slova slova slova slova slova slova slova slova slova slova slova slova slova",
+  "2": "Nadpis\nTučně a kurzíva\n\nKonec"
+ }
+}
