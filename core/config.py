@@ -1,6 +1,8 @@
 import json
 import os
 import sys
+from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Any
 
 from dotenv import load_dotenv
@@ -74,3 +76,78 @@ ALLOWED_GEMINI_MODELS = tuple(
     if m.strip()
 )
 MAX_CUSTOM_SYSTEM_PROMPT_CHARS = 20_000
+
+
+@dataclass(frozen=True)
+class GenerationParams:
+    """Parametry jednoho druhu generování. None = parametr se nepředává (platí výchozí hodnota volané funkce)."""
+
+    temperature: float
+    max_output_tokens: int | None = None
+    thinking_budget: int | None = None
+
+
+@dataclass(frozen=True)
+class AISettings:
+    """
+    Modely, parametry generování, plány opakování a záložní modely AI na jednom místě.
+    Hodnoty odpovídají dřívějším literálům ve službách a routerech (krok 4.9) – změna zde mění chování aplikace.
+    """
+
+    default_gemini_model: str = DEFAULT_GEMINI_MODEL
+
+    # Test klíče v Nastavení: minimální odpověď, při 404 zkusí záložní model
+    connection_test_fallback_model: str = "gemini-flash-latest"
+    connection_test_max_output_tokens: int = 10
+
+    # Syntéza řeči
+    openai_tts_model: str = "tts-1"
+    elevenlabs_tts_model: str = "eleven_multilingual_v2"
+    elevenlabs_default_voice_id: str = "21m00Tcm4TlvDq8ikWAM"
+
+    # Výchozí parametry call_gemini_with_retries, pokud je volající nepředá
+    gemini_call_defaults: GenerationParams = GenerationParams(temperature=0.7, max_output_tokens=8192)
+
+    # Generování podle úlohy
+    podcast_script: GenerationParams = GenerationParams(temperature=0.7)
+    notes: GenerationParams = GenerationParams(temperature=0.25, max_output_tokens=16384)
+    flashcards: GenerationParams = GenerationParams(temperature=0.3, max_output_tokens=8192)
+    flashcards_followup: GenerationParams = GenerationParams(temperature=0.35, max_output_tokens=8192)
+    practice_test: GenerationParams = GenerationParams(temperature=0.35, max_output_tokens=8192)
+    practice_test_json_retry: GenerationParams = GenerationParams(temperature=0.2, max_output_tokens=8192)
+    question_classification: GenerationParams = GenerationParams(temperature=0.1)
+    grounded_chat: GenerationParams = GenerationParams(temperature=0.3, max_output_tokens=8192, thinking_budget=0)
+    lesson_study_text: GenerationParams = GenerationParams(
+        temperature=0.3, max_output_tokens=32768, thinking_budget=2048
+    )
+    lesson_lecture_script: GenerationParams = GenerationParams(
+        temperature=0.7, max_output_tokens=16384, thinking_budget=1024
+    )
+
+    # Čekání (s) mezi pokusy při přetížení Gemini: call_gemini_with_retries / call_gemini_with_resilience (lekce)
+    gemini_retry_wait_s: tuple[int, ...] = (8, 16, 30, 45, 60)
+    gemini_resilience_wait_s: tuple[int, ...] = (6, 12, 25, 45, 60)
+
+    # Záložní modely – dvě mapy s odlišným chováním (nález R3), sjednocení by změnilo chování.
+    # Obecná: první pravidlo, jehož podřetězec je v názvu modelu; jinak výchozí záložní model.
+    gemini_fallback_rules: tuple[tuple[str, str], ...] = (
+        ("gemini-2.5-pro", "gemini-3.6-flash"),
+        ("gemini-3.6-pro", "gemini-3.6-flash"),
+        ("gemini-3.6-flash", "gemini-flash-latest"),
+        ("gemini-flash-latest", "gemini-3.6-flash"),
+    )
+    gemini_fallback_default: str = "gemini-3.6-flash"
+    # Lekce: přesná shoda názvu; neznámý model záložní model nemá.
+    lesson_gemini_fallbacks: MappingProxyType = field(
+        default_factory=lambda: MappingProxyType(
+            {
+                "gemini-3.8-flash": "gemini-3.6-flash",
+                "gemini-pro-latest": "gemini-3.6-flash",
+                "gemini-flash-latest": "gemini-3.6-flash",
+                "gemini-3.6-flash": "gemini-flash-latest",
+            }
+        )
+    )
+
+
+AI = AISettings()

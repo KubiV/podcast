@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, HTTPException
 
 from core.authz import filter_accessible_output_files, require_output_file_access, require_project_access
 from core.clients import require_allowed_model
-from core.config import TESTS_DIR
+from core.config import AI, TESTS_DIR
 from core.logger import send_log
 from services.ai_service import call_gemini_with_retries
 from services.rag_service import query_rag_context_with_sources
@@ -38,7 +38,7 @@ async def generate_test_endpoint(payload: dict = Body(...)):
     difficulty = payload.get("difficulty", "normal")
     mode = payload.get("mode", "instant")
     custom_prompt = payload.get("prompt", "")
-    gemini_model = payload.get("gemini_model", "gemini-3.6-flash")
+    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
 
     if not project:
         raise HTTPException(status_code=400, detail="Chybí název projektu.")
@@ -79,7 +79,7 @@ async def generate_more_tests_endpoint(payload: dict = Body(...)):
     count = int(payload.get("count", 5))
     difficulty_shift = payload.get("difficulty_shift", "same")
     focus_mistakes = bool(payload.get("focus_mistakes", True))
-    gemini_model = payload.get("gemini_model", "gemini-3.6-flash")
+    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
 
     if not previous_test_id or not project:
         raise HTTPException(status_code=400, detail="Chybí identifikátor testu nebo projekt.")

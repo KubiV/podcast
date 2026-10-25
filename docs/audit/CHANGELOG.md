@@ -1003,7 +1003,7 @@ Commit: `ec2bf76` – `refactor(frontend): Add sendJson helper for JSON API requ
 
 #### 4.8c Helpery `showModal` / `hideModal`
 
-Commit: `refactor(frontend): Add showModal/hideModal helpers` (hash doplní další krok)
+Commit: `1b63e71` – `refactor(frontend): Add showModal/hideModal helpers`
 
 - `app.js`: `showModal(id)` / `hideModal(id)` odebírají / přidávají třídu `hidden`. Chybějící element se tiše přeskočí, stejně jako v původních `if (modal) …`.
 - **17 míst** v 8 souborech přepsáno skriptem nad AST. Šlo o dvojici `const v = document.getElementById("…modal…"); if (v) v.classList.add|remove("hidden");`, kde `v` se dál v bloku nepoužívá a id obsahuje „modal“.
@@ -1015,4 +1015,30 @@ Commit: `refactor(frontend): Add showModal/hideModal helpers` (hash doplní dal�
   - Ověřuje přepínání třídy, tichý průchod pro neexistující id a u všech 12 přepsaných zavíracích funkcí, že jejich modal v DOM existuje a po zavolání je skrytý.
   - Mutační kontrola: `hideModal`, který nepřidá `hidden`, test shodí.
 - **Ověření:** `node --check` všech skriptů, smoke 6/6 OK, běžná sada 157 OK (6 přeskočených smoke). Řádků: +36 / −42.
+
+### 4.9 `AISettings` v `core/config.py` (AI6)
+
+Commit: `refactor(ai): Centralize AI models and generation parameters in AISettings` (hash doplní další krok)
+
+- `core/config.py`: frozen dataclass `AISettings` (instance `AI`) a `GenerationParams(temperature, max_output_tokens, thinking_budget)`. Obsah:
+  - výchozí model (`DEFAULT_GEMINI_MODEL`);
+  - model a limit tokenů pro test klíče v Nastavení;
+  - TTS modely OpenAI/ElevenLabs a výchozí hlas ElevenLabs;
+  - výchozí parametry `call_gemini_with_retries`;
+  - parametry 11 druhů generování (podcast, poznámky, kartičky + doplnění, test + JSON retry, klasifikace otázek, chat, lekce A/B);
+  - plány čekání retry;
+  - **obě** mapy záložních modelů (R3), které se dál liší: obecná podle podřetězce s výchozím záložním modelem, lekce podle přesné shody bez výchozího.
+- Literály nahrazeny na 58 místech (odkazy `AI.…`; mapy fallbacků a plány čekání nahrazují i víc literálů najednou) v 15 souborech:
+  - routery: 8 souborů, výchozí `gemini_model`, test klíče, klasifikace;
+  - služby: 7 souborů, teploty, `max_output_tokens`, `thinking_budget`, TTS, fallback mapy, `wait_intervals` a výchozí hodnoty signatury `call_gemini_with_retries`.
+  - Každé volání dál předává přesně tytéž parametry jako dřív, například podcast jen `temperature`.
+- `grep` na literály modelů, teplot, limitů, thinking budgetů a plánů čekání mimo `core/config.py` = **0**.
+- Ponecháno záměrně: `voice_settings` ElevenLabs (stability/similarity) a frontendové seznamy modelů v `index.html` mimo Python konfiguraci. `ALLOWED_GEMINI_MODELS` se už bral z env/configu.
+- **Ověření beze změny hodnot:**
+  - AST každého z 15 souborů po dosazení skutečných hodnot `AI.…` (a `list(AI.…)` → seznam) a odebrání importu `AI` je shodné s HEAD. Výjimkou je `get_fallback_model`, porovnaná zvlášť.
+  - V `core/config.py` zůstaly všechny původní příkazy beze změny.
+  - Mutační kontrola ověřovače: změna teploty poznámek 0.25 → 0.26 se projeví jako rozdíl.
+  - Obě `get_fallback_model` (obecná i lekce) vracejí stejné výsledky jako verze z HEAD na 20 013 názvech modelů (známé modely, velká písmena, mezery, prefixy, náhodné kombinace).
+  - `ruff check` / `ruff format --check` OK. Běžná sada 159 OK (6 přeskočených smoke), smoke 6/6 OK, golden mastery beze změny.
+  - Celé OpenAPI schéma je bajtově shodné s HEAD, včetně výchozí hodnoty `Form` u `/api/lessons/generate`.
 

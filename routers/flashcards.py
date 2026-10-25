@@ -5,7 +5,7 @@ from fastapi import APIRouter, Body, HTTPException
 
 from core.authz import filter_accessible_output_files, require_output_file_access, require_project_access
 from core.clients import require_allowed_model
-from core.config import FLASHCARDS_DIR
+from core.config import AI, FLASHCARDS_DIR
 from core.logger import send_log
 from core.security import safe_filename, safe_join
 from core.utils import sanitize_name
@@ -48,7 +48,7 @@ async def generate_flashcards_endpoint(payload: dict = Body(...)):
     project = payload.get("project")
     count = int(payload.get("count", 10))
     custom_prompt = payload.get("prompt", "")
-    gemini_model = payload.get("gemini_model", "gemini-3.6-flash")
+    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
     force_regenerate = bool(payload.get("force_regenerate", False))
 
     if not question or not project:

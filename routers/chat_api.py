@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 from core.authz import can_access_chat_project, require_project_access, require_thread_access
 from core.clients import get_chroma_client, require_allowed_model
 from core.config import (
+    AI,
     AUDIO_DIR,
     LESSONS_DIR,
     MAX_CUSTOM_SYSTEM_PROMPT_CHARS,
@@ -46,7 +47,7 @@ router = APIRouter()
 async def chat_completions_endpoint(payload: dict = Body(...)):
     project = payload.get("project")
     message = payload.get("message")
-    model = payload.get("model", "gemini-3.6-flash")
+    model = payload.get("model", AI.default_gemini_model)
     custom_sys = payload.get("system_prompt", "")
     thread_id = payload.get("thread_id")
 
@@ -330,7 +331,7 @@ async def ai_classify_questions_endpoint(project_id: str, request: Request, payl
             status_code=403, detail="Režim pozorovatele: Nemáte oprávnění provádět AI klasifikaci otázek."
         )
     require_project_access(project_id, write=True)
-    require_allowed_model(payload.get("gemini_model") or "gemini-3.6-flash")
+    require_allowed_model(payload.get("gemini_model") or AI.default_gemini_model)
     safe_proj = sanitize_name(project_id)
     proj_dir = os.path.join(UPLOAD_DIR, safe_proj)
     planner_file = os.path.join(proj_dir, PLANNER_FILENAME)
@@ -378,13 +379,13 @@ async def ai_classify_questions_endpoint(project_id: str, request: Request, payl
         f"{json.dumps(compact_questions, ensure_ascii=False, indent=1)}"
     )
 
-    gemini_model = payload.get("gemini_model") or "gemini-3.6-flash"
+    gemini_model = payload.get("gemini_model") or AI.default_gemini_model
     try:
         response_text = await call_gemini_with_retries(
             model=gemini_model,
             contents=[prompt_user],
             system_instruction=prompt_system,
-            temperature=0.1,
+            temperature=AI.question_classification.temperature,
             response_mime_type="application/json",
         )
 
@@ -445,7 +446,7 @@ async def generate_lesson_endpoint(
     project_name: str | None = Form(None),
     title: str = Form(...),
     target_language: str = Form("Čeština"),
-    gemini_model: str = Form("gemini-3.6-flash"),
+    gemini_model: str = Form(AI.default_gemini_model),
     tts_provider: str = Form("openai"),
     tts_voice: str = Form("onyx"),
     files: list[UploadFile] = File(...),

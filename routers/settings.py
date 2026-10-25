@@ -15,7 +15,7 @@ from core.clients import (
     get_gemini_api_key,
     get_openai_api_key,
 )
-from core.config import IS_FROZEN, USER_DATA_DIR, load_user_config, save_user_config
+from core.config import AI, IS_FROZEN, USER_DATA_DIR, load_user_config, save_user_config
 from core.context import current_user_var
 from core.logger import send_log
 from core.utils import extract_gemini_error_detail, friendly_api_error
@@ -190,24 +190,24 @@ async def test_api_key(request: Request, payload: dict[str, Any] = Body(...)):
     try:
         if provider == "gemini":
             test_client = genai.Client(api_key=key)
-            test_model = str(payload.get("model") or "gemini-3.6-flash").strip()
+            test_model = str(payload.get("model") or AI.default_gemini_model).strip()
             try:
                 await asyncio.to_thread(
                     test_client.models.generate_content,
                     model=test_model,
                     contents="ping",
-                    config=types.GenerateContentConfig(max_output_tokens=10),
+                    config=types.GenerateContentConfig(max_output_tokens=AI.connection_test_max_output_tokens),
                 )
             except Exception as test_err:
                 err_str = str(test_err).lower()
-                if ("404" in err_str or "not_found" in err_str) and test_model != "gemini-flash-latest":
+                if ("404" in err_str or "not_found" in err_str) and test_model != AI.connection_test_fallback_model:
                     await asyncio.to_thread(
                         test_client.models.generate_content,
-                        model="gemini-flash-latest",
+                        model=AI.connection_test_fallback_model,
                         contents="ping",
-                        config=types.GenerateContentConfig(max_output_tokens=10),
+                        config=types.GenerateContentConfig(max_output_tokens=AI.connection_test_max_output_tokens),
                     )
-                    test_model = "gemini-flash-latest"
+                    test_model = AI.connection_test_fallback_model
                 else:
                     raise test_err
             return {"valid": True, "message": f"Google Gemini API klíč je platný a připraven k použití ({test_model})!"}

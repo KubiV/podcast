@@ -4,6 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, Body, HTTPException
 
 from core.authz import require_project_access
 from core.clients import require_allowed_model
+from core.config import AI
 from core.logger import BatchState, active_batches, send_log
 from core.utils import sanitize_name
 from services.batch import BatchTexts, run_question_batch
@@ -117,7 +118,7 @@ async def process_batch(background_tasks: BackgroundTasks, payload: dict = Body(
     voice = payload.get("voice", "onyx")
     output_format = payload.get("format", "mp3")
     project = sanitize_name(payload.get("project", ""))
-    gemini_model = payload.get("gemini_model", "gemini-3.6-flash")
+    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
     overnight_mode = bool(payload.get("overnight_mode", True))
 
     if not questions or not custom_prompt or not project:
@@ -178,7 +179,7 @@ async def process_notes_batch(background_tasks: BackgroundTasks, payload: dict =
     questions = payload.get("questions", [])
     custom_prompt = payload.get("prompt", "")
     project = sanitize_name(payload.get("project", ""))
-    gemini_model = payload.get("gemini_model", "gemini-3.6-flash")
+    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
     overnight_mode = bool(payload.get("overnight_mode", True))
 
     if not questions or not project:
@@ -238,7 +239,7 @@ async def process_flashcards_batch(background_tasks: BackgroundTasks, payload: d
     count = int(payload.get("count", 10))
     custom_prompt = payload.get("prompt", "")
     project = sanitize_name(payload.get("project", ""))
-    gemini_model = payload.get("gemini_model", "gemini-3.6-flash")
+    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
     overnight_mode = bool(payload.get("overnight_mode", True))
 
     if not questions or not project:

@@ -7,7 +7,7 @@ import os
 import re
 from typing import Any
 
-from core.config import FLASHCARDS_DIR
+from core.config import AI, FLASHCARDS_DIR
 from core.logger import send_log
 from core.security import safe_join
 from core.utils import sanitize_name
@@ -162,7 +162,7 @@ async def internal_generate_flashcards(
     project: str,
     count: int = 10,
     custom_prompt: str = "",
-    gemini_model: str = "gemini-3.6-flash",
+    gemini_model: str = AI.default_gemini_model,
     force_regenerate: bool = False,
     rag_query_fn=None,
 ) -> tuple[dict[str, Any], str]:
@@ -273,8 +273,8 @@ async def internal_generate_flashcards(
             model=gemini_model,
             contents=[full_user_content],
             system_instruction=final_prompt,
-            temperature=0.3,
-            max_output_tokens=8192,
+            temperature=AI.flashcards.temperature,
+            max_output_tokens=AI.flashcards.max_output_tokens,
             response_mime_type="application/json",
         )
         parsed = clean_and_parse_json(raw_response)
@@ -332,8 +332,8 @@ async def internal_generate_flashcards(
                     model=gemini_model,
                     contents=[full_user_content],
                     system_instruction=sub_prompt,
-                    temperature=0.35,
-                    max_output_tokens=8192,
+                    temperature=AI.flashcards_followup.temperature,
+                    max_output_tokens=AI.flashcards_followup.max_output_tokens,
                     response_mime_type="application/json",
                 )
                 batch_cards = clean_and_parse_json(raw_response)

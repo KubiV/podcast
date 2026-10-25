@@ -20,7 +20,7 @@ except ImportError:
     ffmpeg = None
 
 from core.clients import get_elevenlabs_api_key, get_openai_client
-from core.config import AUDIO_DIR
+from core.config import AI, AUDIO_DIR
 from core.logger import send_log
 from core.security import safe_filename, safe_join
 from core.utils import friendly_api_error
@@ -81,7 +81,7 @@ async def internal_generate_script(
         model=gemini_model,
         contents=[full_user_content],
         system_instruction=final_prompt,
-        temperature=0.7,
+        temperature=AI.podcast_script.temperature,
     )
     return script, raw_context
 
@@ -231,7 +231,7 @@ async def internal_generate_audio(
 
                     def create_openai_speech() -> bytes:
                         client = get_openai_client()
-                        response = client.audio.speech.create(model="tts-1", voice=voice, input=chunk)
+                        response = client.audio.speech.create(model=AI.openai_tts_model, voice=voice, input=chunk)
                         return b"".join(response.iter_bytes())
 
                     final_audio_file.write(await asyncio.to_thread(create_openai_speech))
@@ -243,10 +243,10 @@ async def internal_generate_audio(
                     headers = {"xi-api-key": el_key, "Content-Type": "application/json"}
                     data = {
                         "text": chunk,
-                        "model_id": "eleven_multilingual_v2",
+                        "model_id": AI.elevenlabs_tts_model,
                         "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
                     }
-                    voice_id = voice if len(voice) > 5 else "21m00Tcm4TlvDq8ikWAM"
+                    voice_id = voice if len(voice) > 5 else AI.elevenlabs_default_voice_id
                     async with httpx.AsyncClient() as client:
                         res = await client.post(
                             f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",

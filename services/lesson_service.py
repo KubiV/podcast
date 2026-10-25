@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from google.genai import types
 from mutagen.mp3 import MP3
 
+from core.config import AI
 from core.utils import is_retryable_gemini_error  # noqa: F401 – re-export pro zpětnou kompatibilitu
 from prompts.lesson import STAGE_A_STUDY_MATERIAL_PROMPT, STAGE_B_LECTURE_SCRIPT_PROMPT
 from services import ai_service
@@ -292,13 +293,7 @@ def clean_script_for_tts(script: str) -> str:
 
 def get_fallback_model(model: str) -> str | None:
     """Vrátí spolehlivý záložní model v případě trvalého přetížení vybraného modelu."""
-    fallbacks = {
-        "gemini-3.8-flash": "gemini-3.6-flash",
-        "gemini-pro-latest": "gemini-3.6-flash",
-        "gemini-flash-latest": "gemini-3.6-flash",
-        "gemini-3.6-flash": "gemini-flash-latest",
-    }
-    return fallbacks.get(model)
+    return AI.lesson_gemini_fallbacks.get(model)
 
 
 async def call_gemini_with_resilience(
@@ -330,7 +325,7 @@ async def generate_lesson_package(
     lesson_title: str,
     target_language: str,
     file_paths: list[tuple[str, str]],
-    gemini_model: str = "gemini-3.6-flash",
+    gemini_model: str = AI.default_gemini_model,
     tts_provider: str = "openai",
     tts_voice: str = "onyx",
     progress_callback: Any | None = None,
@@ -406,9 +401,9 @@ async def generate_lesson_package(
 
     config_a = types.GenerateContentConfig(
         system_instruction=prompt_a,
-        temperature=0.3,
-        max_output_tokens=32768,
-        thinking_config=types.ThinkingConfig(thinking_budget=2048),
+        temperature=AI.lesson_study_text.temperature,
+        max_output_tokens=AI.lesson_study_text.max_output_tokens,
+        thinking_config=types.ThinkingConfig(thinking_budget=AI.lesson_study_text.thinking_budget),
     )
 
     resp_a = await call_gemini_with_resilience(
@@ -490,9 +485,9 @@ async def generate_lesson_package(
 
     config_b = types.GenerateContentConfig(
         system_instruction=prompt_b,
-        temperature=0.7,
-        max_output_tokens=16384,
-        thinking_config=types.ThinkingConfig(thinking_budget=1024),
+        temperature=AI.lesson_lecture_script.temperature,
+        max_output_tokens=AI.lesson_lecture_script.max_output_tokens,
+        thinking_config=types.ThinkingConfig(thinking_budget=AI.lesson_lecture_script.thinking_budget),
     )
 
     resp_b = await call_gemini_with_resilience(

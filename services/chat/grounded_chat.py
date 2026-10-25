@@ -8,6 +8,7 @@ from typing import Any
 
 from google.genai import types
 
+from core.config import AI
 from core.context import get_current_language, get_language_directive
 from prompts.chat import STRICT_GROUNDED_SYSTEM_PROMPT
 from services.chat.repository import create_thread, get_thread, get_thread_messages, save_message
@@ -48,7 +49,7 @@ def clean_leaked_thoughts(t: str) -> str:
 async def stream_grounded_chat(
     project_id: str,
     user_message: str,
-    model: str = "gemini-3.6-flash",
+    model: str = AI.default_gemini_model,
     custom_system_prompt: str = "",
     thread_id: str | None = None,
 ) -> AsyncGenerator[str, None]:
@@ -127,13 +128,13 @@ async def stream_grounded_chat(
         def generate_stream():
             config_params: dict[str, Any] = {
                 "system_instruction": system_instruction,
-                "temperature": 0.3,
-                "max_output_tokens": 8192,
+                "temperature": AI.grounded_chat.temperature,
+                "max_output_tokens": AI.grounded_chat.max_output_tokens,
             }
             # Pro modely s reasoningem (Gemini 2.5 / 3.8 apod.) vypneme thinking tokeny v konverzačním chatu
             try:
                 config_params["thinking_config"] = types.ThinkingConfig(
-                    thinking_budget=0,
+                    thinking_budget=AI.grounded_chat.thinking_budget,
                     include_thoughts=False,
                 )
                 cfg = types.GenerateContentConfig(**config_params)

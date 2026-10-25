@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, HTTPException
 
 from core.authz import filter_accessible_output_files, require_output_file_access, require_project_access
 from core.clients import require_allowed_model
-from core.config import AUDIO_DIR
+from core.config import AI, AUDIO_DIR
 from core.logger import send_log
 from core.security import safe_filename, safe_join
 from core.utils import sanitize_name
@@ -52,7 +52,7 @@ async def generate_script(payload: dict = Body(...)):
     custom_prompt = payload.get("prompt")
     provider = payload.get("provider", "openai")
     project = payload.get("project")
-    gemini_model = payload.get("gemini_model", "gemini-3.6-flash")
+    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
 
     if not question or not custom_prompt or not project:
         raise HTTPException(status_code=400, detail="Chybí parametry dotazu.")

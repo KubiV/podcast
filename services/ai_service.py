@@ -14,6 +14,7 @@ from google import genai
 from google.genai import types
 
 from core.clients import get_gemini_client
+from core.config import AI
 from core.context import current_language_var, get_language_directive
 from core.logger import send_log
 from core.utils import extract_gemini_error_detail, friendly_api_error, is_retryable_gemini_error
@@ -24,15 +25,10 @@ def get_fallback_model(model: str) -> str:
     Vrací vhodný záložní model, pokud je primární model dočasně nedostupný nebo přetížený.
     """
     m = model.lower().strip()
-    if "gemini-2.5-pro" in m:
-        return "gemini-3.6-flash"
-    elif "gemini-3.6-pro" in m:
-        return "gemini-3.6-flash"
-    elif "gemini-3.6-flash" in m:
-        return "gemini-flash-latest"
-    elif "gemini-flash-latest" in m:
-        return "gemini-3.6-flash"
-    return "gemini-3.6-flash"
+    for pattern, fallback in AI.gemini_fallback_rules:
+        if pattern in m:
+            return fallback
+    return AI.gemini_fallback_default
 
 
 def clean_and_parse_json(raw_text: str) -> list[dict[str, Any]]:
@@ -86,8 +82,8 @@ async def call_gemini_with_retries(
     model: str,
     contents: list[Any],
     system_instruction: str = "",
-    temperature: float = 0.7,
-    max_output_tokens: int = 8192,
+    temperature: float = AI.gemini_call_defaults.temperature,
+    max_output_tokens: int = AI.gemini_call_defaults.max_output_tokens,
     response_mime_type: str = "",
     response_schema: Any = None,
     client: genai.Client | None = None,
@@ -106,7 +102,7 @@ async def call_gemini_with_retries(
         system_instruction = (system_instruction + lang_directive).strip()
 
     if wait_intervals is None:
-        wait_intervals = [8, 16, 30, 45, 60]
+        wait_intervals = list(AI.gemini_retry_wait_s)
 
     max_attempts = len(wait_intervals) + 1
     current_model = model
@@ -192,7 +188,7 @@ async def call_gemini_with_resilience(
     `get_fallback` určuje mapu záložních modelů (lekce mají vlastní, viz lesson_service).
     """
     if wait_intervals is None:
-        wait_intervals = [6, 12, 25, 45, 60]
+        wait_intervals = list(AI.gemini_resilience_wait_s)
 
     current_model = model
     fallback_used = False

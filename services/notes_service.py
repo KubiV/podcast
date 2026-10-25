@@ -6,7 +6,7 @@ import json
 import re
 from typing import Any
 
-from core.config import NOTES_DIR
+from core.config import AI, NOTES_DIR
 from core.logger import send_log
 from core.security import safe_join
 from core.utils import sanitize_name
@@ -39,7 +39,7 @@ async def internal_generate_notes(
     question: str,
     project: str,
     custom_prompt: str = "",
-    gemini_model: str = "gemini-3.6-flash",
+    gemini_model: str = AI.default_gemini_model,
     rag_query_fn=None,
 ) -> tuple[str, list[dict[str, Any]], str]:
     """
@@ -78,8 +78,8 @@ async def internal_generate_notes(
         model=gemini_model,
         contents=[full_user_content],
         system_instruction=final_prompt,
-        temperature=0.25,
-        max_output_tokens=16384,
+        temperature=AI.notes.temperature,
+        max_output_tokens=AI.notes.max_output_tokens,
     )
 
     notes_markdown = sanitize_markdown_tables(notes_markdown)

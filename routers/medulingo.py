@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body, HTTPException, Request
 
 from core.authz import require_project_access
 from core.clients import require_allowed_model
-from core.config import TESTS_DIR, USER_DATA_DIR
+from core.config import AI, TESTS_DIR, USER_DATA_DIR
 from core.context import current_user_var
 from core.logger import send_log
 from core.utils import sanitize_name
@@ -51,7 +51,7 @@ async def medulingo_generate_pack_endpoint(request: Request, payload: dict = Bod
     question_id = payload.get("question_id")
     question_title = payload.get("question_title", "")
     modules = payload.get("modules", ["notes", "cards", "podcast", "test"])
-    gemini_model = payload.get("gemini_model", "gemini-3.6-flash")
+    gemini_model = payload.get("gemini_model", AI.default_gemini_model)
     tts_provider = payload.get("tts_provider", "openai")
     tts_voice = payload.get("tts_voice", "onyx")
 

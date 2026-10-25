@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+from core.config import AI
 from prompts.test import DEFAULT_TEST_PROMPT_SYSTEM
 from services.practice_tests.parsing import parse_and_validate_test_json
 from services.practice_tests.storage import TestStorageManager
@@ -28,7 +29,7 @@ async def generate_practice_test(
     difficulty: str = "normal",
     mode: str = "instant",
     custom_prompt: str = "",
-    gemini_model: str = "gemini-3.6-flash",
+    gemini_model: str = AI.default_gemini_model,
     tests_dir: str = "",
     rag_query_fn=None,
     gemini_call_fn=None,
@@ -171,8 +172,8 @@ async def generate_practice_test(
             model=gemini_model,
             contents=[batch_user_content],
             system_instruction=system_instruction,
-            temperature=0.35,
-            max_output_tokens=8192,
+            temperature=AI.practice_test.temperature,
+            max_output_tokens=AI.practice_test.max_output_tokens,
             response_mime_type="application/json",
         )
 
@@ -189,8 +190,8 @@ async def generate_practice_test(
                     model=gemini_model,
                     contents=[batch_user_content, "\n\nVrať prosím čisté JSON pole testových otázek."],
                     system_instruction=retry_prompt,
-                    temperature=0.2,
-                    max_output_tokens=8192,
+                    temperature=AI.practice_test_json_retry.temperature,
+                    max_output_tokens=AI.practice_test_json_retry.max_output_tokens,
                     response_mime_type="application/json",
                 )
                 parsed_batch = parse_and_validate_test_json(raw_response)
@@ -271,7 +272,7 @@ async def generate_more_test_questions(
     count: int = 5,
     difficulty_shift: str = "same",  # "easier" | "same" | "harder"
     focus_mistakes: bool = True,
-    gemini_model: str = "gemini-3.6-flash",
+    gemini_model: str = AI.default_gemini_model,
     tests_dir: str = "",
     rag_query_fn=None,
     gemini_call_fn=None,
@@ -416,8 +417,8 @@ async def generate_more_test_questions(
             model=gemini_model,
             contents=[batch_user_content],
             system_instruction=system_instruction,
-            temperature=0.35,
-            max_output_tokens=8192,
+            temperature=AI.practice_test.temperature,
+            max_output_tokens=AI.practice_test.max_output_tokens,
             response_mime_type="application/json",
         )
 
