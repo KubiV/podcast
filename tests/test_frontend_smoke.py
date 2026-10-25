@@ -154,9 +154,11 @@ class TestFrontendSmoke(unittest.TestCase):
         self.page.on("pageerror", lambda exc: self.errors.append(f"pageerror: {exc}"))
         self.page.on(
             "console",
-            lambda msg: self.errors.append(f"console.{msg.type}: {msg.text}")
-            if msg.type == "error" and not any(s in msg.text for s in IGNORED_CONSOLE + KNOWN_ISSUES)
-            else None,
+            lambda msg: (
+                self.errors.append(f"console.{msg.type}: {msg.text}")
+                if msg.type == "error" and not any(s in msg.text for s in IGNORED_CONSOLE + KNOWN_ISSUES)
+                else None
+            ),
         )
 
     def tearDown(self):

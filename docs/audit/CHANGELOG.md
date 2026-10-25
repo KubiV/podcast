@@ -841,3 +841,4 @@ Commit: `1353a3d` – `refactor(frontend): Move Project transfer section into pr
 - Kosmetika bez vlivu na chování: zastaralé zmínky „app.js“ v docstringu smoke testu a komentáři `core/security.py` → `static/js/*.js`.
 - Ruff beze změny (All checks passed), OpenAPI se nedotýká (jen frontend).
 
+- Dodatečně: `ruff format` hlásil `tests/test_frontend_smoke.py` (lambda v `page.on("console", …)`) – odchylka od baseline zavedená už commitem `a9654eb`, přehlédnutá při jeho kontrole. Opraveno samostatným stylovým commitem `style(tests): Format frontend smoke test`; `ruff format --check` je zase čistý.
