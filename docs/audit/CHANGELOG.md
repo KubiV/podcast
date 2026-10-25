@@ -939,7 +939,7 @@ Commit: `9b68fe4` – `refactor: Import services directly and remove root shim m
 
 ### 4.6 Mrtvý kód (R10, F9, F7)
 
-Commit: `refactor: Remove dead helpers in core/context.py and frontend` (hash doplní další krok)
+Commit: `478f528` – `refactor: Remove dead helpers in core/context.py and frontend`
 
 - **`core/context.py` (R10):** odstraněny `get_current_user`, `set_current_user`, `set_current_language`. Kód pracuje přímo s `current_user_var`/`current_language_var`.
   - `get_current_language` zůstává, používá ji `services/chat/grounded_chat.py`.
@@ -958,4 +958,14 @@ Commit: `refactor: Remove dead helpers in core/context.py and frontend` (hash do
 - i18n klíče z F9 (249/jazyk bez statické reference) se podle plánu **nemažou**, mohou se skládat dynamicky. Klíč `toast.viewerRestrictedQuestion` z odstraněné `updateQuestionTitle` zůstal.
 - Cache-busting `?v=` u pěti upravených skriptů se nezvyšoval: starší verze v cache obsahuje jen navíc nevolané funkce, chování je stejné.
 - **Ověření:** `ruff check` / `ruff format --check` OK. Běžná sada 157 OK (4 přeskočené smoke), smoke 4/4 OK (313 funkcí z inline handlerů dál existuje, průchod všemi sekcemi bez chyb), celé OpenAPI schéma bajtově shodné s HEAD.
+
+### 4.7 Ignorované soubory odebrané z gitu (R12)
+
+Commit: `chore: Stop tracking .DS_Store and stale bytecode` (hash doplní další krok)
+
+- `git rm --cached .DS_Store __pycache__/main_v1.cpython-314.pyc`. Oba vzory už `.gitignore` obsahuje, soubory byly v indexu jen z doby před jeho úpravou. Lokální kopie zůstaly na disku.
+- `git ls-files -ci --exclude-standard` je teď prázdné: žádný jiný sledovaný soubor neodporuje `.gitignore`.
+- `main_v1` nikde v kódu, specu ani skriptech nefiguruje. Šlo o bytecode staré verze `main.py` bez zdrojového souboru.
+- Lokální `__pycache__/` obsahuje i `.pyc` smazaných shimů (krok 4.5). Python je bez zdrojového `.py` neimportuje a git je ignoruje, proto jsem je nemazal.
+- **Ověření:** běžná sada 157 OK (4 přeskočené smoke), `ruff check` OK. Kód se nemění.
 
