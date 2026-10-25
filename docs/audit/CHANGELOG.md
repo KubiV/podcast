@@ -336,7 +336,7 @@ Commit: `ef65f74` – `fix(security): Restrict model choice on shared API keys`
 
 ## 1.11 Úplné `.env.example` (nález S16)
 
-Commit: `docs(config): Document all environment variables in .env.example` (hash doplní další krok)
+Commit: `832ece3` – `docs(config): Document all environment variables in .env.example`
 
 - `.env.example` dokumentuje všech 14 proměnných, které čte aplikace (`core/`, `services/`, `routers/`, `main.py`, `desktop_app.py`) nebo `docker-compose.yml`. Jsou rozdělené do sekcí API klíče, server, limity, Docker/proxy a desktop.
 - Aktivní (nezakomentované) zůstávají jen tři API klíče jako dosud, ostatní jsou zakomentované s výchozí hodnotou. Zkopírování `.env.example` do `.env` se tedy chová stejně jako dřív (ověřeno přes `dotenv_values`).
@@ -361,7 +361,7 @@ Commit: `docs(config): Document all environment variables in .env.example` (hash
 | 1.8 SRI + CSP | `5858b6a` | F5 |
 | 1.9 rate limit, setup, proxy | `10e6448` | S8, S9, S10 |
 | 1.10 allowlist modelů | `ef65f74` | S11 |
-| 1.11 `.env.example` | (tento krok) | S16 |
+| 1.11 `.env.example` | `832ece3` | S16 |
 
 Testy: 18 → 90. Lint: beze změny proti baseline (2× UP038), F401 132 → 130. Seznam OpenAPI cest beze změny po celou fázi.
 
@@ -381,3 +381,36 @@ Testy: 18 → 90. Lint: beze změny proti baseline (2× UP038), F401 132 → 130
 - Hardcoded `localhost:8000` v odkazech kartiček.
 - Prázdná složka po odmítnutém uploadu.
 - Neověřený Docker build a desktop (pywebview).
+
+---
+
+# Fáze 2 – Charakterizační testy
+
+## 2.1 Testovací infrastruktura: offline AI, embeddingy, blokace sítě
+
+Commit: `test: Add offline AI test support and network guard` (hash doplní další krok)
+
+Krok mění jen testy, kód aplikace beze změny.
+
+- **`tests/support.py`** (nový):
+  - `write_file`, `ensure_user`, `client_for_user`, `unique_name`: pomocníci přesunutí z `tests/test_project_authz.py`, kde zůstávají původní jména pro zpětnou kompatibilitu.
+  - `FakeGeminiClient` napodobuje `google.genai.Client` v rozsahu, který aplikace používá:
+    - `models.generate_content` vrací `.text` a `.candidates[0].finish_reason`,
+    - `models.generate_content_stream` vrací chunky s `.text` a `.candidates[0].content.parts`,
+    - odpovědi se berou z fronty nebo z funkce `responder`, výjimka simuluje chybu API,
+    - všechna volání se zaznamenávají (`calls`, `system_instructions`, `prompt_text`).
+  - `OfflineAITestCase`:
+    - `install_fake_gemini()` nahradí klienta na všech čtyřech místech, kde si ho aplikace bere: `core.clients.get_gemini_client`, `services.ai_service.get_gemini_client`, `services.chat_service.get_ai_client` a `services.lesson_service.get_ai_client`.
+    - Embeddingy ChromaDB (`DefaultEmbeddingFunction`) jsou po dobu testu deterministické, typu bag-of-words, bez ONNX modelu.
+- **`tests/__init__.py`**: síťová pojistka. `socket.connect`, `connect_ex` a `getaddrinfo` mimo localhost/AF_UNIX vyhodí `NetworkAccessInTests`. Reaguje na incident z kroku 1.1, kdy testy omylem volaly skutečné API.
+- **`tests/test_support.py`** (nový, 6 testů):
+  - pojistka blokuje externí spojení a DNS, lokální spojení povolí,
+  - fake Gemini přes `call_gemini_with_retries`: fronta odpovědí, chyba, responder,
+  - charakterizace: k systémové instrukci se připojí česká jazyková direktiva,
+  - offline RAG řetězec end-to-end: indexace `.txt` → `query_rag_context_with_sources` → `stream_grounded_chat` se streamovanou odpovědí z fake klienta a ověřením, že prompt obsahuje nalezený úryvek. Skutečný ONNX model je v testu zablokovaný, takže se prokazatelně nepoužije.
+
+**Zjištění:**
+- Výchozí embeddingová funkce ChromaDB potřebuje ONNX model `all-MiniLM-L6-v2` (~80 MB). Na tomto stroji je v `~/.cache/chroma` od července 2026, na čistém stroji (CI) by se stahoval z internetu. Testy na něm teď nezávisí.
+- Telemetrie ChromaDB 1.5.9 (`Posthog.capture`) je no-op, takže žádný nález.
+
+**Ověření vůči baseline:** 96/96 testů OK. Celá sada běží se zapnutou síťovou pojistkou bez jediného pokusu o síť. Původní testy z baseline (`test_api_integrity`, `test_security`, `test_services`) prochází (19 = 18 + 1 přidaný v kroku 1.1). `ruff check` beze změny (2× UP038), F401 130, `ruff format` OK.

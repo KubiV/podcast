@@ -17,29 +17,9 @@ from core.config import AUDIO_DIR, FLASHCARDS_DIR, NOTES_DIR, TESTS_DIR, UPLOAD_
 from core.logger import active_batches
 from main import app, auth_service
 from services.chat_service import create_thread, get_thread
-
-PASSWORD = "password123"
-
-
-def _ensure_user(username: str, role: str) -> int:
-    for u in auth_service.list_users():
-        if u["username"] == username:
-            return u["id"]
-    if auth_service.needs_setup():
-        user, err = auth_service.create_initial_admin(username, PASSWORD)
-        assert user, err
-        return user["id"]
-    auth_service.set_registration_allowed(True)
-    user, err = auth_service.register_user(username, PASSWORD)
-    assert user, err
-    auth_service.approve_user(user["id"], role=role)
-    return user["id"]
-
-
-def _write(path: str, content: str) -> None:
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(content)
+from tests.support import PASSWORD, client_for_user  # noqa: F401 – PASSWORD importují další testy
+from tests.support import ensure_user as _ensure_user
+from tests.support import write_file as _write
 
 
 class ProjectAuthzBase(unittest.TestCase):
@@ -77,10 +57,7 @@ class ProjectAuthzBase(unittest.TestCase):
         active_batches.pop("authz_bob_proj", None)
 
     def client_as(self, name: str) -> TestClient:
-        token, _ = auth_service.create_session(self.ids[name])
-        client = TestClient(app)
-        client.cookies.set("medstudio_session", token)
-        return client
+        return client_for_user(self.ids[name])
 
 
 class TestPrivateProjects(ProjectAuthzBase):
