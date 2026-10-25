@@ -1,3 +1,7 @@
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import unittest
 
 from fastapi.testclient import TestClient

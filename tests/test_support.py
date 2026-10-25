@@ -1,5 +1,9 @@
 """Testy testovací infrastruktury (krok 2.1): blokace sítě, falešný Gemini klient a offline RAG."""
 
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import asyncio
 import json
 import os

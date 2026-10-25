@@ -1,5 +1,9 @@
 """CSP hlavička aplikace a pinnuté externí zdroje s SRI (krok 1.8)."""
 
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import os
 import re
 import unittest

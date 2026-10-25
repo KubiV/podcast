@@ -5,6 +5,10 @@ Doplňuje round-trip a bezpečnostní testy z `tests/test_import_upload.py`: obs
 přepínače exportu, `inspect`, konflikty a přepsání, přenos vektorů ChromaDB a SQLite záznamů.
 """
 
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import asyncio
 import io
 import json

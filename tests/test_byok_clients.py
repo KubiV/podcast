@@ -6,6 +6,10 @@ a v privátním režimu (per-user BYOK) ignorovaly klíč přihlášeného uživ
 stejně jako ostatní generování. Testy nahrazují `genai.Client` záznamníkem, takže nikam nevolají.
 """
 
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import json
 import os
 import unittest

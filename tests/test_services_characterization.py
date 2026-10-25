@@ -6,6 +6,10 @@ Charakterizace čistých funkcí služeb (krok 2.3).
    s `tests/fixtures/services_golden.json`. Golden se mění jen záměrně přes `generate_services_golden`.
 """
 
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import json
 import os
 import unittest

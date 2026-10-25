@@ -1044,7 +1044,7 @@ Commit: `7e1ec9a` – `refactor(ai): Centralize AI models and generation paramet
 
 ### 4.10 Pydantic modely těl požadavků (A11) – ⚠ 422 pro hodnoty špatného typu
 
-Commit: `refactor(api): Validate JSON request bodies with Pydantic models` (hash doplní další krok)
+Commit: `1d8df51` – `refactor(api): Validate JSON request bodies with Pydantic models`
 
 - `core/request_models.py`: základ `RequestModel` s `strict=True`, `extra="ignore"` a `protected_namespaces=()` (pole `model_answer`).
 - **23 z 27** endpointů s `payload: dict = Body(...)` má model, definovaný v příslušném routeru jako v `routers/auth.py`.
@@ -1079,4 +1079,44 @@ Commit: `refactor(api): Validate JSON request bodies with Pydantic models` (hash
   - u 23 operací se změnilo jen `requestBody` (místo `object` odkaz na schéma);
   - přibylo 23 schémat, žádné neubylo.
 - **Ověření:** `ruff check` / `ruff format --check` OK. Běžná sada 169 OK (6 přeskočených smoke), smoke 6/6 OK.
+
+## Fáze 5 – Dokumentace
+
+### Incident: testy nad skutečnými daty (zjištěno při kroku 5.1)
+
+**Co se stalo:** při ověřování příkazu pro README jsem spustil testy v tvarech, které obcházejí izolaci z `tests/__init__.py`. Testy pak zapisovaly do skutečného vývojového datového adresáře (kořen repa).
+- **18:27**, krok 4.2: `python -m unittest discover tests`.
+- **21:05**, krok 5.1: znovu `discover tests` a holé `python -m unittest`.
+- **Příčina:**
+  - U `discover tests` se moduly importují jako top-level a první modul načte `core.config` dřív, než se importuje balíček `tests`.
+  - U holého `python -m unittest` discovery z kořene importuje `services/test_service.py` (odpovídá vzoru `test*.py`) dřív než `tests`.
+- **Síť:** pojistka byla aktivní už při discovery, tedy před během testů (ověřeno), takže žádné volání placených API neodešlo. Reálné API klíče v `user_config.json` zůstaly beze změny.
+- **Zasaženo:**
+  - `auth.db`: 6 testovacích účtů (`authz_admin`, `authz_alice`, `authz_bob`, `authz_viewer`, `transfer_admin`, `crud_admin`, admini se známým testovacím heslem), 311 sessions, API klíče 2 testovacích účtů a 133 záznamů vlastnictví;
+  - `chat_history.db`: 48 testovacích projektů, 255 vláken, 56 zpráv, 40 FTS a 9 meta záznamů;
+  - `chroma_db`: 57 kolekcí;
+  - 453 složek a souborů v `uploads/`, `generated_*` a `lessons_data/` (`Crud_*`, `Prenos_*`, `imp_*`, `rag_*`, `authz_*_proj`, `lekce_Lekce*`, `lekce_authz`).
+  - Vlastní data (`Interna`, `ARO`, `Ren_ln__sarkoidoza`, lekce `lekce_CLL_*` a `lekce_psych_*`, uživatelé `admin`, `test_student1`, `test_viewer1`) testy nezakládaly a úklid je nechal beze změny.
+- **Úklid (se souhlasem):**
+  - Záloha přes SQLite backup API (`auth.db`, `chat_history.db`, obě s `integrity_check` ok), kopie `chroma_db/` a `user_config.json` do `_test_quarantine/2026-10-25_test_artifacts/backup/`.
+  - Testovací složky a soubory jsou **přesunuté** (ne smazané) do `_test_quarantine/2026-10-25_test_artifacts/files/`. Výběr: vzor názvu, změna dnes a vznik dnes; ověřeno, že nic jiného se dnes nezměnilo.
+  - Z DB odebrány testovací účty, jejich sessions, API klíče a vlastnictví, chat/FTS záznamy testovacích projektů a jejich Chroma kolekce. Integrity check i FTS integrity-check jsou ok.
+  - `_test_quarantine/` je vyloučená z gitu lokálně přes `.git/info/exclude`.
+- **Ponecháno k rozhodnutí vlastníka:**
+  - `auth_settings` `allow_registration=1` a `allow_guest=1`: testovací pomocník registraci zapíná a nevrací, původní hodnoty nejsou známé.
+  - projekt `test_source_proj` v chat DB a Chroma: neodpovídá dnešním vzorům, je starší.
+
+### Oprava izolace testů
+
+Commit: `fix(tests): Make test isolation independent of how the suite is started` (hash doplní další krok)
+
+- Všech 21 testovacích modulů importuje `tests` jako **první** import, oddělený `# isort: split`, aby ho isort nepřesunul za `main`/`core`. Discovery `discover tests` (top-level moduly) teď běží izolovaně.
+- `tests/__init__.py`: když je `core.config` už načtený (discovery z kořene přes `services/test_service.py`), balíček vyhodí `RuntimeError` se správným příkazem. Testy se pak vůbec nenačtou a nespustí.
+  - Při tom se načte jen `services/test_service.py` s jeho importy (idempotentní `CREATE TABLE IF NOT EXISTS` nad existující chat DB). `main` ani `AuthService` se nenačtou.
+- `test_project_authz.py`: lokální proměnná `tests` přejmenovaná na `test_files` (zastiňovala import).
+- **Nový `tests/test_isolation.py`:**
+  - sada běží nad dočasným adresářem a `services.chat.storage` sdílí stejný adresář;
+  - doporučený příkaz, `discover tests` i discovery z kořene se spouštějí v **kopii kódu v dočasném adresáři** bez `AIMEDSTUDIO_DATA_DIR`, takže ani selhání pojistky nesáhne na skutečná data. První dva musí být izolované, třetí se nesmí načíst a v kořeni nesmí vzniknout `auth.db`.
+  - Mutační kontroly: bez pojistky 2 selhání, bez prvního importu v `test_ai_resilience.py` 1 selhání.
+- **Ověření:** `ruff check` / `ruff format --check` OK, sada 173 OK (6 přeskočených smoke), smoke 6/6 OK. Časy změn `auth.db`, `chat_history.db`, `chroma_db` a `uploads` jsou před a po celém běhu stejné.
 

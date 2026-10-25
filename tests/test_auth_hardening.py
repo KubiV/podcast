@@ -1,5 +1,9 @@
 """Omezení pokusů o přihlášení a atomické vytvoření prvního admina (krok 1.9)."""
 
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import base64
 import tempfile
 import unittest

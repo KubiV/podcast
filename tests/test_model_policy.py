@@ -6,6 +6,10 @@ admin a uživatelé s vlastním klíčem mohou zadat libovolný model. Testy nev
 sledují jen, zda požadavek skončí na kontrole modelu.
 """
 
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import unittest
 
 from core.logger import active_batches

@@ -1,5 +1,9 @@
 """`.env.example` musí dokumentovat všechny proměnné prostředí, které čte aplikace nebo docker-compose (krok 1.11)."""
 
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import os
 import re
 import unittest

@@ -5,6 +5,10 @@ Testy pracují s datovým adresářem nastaveným v `tests/__init__.py`, vytvá�
 uživatele a projekty a nevolají žádné AI API (negativní případy končí 403 dřív).
 """
 
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import io
 import json
 import os
@@ -116,8 +120,8 @@ class TestPrivateProjects(ProjectAuthzBase):
         decks = [d["filename"] for d in c.get("/api/flashcards").json()["decks"]]
         self.assertNotIn("authz_bob_proj_q1.json", decks)
 
-        tests = [t["filename"] for t in c.get("/api/tests").json()["tests"]]
-        self.assertNotIn("authz_bob_proj_t1.json", tests)
+        test_files = [t["filename"] for t in c.get("/api/tests").json()["tests"]]
+        self.assertNotIn("authz_bob_proj_t1.json", test_files)
 
         outputs = c.get("/api/outputs").json()["files"]
         self.assertIn("authz_alice_proj_q1.mp3", outputs)

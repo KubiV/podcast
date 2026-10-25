@@ -6,6 +6,10 @@ Bezpečnost: škodlivé HTML se ze stránky odstraní, viewer smí tisknout, ser
 pro vzdálené klienty a úlohy mají limity.
 """
 
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import html
 import re
 import unittest

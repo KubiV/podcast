@@ -2,7 +2,18 @@
 
 import os
 import socket
+import sys
 import tempfile
+
+# Pojistka: konfigurace aplikace se nesmí načíst dřív než tento balíček, jinak by testy běžely nad skutečnými daty
+# (vývojový datový adresář = kořen repa). Stává se to při `python -m unittest` bez parametrů (discovery z kořene
+# importuje services/test_service.py) nebo když testovací modul neimportuje `tests` jako první. Viz incident v
+# docs/audit/CHANGELOG.md (krok 5.1). Správné spuštění: python -m unittest discover -s tests -t .
+if "core.config" in sys.modules:
+    raise RuntimeError(
+        "Konfigurace aplikace (core.config) je načtená dřív než balíček tests – testy by běžely nad skutečnými daty, "
+        "proto se nespustí. Spusťte je příkazem: python -m unittest discover -s tests -t ."
+    )
 
 # Testy musí běžet nad izolovaným datovým adresářem: import `main` vytváří SQLite databáze,
 # složky a spouští migrace. Proměnnou nastavujeme dřív, než kterýkoli testovací modul importuje `core.config`.

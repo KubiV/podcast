@@ -5,6 +5,10 @@ Stream se čte přímo z generátoru endpointu `main.stream_logs()`. Uživatel o
 se nastavuje přes `current_user_var` stejně, jako to dělá auth middleware.
 """
 
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import asyncio
 import json
 import unittest

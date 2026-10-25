@@ -5,6 +5,10 @@ Charakterizace: export → import běžného projektu zachová soubory a výstup
 Bezpečnost: allowlist přípon, únik z cílové složky, zip bomb, limity velikosti a počtu, path traversal v úložišti testů.
 """
 
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import io
 import json
 import os

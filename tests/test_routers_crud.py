@@ -4,6 +4,10 @@ statistiky, plánovač, otázky a chat vlákna. Zachycují současné chování 
 (fáze 3); časové hodnoty (mtime, created_at) se záměrně neporovnávají.
 """
 
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import json
 import os
 import time

@@ -6,6 +6,10 @@ v `services.ai_service` a wrapper `services.lesson_service` s vlastní mapou zá
 `asyncio.sleep` je nahrazený záznamníkem, takže testy nečekají a zaznamenají plán čekání.
 """
 
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import asyncio
 import unittest
 from types import SimpleNamespace

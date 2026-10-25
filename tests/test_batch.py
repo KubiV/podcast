@@ -5,6 +5,10 @@ Golden master zachycuje úplný průběh (logy + dávkové události v pořadí,
 úklid `active_batches`) pro 3 režimy × 10 scénářů. Explicitní testy dokumentují rozdíly mezi režimy.
 """
 
+import tests  # noqa: F401 – musí být první: izolace dat, prázdné API klíče a blokace sítě (tests/__init__.py)
+
+# isort: split
+
 import json
 import os
 import unittest
