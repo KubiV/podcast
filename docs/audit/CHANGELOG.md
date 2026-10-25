@@ -706,9 +706,17 @@ Každá sekce = jeden commit. Kontroly po každém kroku:
 
 ### 3.5.1 Pomodoro → `static/js/pomodoro.js`
 
-Commit: `refactor(frontend): Move Pomodoro section into pomodoro.js` (hash doplní další krok)
+Commit: `e268ee2` – `refactor(frontend): Move Pomodoro section into pomodoro.js`
 
 - Řádky 14167–15107 původního `app.js` (banner, stav a 40+ funkcí Pomodora, konec souboru) se přesunuly beze změny, včetně odsazení, do `static/js/pomodoro.js` s krátkou hlavičkou. `app.js` 15 107 → 14 166 ř.
 - `index.html`: `<script src="/js/pomodoro.js">` hned za `app.js`, cache-busting `?v=2.7`.
 - Smoke test teď hledá jména handlerů ve všech `static/js/*.js`.
 - **Ověření:** `app.js` + `pomodoro.js` bez hlavičky == původní `app.js` (`cmp`). `node --check` OK. Smoke 4/4 OK (313 funkcí z handlerů existuje, `initPomodoro()` i průchod sekcí Pomodoro bez chyb). Běžná sada 148 OK (4 přeskočené smoke).
+
+### 3.5.2 Medulingo → `static/js/medulingo.js`
+
+Commit: `refactor(frontend): Move Medulingo section into medulingo.js` (hash doplní další krok)
+
+- Řádky 12665–14166 původního `app.js` (Medulingo: stav, přehled, otázky, kroky studijní cesty, mini-test, chat, kartičky) se přesunuly beze změny do `static/js/medulingo.js` s krátkou hlavičkou. `app.js` 14 166 → 12 664 ř.
+- `index.html`: pořadí `app.js` → `medulingo.js` → `pomodoro.js`, takže pořadí vykonávání odpovídá původnímu souboru. Cache-busting `app.js`/`medulingo.js` `?v=2.8`.
+- **Ověření:** `app.js` + `medulingo.js` + `pomodoro.js` (bez hlaviček) == **původní** `app.js` před krokem 3.5 (`cmp`). `node --check` OK u všech tří. Smoke 4/4 OK (`loadMedulingo()` i průchod sekcí bez chyb, všechny funkce z handlerů existují). Běžná sada 148 OK (4 přeskočené smoke).
