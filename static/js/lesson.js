@@ -34,8 +34,7 @@
         }
 
         function closeNewLessonModal() {
-            const modal = document.getElementById("modalNewLesson");
-            if (modal) modal.classList.add("hidden");
+            hideModal("modalNewLesson");
         }
 
         function onNewLessonTTSProviderChange() {

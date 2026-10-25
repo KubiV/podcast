@@ -22,6 +22,17 @@
             });
         }
 
+        // Zobrazení / skrytí modalu podle id (třída "hidden"); chybějící element se tiše přeskočí.
+        function showModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) modal.classList.remove("hidden");
+        }
+
+        function hideModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) modal.classList.add("hidden");
+        }
+
         let currentProject = "";
         let questions = [];
         let selectedQuestionIndex = null;
@@ -1056,13 +1067,11 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
 
         // --- UVÍTACÍ PRŮVODCE (WELCOME MODAL) ---
         function openWelcomeModal() {
-            const m = document.getElementById("modalWelcome");
-            if (m) m.classList.remove("hidden");
+            showModal("modalWelcome");
         }
 
         function closeWelcomeModal() {
-            const m = document.getElementById("modalWelcome");
-            if (m) m.classList.add("hidden");
+            hideModal("modalWelcome");
             const chk = document.getElementById("welcomeDoNotShowAgain");
             if (chk && chk.checked) {
                 try {
@@ -1251,8 +1260,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
         }
 
         function closeNewProjectQuestionsOfferModal() {
-            const modal = document.getElementById("modalNewProjectQuestionsOffer");
-            if (modal) modal.classList.add("hidden");
+            hideModal("modalNewProjectQuestionsOffer");
         }
 
         function chooseNewProjectAction(action) {
@@ -1366,8 +1374,7 @@ ZÁVAZNÁ PRAVIDLA PRO POKROČILÉ ANKI KARTIČKY:
         }
 
         function closeProjectManagerModal() {
-            const modal = document.getElementById("modalProjectManager");
-            if (modal) modal.classList.add("hidden");
+            hideModal("modalProjectManager");
         }
 
         async function renderPmProjectsTable() {

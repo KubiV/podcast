@@ -1681,8 +1681,7 @@
         }
 
         function closePlannerImportModal() {
-            const modal = document.getElementById("modalPlannerImport");
-            if (modal) modal.classList.add("hidden");
+            hideModal("modalPlannerImport");
         }
 
         function setPlannerImportTab(tab) {
@@ -1858,8 +1857,7 @@
         }
 
         function closePlannerAddQuestionModal() {
-            const modal = document.getElementById("modalPlannerAddQuestion");
-            if (modal) modal.classList.add("hidden");
+            hideModal("modalPlannerAddQuestion");
         }
 
         function savePlannerQuestionFromModal() {

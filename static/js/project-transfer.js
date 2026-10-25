@@ -86,8 +86,7 @@
         }
 
         function closeProjectExportModal() {
-            const modal = document.getElementById("modalProjectExport");
-            if (modal) modal.classList.add("hidden");
+            hideModal("modalProjectExport");
         }
 
         async function executeProjectExport() {
@@ -151,8 +150,7 @@
         }
 
         function closeProjectImportModal() {
-            const modal = document.getElementById("modalProjectImport");
-            if (modal) modal.classList.add("hidden");
+            hideModal("modalProjectImport");
             currentImportFile = null;
             currentImportInspectData = null;
         }

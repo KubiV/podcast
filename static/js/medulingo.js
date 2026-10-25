@@ -331,8 +331,7 @@
         }
 
         function closeMedulingoModal() {
-            const modal = document.getElementById("medulingoPathModal");
-            if (modal) modal.classList.add("hidden");
+            hideModal("medulingoPathModal");
             // Stop audio if playing
             const audio = document.getElementById("medAudioPlayer");
             if (audio) audio.pause();

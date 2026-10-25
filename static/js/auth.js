@@ -227,14 +227,12 @@
         }
 
         function showAuthModal(view = 'login', allowReg = authRegistrationAllowed, allowGuest = authGuestAllowed) {
-            const modal = document.getElementById("modalAuth");
-            if (modal) modal.classList.remove("hidden");
+            showModal("modalAuth");
             showAuthView(view, allowReg, allowGuest);
         }
 
         function hideAuthModal() {
-            const modal = document.getElementById("modalAuth");
-            if (modal) modal.classList.add("hidden");
+            hideModal("modalAuth");
         }
 
         function showAuthView(view, allowReg = authRegistrationAllowed, allowGuest = authGuestAllowed) {
@@ -1010,8 +1008,7 @@
         }
 
         function closeSettingsModal() {
-            const modal = document.getElementById("modalSettings");
-            if (modal) modal.classList.add("hidden");
+            hideModal("modalSettings");
         }
 
 

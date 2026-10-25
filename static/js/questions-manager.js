@@ -18,8 +18,7 @@
         }
 
         function closeQuestionsManagerModal() {
-            const modal = document.getElementById("modalQuestionsManager");
-            if (modal) modal.classList.add("hidden");
+            hideModal("modalQuestionsManager");
         }
 
         function editQuestionById(id) {

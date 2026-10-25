@@ -817,8 +817,7 @@
         }
 
         function closePomodoroCompleteModal() {
-            const modal = document.getElementById("modalPomodoroComplete");
-            if (modal) modal.classList.add("hidden");
+            hideModal("modalPomodoroComplete");
         }
 
         function onPomodoroModalPrimaryAction() {
@@ -839,8 +838,7 @@
 
         // --- PODCAST PLAYER MODAL ---
         function closePodcastPlayer() {
-            const modal = document.getElementById("modalPodcastPlayer");
-            if (modal) modal.classList.add("hidden");
+            hideModal("modalPodcastPlayer");
             const audioEl = document.getElementById("podcastAudioElement");
             if (audioEl) audioEl.pause();
         }
@@ -852,8 +850,7 @@
             
             transcriptContainer.innerHTML = `<div class="text-center text-slate-500 py-10">${t("podcast.loadingTranscript", "Načítám text...")}</div>`;
             
-            const modal = document.getElementById("modalPodcastPlayer");
-            if (modal) modal.classList.remove("hidden");
+            showModal("modalPodcastPlayer");
             
             audioEl.src = `/audio/${filename}`;
             audioEl.load();

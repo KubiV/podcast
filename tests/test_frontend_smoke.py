@@ -239,6 +239,48 @@ class TestFrontendSmoke(unittest.TestCase):
         self.assertEqual(calls[0], calls[1])
         self.assertEqual(calls[2], calls[3])
 
+    def test_modal_helpers(self):
+        """`showModal`/`hideModal` (krok 4.8c) přepínají třídu hidden a chybějící element tiše přeskočí."""
+        self.login()
+        states = self.page.evaluate(
+            """() => {
+                const m = document.getElementById("modalWelcome"), s = [];
+                hideModal("modalWelcome"); s.push(m.classList.contains("hidden"));
+                showModal("modalWelcome"); s.push(m.classList.contains("hidden"));
+                closeWelcomeModal(); s.push(m.classList.contains("hidden"));
+                showModal("neexistujiciModal"); hideModal("neexistujiciModal");
+                return s;
+            }"""
+        )
+        self.assertEqual(states, [True, False, True])
+        # Zavírací funkce přepsané na hideModal: modal existuje a po zavolání je skrytý
+        closers = {
+            "closeNewProjectQuestionsOfferModal": "modalNewProjectQuestionsOffer",
+            "closeProjectManagerModal": "modalProjectManager",
+            "hideAuthModal": "modalAuth",
+            "closeSettingsModal": "modalSettings",
+            "closeNewLessonModal": "modalNewLesson",
+            "closeMedulingoModal": "medulingoPathModal",
+            "closePlannerImportModal": "modalPlannerImport",
+            "closePlannerAddQuestionModal": "modalPlannerAddQuestion",
+            "closePomodoroCompleteModal": "modalPomodoroComplete",
+            "closeProjectExportModal": "modalProjectExport",
+            "closeProjectImportModal": "modalProjectImport",
+            "closeQuestionsManagerModal": "modalQuestionsManager",
+        }
+        result = self.page.evaluate(
+            """(closers) => Object.fromEntries(Object.entries(closers).map(([fn, id]) => {
+                const m = document.getElementById(id);
+                if (!m) return [fn, "chybí element"];
+                m.classList.remove("hidden");
+                window[fn]();
+                return [fn, m.classList.contains("hidden")];
+            }))""",
+            closers,
+        )
+        self.assertEqual(result, {fn: True for fn in closers})
+        self.assertEqual(self.errors, [])
+
     def test_render_markdown_pipeline(self):
         self.login()
         html = self.page.evaluate(

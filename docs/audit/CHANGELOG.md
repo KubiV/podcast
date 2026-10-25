@@ -990,7 +990,7 @@ Commit: `a9eaf1b` – `refactor(frontend): Use escapeHtml instead of manual esca
 
 #### 4.8b Helper `sendJson` pro JSON požadavky
 
-Commit: `refactor(frontend): Add sendJson helper for JSON API requests` (hash doplní další krok)
+Commit: `ec2bf76` – `refactor(frontend): Add sendJson helper for JSON API requests`
 
 - `app.js`: nový `sendJson(url, payload, method = "POST")` volá globální `fetch` (s přepisem z `auth.js`) s `{method, headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload)}` a vrací `Response`. Ošetření odpovědi a chyb zůstává na místě volání.
 - **34 volání** v 9 souborech je přepsaných skriptem nad AST (parser TypeScriptu). Přepisovalo se jen tam, kde options obsahovaly *přesně* `method`, `headers` s jediným `Content-Type: application/json` a `body: JSON.stringify(x)`. Výraz `x` se převzal doslova, pouze o úroveň méně odsazený.
@@ -1000,4 +1000,19 @@ Commit: `refactor(frontend): Add sendJson helper for JSON API requests` (hash do
 - **Test:** nový smoke test `test_send_json_matches_plain_fetch` zachytí volání `window.fetch` a ověří, že `sendJson` předá stejnou URL i options jako původní zápis (POST i PATCH, payload s diakritikou a uvozovkami).
 - **Ověření:** `node --check` všech skriptů, smoke 5/5 OK, běžná sada 157 OK (5 přeskočených smoke).
 - Řádků: +140 / −266.
+
+#### 4.8c Helpery `showModal` / `hideModal`
+
+Commit: `refactor(frontend): Add showModal/hideModal helpers` (hash doplní další krok)
+
+- `app.js`: `showModal(id)` / `hideModal(id)` odebírají / přidávají třídu `hidden`. Chybějící element se tiše přeskočí, stejně jako v původních `if (modal) …`.
+- **17 míst** v 8 souborech přepsáno skriptem nad AST. Šlo o dvojici `const v = document.getElementById("…modal…"); if (v) v.classList.add|remove("hidden");`, kde `v` se dál v bloku nepoužívá a id obsahuje „modal“.
+  - Funkce: `open/closeWelcomeModal`, `closeNewProjectQuestionsOfferModal`, `closeProjectManagerModal`, `show/hideAuthModal`, `closeSettingsModal`, `closeNewLessonModal`, `closeMedulingoModal`, `closePlannerImportModal`, `closePlannerAddQuestionModal`, `closePomodoroCompleteModal`, `open/closePodcastPlayer`, `closeProjectExportModal`, `closeProjectImportModal`, `closeQuestionsManagerModal`.
+  - Pojmenované funkce zůstávají, volá je HTML. Ostatní kód v nich (localStorage, reset stavu, zastavení audia) zůstal beze změny.
+- Otevírací funkce, které element dál nastavují (`if (!modal) return; …`), zůstaly.
+- `index.html`: cache-busting `?v=2.24` u `app.js` a 7 upravených skriptů.
+- **Test:** nový smoke test `test_modal_helpers`.
+  - Ověřuje přepínání třídy, tichý průchod pro neexistující id a u všech 12 přepsaných zavíracích funkcí, že jejich modal v DOM existuje a po zavolání je skrytý.
+  - Mutační kontrola: `hideModal`, který nepřidá `hidden`, test shodí.
+- **Ověření:** `node --check` všech skriptů, smoke 6/6 OK, běžná sada 157 OK (6 přeskočených smoke). Řádků: +36 / −42.
 
