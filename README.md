@@ -103,8 +103,8 @@ docker compose up -d
   ./deploy.sh --logs   # Živé sledování logů na serveru
   ./deploy.sh --status # Kontrola stavu a healthchecku
   ```
-- **Zpřístupnění přes Cloudflare Tunnel:** viz samostatný průvodce v [CLOUDFLARE_GUIDE.md](CLOUDFLARE_GUIDE.md).
-- **Kompletní serverová dokumentace:** viz [DOCKER_GUIDE.md](DOCKER_GUIDE.md).
+- **Zpřístupnění přes Cloudflare Tunnel:** viz samostatný průvodce v [docs/deployment/CLOUDFLARE_GUIDE.md](docs/deployment/CLOUDFLARE_GUIDE.md).
+- **Kompletní serverová dokumentace:** viz [docs/deployment/DOCKER_GUIDE.md](docs/deployment/DOCKER_GUIDE.md).
 
 
 ---

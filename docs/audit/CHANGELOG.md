@@ -1122,7 +1122,7 @@ Commit: `fbfa4e4` – `fix(tests): Make test isolation independent of how the su
 
 ### 5.1 README: prerekvizity, instalace, testy, lint (D1)
 
-Commit: `docs: Add prerequisites, install, test and lint instructions to README` (hash doplní další krok)
+Commit: `4020e29` – `docs: Add prerequisites, install, test and lint instructions to README`
 
 - **Nová sekce „Prerekvizity a instalace“:**
   - Python 3.11+ (Docker 3.11, vývoj ověřen na 3.14; nesoulad s `pyproject.toml >=3.10` uveden jako otevřený R14);
@@ -1143,4 +1143,23 @@ Commit: `docs: Add prerequisites, install, test and lint instructions to README`
   - u přehledu API odkaz na úplnou OpenAPI dokumentaci `/docs` (po přihlášení, ověřeno: anonymně 401, přihlášeně 200).
 - **Nezměněno (patří do 5.3, SECURITY.md):** úvodní tvrzení „100% lokálně, každý uživatel si zadává vlastní klíče“ neodpovídá serverovému režimu se sdílenými klíči (výchozí `shared_api_keys=1`).
 - **Ověření:** kotva odkazu `#-konfigurace-api-klíčů-byok` odpovídá generování GitHubu. Příkazy pro testy jsou ověřené (sada 173 OK, smoke 6/6 OK), `pypdf` se používá v `services/rag_service.py:40`.
+
+### 5.2 Průvodci nasazením v `docs/deployment/` a opravená tvrzení o rolích (D3)
+
+Commit: `docs: Move deployment guides to docs/deployment and correct role claims` (hash doplní další krok)
+
+- `git mv DOCKER_GUIDE.md CLOUDFLARE_GUIDE.md docs/deployment/`, historie zůstává. Odkazy v `README.md` jsou upravené. Vnitřní odkaz `DOCKER_GUIDE → CLOUDFLARE_GUIDE` vede do stejné složky a platí dál. Jiné relativní odkazy průvodci nemají.
+- **Opravená tvrzení**, ověřená proti `main.py` (middleware), `core/authz.py`, `routers/projects.py`, `core/clients.py` a `services/auth_service.py`:
+  - **Sdílené projekty jsou výchozí (`shared_projects=1`):** každý přihlášený student může číst, měnit i mazat **všechny** projekty včetně adminových. Kontrola vlastníka při mazání a přejmenování platí jen v privátním režimu. Průvodci to dřív nezmiňovali.
+  - **Sdílené API klíče jsou výchozí (`shared_api_keys=1`):** generování studentů platí klíče serveru, s omezením na `AIMEDSTUDIO_ALLOWED_MODELS`. V BYOK režimu admin bez klíče používá klíč serveru, ostatní bez klíče negenerují.
+  - **Pozorovatel a host čtou všechny projekty** v obou režimech, což průvodci tvrdili jen obecně.
+  - Pozorovateli se blokují mutace s výjimkou `/api/auth/*`, `/api/print/prepare` a `/api/tests/evaluate-open-answer`. To poslední je lokální hodnocení bez AI, takže tvrzení „nečerpá AI tokeny“ platí. Dřív průvodci psali „veškeré mutační požadavky“.
+  - **Registrace jsou ve výchozím stavu zapnuté** (se schvalováním), host je vypnutý.
+  - `APP_PASSWORD` (HTTP Basic) přihlásí **jako admin**: přidáno varování.
+  - Relace „zůstat přihlášený“ trvá 30 dní, bez volby 1 den.
+- Obě sekce o rolích mají novou tabulku režimů sdílení s výchozími hodnotami a doporučení pro server dostupný z internetu.
+  - `DOCKER_GUIDE`: opravený obsah, který odkazoval na neexistující „Zabezpečení přístupu heslem“, a přečíslování 7.1–7.4.
+  - `CLOUDFLARE_GUIDE`: dvě sekce „2.“ přečíslovány na 2 a 3.
+- Umístění přepínačů v UI (Nastavení ➔ Uživatelé & schvalování) ověřeno v `index.html`: `settingsUsersTabContent` obsahuje oba přepínače.
+- Kód se nemění.
 

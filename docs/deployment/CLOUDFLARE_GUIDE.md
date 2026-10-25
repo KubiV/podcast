@@ -112,21 +112,31 @@ Ve vaší složce `/srv/compose` máte také `npm` (Nginx Proxy Manager). Pokud 
 
 ## 🔒 Důležité: Zabezpečení přístupu z internetu a správa rolí (Plná kontrola)
 
-Jelikož je aplikace přístupná přes Cloudflare z celého internetu, má **zabudovaný systém účtů se třemi úrovněmi oprávnění a schvalovacím procesem administrátora**:
+Aplikace přístupná přes Cloudflare je dostupná z celého internetu. Má zabudovaný systém účtů se třemi rolemi a schvalováním administrátorem. **Oddělení dat mezi studenty a to, kdo platí AI, ale určují režimy sdílení – ve výchozím stavu jsou projekty i API klíče sdílené (viz bod 1.2 níže).** Před zveřejněním je projděte.
 
 ### 1. Uživatelské role v systému 👥
 * **👑 Administrátor (`admin`):**
-  - Plná práva nad celou instancí serveru.
-  - Tvorba podcastů, nahrávání souborů, generování zápisků a testů.
-  - Správa nastavení, API klíčů a schvalování/odmítání nových účtů.
-  - Možnost měnit role existujících uživatelů a zapínat/vypínat režim hosta.
-* **🎓 Student / Uživatel (`user`):**
-  - Plnohodnotná tvorba výukových materiálů, podcastů, flashcards, testů a studium.
-  - Nemá přístup do administrace serveru ani ke schvalování jiných uživatelů.
-* **👁️ Pozorovatel (`viewer`):**
-  - **Pouze pro čtení a poslech hotových věcí.**
-  - Může neomezeně procházet projekty, poslouchat vygenerované podcasty, číst zápisky a procházet testy.
-  - **Nemá oprávnění nic nového generovat**, nahrávat soubory, mazat data ani měnit cizí materiály (veškeré mutační požadavky backend automaticky odmítá s kódem 403 Forbidden).
+  - Plná práva nad celou instancí: všechny projekty, nastavení serveru, centrální API klíče.
+  - Schvalování a zamítání registrací, změna rolí, blokování a mazání účtů, přepínače hosta, registrací a režimů sdílení.
+* **🎓 Student (`user`):**
+  - Tvorba obsahu: nahrávání materiálů, podcasty, poznámky, kartičky, testy, chat a lekce.
+  - Nemá přístup do administrace ani ke schvalování uživatelů.
+  - **K jakým projektům má přístup, určuje režim sdílení projektů (viz 1.2) – ve výchozím stavu ke všem.**
+* **👁️ Pozorovatel (`viewer`, i nepřihlášený host):**
+  - Čtení a poslech hotových materiálů **ve všech projektech** (v obou režimech sdílení).
+  - Backend mu odmítne (403) všechny požadavky `POST`/`PUT`/`PATCH`/`DELETE` s výjimkou přihlášení/odhlášení (`/api/auth/*`), přípravy tisku (`/api/print/prepare`) a lokálního vyhodnocení otevřené odpovědi v testu (`/api/tests/evaluate-open-answer`, bez volání AI). Nemůže tedy nic generovat, nahrávat, měnit ani mazat a nečerpá AI tokeny.
+
+### 1.2 Režimy sdílení a výchozí nastavení ⚠️
+Role samy o sobě **neoddělují data jednotlivých studentů**. O tom rozhodují dva přepínače v **Nastavení ➔ Uživatelé & schvalování** (jen admin):
+
+| Přepínač | Výchozí | Zapnuto (ON) | Vypnuto (OFF) |
+|---|---|---|---|
+| **Sdílené projekty** | **ON** | Každý přihlášený student může číst, **měnit i mazat všechny projekty** (včetně projektů admina). | Student pracuje jen s projekty, které sám založil (a s projekty bez vlastníka). Admin vidí vše, pozorovatel čte vše. |
+| **Sdílené (centrální) API klíče** | **ON** | Generování všech uživatelů platí **klíče serveru** (náklady nese admin). Běžný uživatel smí volit jen modely z povoleného seznamu (`AIMEDSTUDIO_ALLOWED_MODELS`). | Každý uživatel používá vlastní klíče (BYOK). Admin bez vlastního klíče použije klíč serveru, ostatní bez klíče nemohou generovat. |
+
+Další výchozí hodnoty: **registrace přes web zapnuté** (nový účet čeká na schválení adminem), **režim hosta vypnutý**.
+
+> **Doporučení pro server dostupný z internetu:** pokud nechcete, aby si studenti navzájem viděli a mazali projekty, vypněte *Sdílené projekty*. Pokud nechcete platit generování za ostatní, vypněte *Sdílené API klíče*. Registrace vypněte, když nové účty nečekáte. Proměnnou `APP_PASSWORD` nepoužívejte – je zastaralá a kdokoli se znalostí hesla se přes HTTP Basic Auth přihlásí **jako administrátor**.
 
 ---
 
@@ -134,10 +144,10 @@ Jelikož je aplikace přístupná přes Cloudflare z celého internetu, má **za
 * **První spuštění (Prvotní setup):**
   Při prvním otevření webu vás systém automaticky vyzve k vytvoření **hlavního administrátorského účtu**. Tento účet je okamžitě aktivován a má plná práva nad celou instancí.
 * **Zůstat přihlášený (Remember Me):**
-  Při přihlášení stačí zaškrtnout volbu *Zůstat přihlášený*. Systém vytvoří zabezpečenou 30denní relaci (HttpOnly cookie), takže se nemusíte přihlašovat pokaždé znovu.
+  Při přihlášení stačí zaškrtnout volbu *Zůstat přihlášený*. Systém vytvoří 30denní relaci (HttpOnly cookie), takže se nemusíte přihlašovat pokaždé znovu. Bez této volby platí relace 1 den.
 * **Režim nepřihlášeného hosta (ON/OFF přepínač):**
   - **Vypnuto (OFF - výchozí stav):** Návštěvníci bez přihlášení nemají přístup k ničemu (blokováno přihlašovací obrazovkou a kódem 401).
-  - **Zapnuto (ON):** Návštěvníci mohou vstoupit na web bez přihlašování a automaticky získají roli **Pozorovatel**. Mohou si vše číst a poslouchat, ale nemohou čerpat vaše API tokeny ani nic generovat.
+  - **Zapnuto (ON):** Návštěvníci mohou vstoupit na web bez přihlašování a automaticky získají roli **Pozorovatel**. Mohou číst a poslouchat materiály **všech projektů**, ale nemohou čerpat vaše API tokeny ani nic generovat.
 * **Schvalování žádostí o registraci:**
   Návštěvník může odeslat žádost o registraci. Účet čeká ve stavu *Pending*. Administrátor v **Nastavení ➔ Uživatelé & schvalování** může jedním klikem:
   - `[🎓 Student]` – schválit účet s plnými právy pro tvorbu.
@@ -146,11 +156,11 @@ Jelikož je aplikace přístupná přes Cloudflare z celého internetu, má **za
 * **Změna rolí a blokování uživatelů:**
   Administrátor může u kteréhokoliv uživatele v seznamu kdykoliv změnit roli (např. ze studenta na pozorovatele a naopak) nebo účet dočasně zablokovat/smazat.
 * **Vypnutí registrací (ON/OFF přepínač):**
-  Pokud nechcete, aby se kdokoliv mohl vůbec registrovat, v Nastavení jednoduše přepněte přepínač *Povolit registraci nových účtů přes web* na **OFF**. Formulář pro žádosti o registraci se okamžitě uzamkne.
+  Registrace jsou **ve výchozím stavu zapnuté** (každý nový účet čeká na schválení). Pokud nechcete, aby se kdokoliv mohl vůbec registrovat, v Nastavení přepněte přepínač *Povolit registraci nových účtů přes web* na **OFF**. Formulář pro žádosti o registraci se okamžitě uzamkne.
 
 ---
 
-### 2. Doplňková vrstva: Cloudflare Access (Zero Trust) 🔐
+### 3. Doplňková vrstva: Cloudflare Access (Zero Trust) 🔐
 Pokud chcete ještě druhou úroveň ochrany před samotným webem (přihlašování přes Google, GitHub nebo e-mailový kód OTP):
 1. V Cloudflare Zero Trust přejděte na **Access** ➔ **Applications**.
 2. Klikněte na **Add an application** ➔ **Self-hosted**.

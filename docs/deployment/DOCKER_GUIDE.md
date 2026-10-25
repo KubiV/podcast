@@ -13,7 +13,7 @@ AI MedStudio podporuje **dva rovnocenné režimy provozu**:
 4. [Aktualizace aplikace (SSH Deploy z Macu & Skript na Pi)](#4-aktualizace-aplikace-ssh-deploy-z-macu--skript-na-pi)
 5. [Přístup z iPadu, tabletu a mobilu (PWA)](#5-přístup-z-ipadu-tabletu-a-mobilu-pwa)
 6. [Vzdálený přístup přes Cloudflare Tunnel & Tailscale](#6-vzdálený-přístup-přes-cloudflare-tunnel--tailscale)
-7. [Zabezpečení přístupu heslem](#7-zabezpečení-přístupu-heslem)
+7. [Správa uživatelských účtů, rolí a zabezpečení](#7-správa-uživatelských-účtů-rolí-a-zabezpečení)
 8. [Zálohování a obnova dat](#8-zálohování-a-obnova-dat)
 9. [Řešení potíží (Troubleshooting)](#9-řešení-potíží-troubleshooting)
 
@@ -233,29 +233,40 @@ Pokud preferujete čistě privátní síť bez vystavení domény do internetu:
 
 ## 7. Správa uživatelských účtů, rolí a zabezpečení
 
-Aplikace obsahuje integrovaný autentizační systém s **třemi rolemi** a **režimem hosta**:
+Aplikace obsahuje integrovaný autentizační systém se **třemi rolemi**, **režimem hosta** a dvěma **režimy sdílení**, které rozhodují o oddělení dat a o tom, kdo platí AI:
 
 ### 7.1 Uživatelské role
 * **👑 Administrátor (`admin`):**
-  - Plná kontrola nad serverem, konfigurací a API klíči.
-  - Generování veškerého obsahu (podcasty, zápisky, kartičky, testy).
-  - Schvalování nových uživatelů, změna rolí a správa přístupů.
+  - Plná práva nad celou instancí: všechny projekty, nastavení serveru, centrální API klíče.
+  - Schvalování a zamítání registrací, změna rolí, blokování a mazání účtů, přepínače hosta, registrací a režimů sdílení.
 * **🎓 Student (`user`):**
-  - Plná tvorba a studium (generování podcastů, nahrávání studijních materiálů, poznámky, testy).
-  - Nemá přístup do administrátorských nastavení serveru.
-* **👁️ Pozorovatel (`viewer`):**
-  - **Pouze pro čtení a poslech hotových materiálů.**
-  - Může si neomezeně procházet projekty, poslouchat podcasty, číst zápisky a zkoušet testy.
-  - **Nemůže nic generovat**, nahrávat soubory ani upravovat/mazat data (veškeré mutační požadavky backend blokuje s chybou 403 Forbidden).
+  - Tvorba obsahu: nahrávání materiálů, podcasty, poznámky, kartičky, testy, chat a lekce.
+  - Nemá přístup do administrace ani ke schvalování uživatelů.
+  - **K jakým projektům má přístup, určuje režim sdílení projektů (viz 7.2) – ve výchozím stavu ke všem.**
+* **👁️ Pozorovatel (`viewer`, i nepřihlášený host):**
+  - Čtení a poslech hotových materiálů **ve všech projektech** (v obou režimech sdílení).
+  - Backend mu odmítne (403) všechny požadavky `POST`/`PUT`/`PATCH`/`DELETE` s výjimkou přihlášení/odhlášení (`/api/auth/*`), přípravy tisku (`/api/print/prepare`) a lokálního vyhodnocení otevřené odpovědi v testu (`/api/tests/evaluate-open-answer`, bez volání AI). Nemůže tedy nic generovat, nahrávat, měnit ani mazat a nečerpá AI tokeny.
 
-### 7.2 Režim nepřihlášeného hosta (ON/OFF)
-* **Vypnuto (OFF - výchozí stav):** Návštěvníci bez přihlášení jsou zablokováni přihlašovací obrazovkou (kód 401).
-* **Zapnuto (ON):** Návštěvníci mohou otevřít aplikaci bez zadávání hesla v roli **Pozorovatel**. Mohou studovat hotové materiály, ale nečerpají vaše AI tokeny ani nemění vaše data.
+### 7.2 Režimy sdílení a výchozí nastavení ⚠️
+Role samy o sobě **neoddělují data jednotlivých studentů**. O tom rozhodují dva přepínače v **Nastavení ➔ Uživatelé & schvalování** (jen admin):
 
-### 7.3 První spuštění a schvalování
+| Přepínač | Výchozí | Zapnuto (ON) | Vypnuto (OFF) |
+|---|---|---|---|
+| **Sdílené projekty** | **ON** | Každý přihlášený student může číst, **měnit i mazat všechny projekty** (včetně projektů admina). | Student pracuje jen s projekty, které sám založil (a s projekty bez vlastníka). Admin vidí vše, pozorovatel čte vše. |
+| **Sdílené (centrální) API klíče** | **ON** | Generování všech uživatelů platí **klíče serveru** (náklady nese admin). Běžný uživatel smí volit jen modely z povoleného seznamu (`AIMEDSTUDIO_ALLOWED_MODELS`). | Každý uživatel používá vlastní klíče (BYOK). Admin bez vlastního klíče použije klíč serveru, ostatní bez klíče nemohou generovat. |
+
+Další výchozí hodnoty: **registrace přes web zapnuté** (nový účet čeká na schválení adminem), **režim hosta vypnutý**.
+
+> **Doporučení pro server dostupný z internetu:** pokud nechcete, aby si studenti navzájem viděli a mazali projekty, vypněte *Sdílené projekty*. Pokud nechcete platit generování za ostatní, vypněte *Sdílené API klíče*. Registrace vypněte, když nové účty nečekáte. Proměnnou `APP_PASSWORD` nepoužívejte – je zastaralá a kdokoli se znalostí hesla se přes HTTP Basic Auth přihlásí **jako administrátor**.
+
+### 7.3 Režim nepřihlášeného hosta (ON/OFF)
+* **Vypnuto (OFF – výchozí stav):** Návštěvníci bez přihlášení jsou zablokováni přihlašovací obrazovkou (kód 401).
+* **Zapnuto (ON):** Návštěvníci otevřou aplikaci bez hesla v roli **Pozorovatel** – mohou číst a poslouchat materiály všech projektů, ale nic negenerují ani nemění.
+
+### 7.4 První spuštění a schvalování
 1. **Prvotní setup:** Při prvním spuštění si vytvoříte hlavní administrátorský účet.
 2. **Schvalování žádostí:** V **Nastavení ➔ Uživatelé & schvalování** vidíte žádosti o registraci a schválíte je buď jako **Student**, nebo **Pozorovatel**, případně zamítnete.
-3. **Zůstat přihlášený:** Volba *Zůstat přihlášený* vytvoří bezpečnou relaci na 30 dní.
+3. **Zůstat přihlášený:** Volba *Zůstat přihlášený* vytvoří relaci na 30 dní (HttpOnly cookie), bez ní platí relace 1 den.
 
 ---
 
