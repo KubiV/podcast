@@ -763,8 +763,16 @@ Commit: `cbf807e` – `refactor(frontend): Move Lesson section into lesson.js`
 
 ### 3.5.8 Viewer navigation → `static/js/viewer-navigation.js`
 
-Commit: `refactor(frontend): Move Viewer navigation section into viewer-navigation.js` (hash doplní další krok)
+Commit: `197c275` – `refactor(frontend): Move Viewer navigation section into viewer-navigation.js`
 
 - Řádky 9249–10194 původního `app.js` (946 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/viewer-navigation.js` s krátkou hlavičkou. `app.js` 10194 → 9248 ř.
 - `index.html`: `viewer-navigation.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`viewer-navigation.js` `?v=2.14`.
+- **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
+
+### 3.5.9 Grounded chat → `static/js/chat.js`
+
+Commit: `refactor(frontend): Move Grounded chat section into chat.js` (hash doplní další krok)
+
+- Řádky 7926–9248 původního `app.js` (1323 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/chat.js` s krátkou hlavičkou. `app.js` 9248 → 7925 ř.
+- `index.html`: `chat.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`chat.js` `?v=2.15`.
 - **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
