@@ -190,7 +190,7 @@ Důvod: pro běžné hodnoty se výstup nemění a nemusí se sahat na logiku ud
 
 ## 1.7 ⚠ Limity importu a uploadu, path traversal v úložišti testů (nálezy S6b–d, S7, S15)
 
-Commit: `fix(security): Limit and validate project imports and uploads` (hash doplní další krok)
+Commit: `fa9894a` – `fix(security): Limit and validate project imports and uploads`
 
 **Zabezpečeno:**
 - Nový `core/uploads.py`:
@@ -232,3 +232,44 @@ Commit: `fix(security): Limit and validate project imports and uploads` (hash do
 **Zjištěné chyby (zapsáno, neopraveno):**
 - Upload vytvoří složku projektu (`os.makedirs`) ještě před kontrolou souborů, takže při odmítnutí může zůstat prázdná složka nového projektu. Chyba existovala už dřív.
 - Import dál načítá `chroma_vectors.json` a `database.json` celé do paměti. Strop teď dává jen limit rozbalené velikosti archivu.
+
+## 1.8 ⚠ Pinnuté externí knihovny, SRI a CSP hlavička (nález F5)
+
+Commit: `fix(security): Pin CDN assets with SRI and add Content-Security-Policy` (hash doplní další krok)
+
+**Zabezpečeno:**
+- `static/index.html`: všechny externí knihovny mají přesnou verzi a kde to jde, SRI (`sha384`) s `crossorigin="anonymous"`. Hash jsem pro každý soubor spočítal ze dvou nezávislých stažení.
+
+  | Knihovna | Verze | SRI |
+  |---|---|---|
+  | `marked` | 15.0.12 | ano |
+  | DOMPurify | 3.4.16 | ano (už z kroku 1.4) |
+  | KaTeX CSS, JS a auto-render | 0.16.11 | ano |
+  | Tailwind Play CDN | 3.4.17 | **ne** (viz níže) |
+
+  Pinnuté verze jsou bajtově shodné s tím, co se dosud servírovalo bez verze, takže se chování nemění. Npm už má `marked` 18.1.1, ale upgrade je samostatné rozhodnutí.
+- **Výjimka Tailwind:** `cdn.tailwindcss.com` neposílá CORS hlavičky. S `crossorigin` + `integrity` prohlížeč Tailwind nenačetl a aplikace byla bez stylů (zachyceno v prohlížeči). Tailwind má proto jen pinnutou verzi. Skutečné řešení je build Tailwindu nebo self-hosting souboru, což je změna závislostí a vyžaduje souhlas.
+- `core/security.py` + `main.py`: middleware přidává `Content-Security-Policy` ke **HTML odpovědím** bez vlastní CSP:
+  - `default-src 'self'`,
+  - skripty jen z `'self'` a tří uvedených CDN,
+  - `connect-src 'self'`,
+  - `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'self'`,
+  - obrázky `https:`/`data:`/`blob:`, média a iframy `'self'`/`blob:`.
+- Tiskový náhled si nechává svou přísnější CSP z kroku 1.5. Soubory (PDF apod.) a JSON hlavičku nedostávají, aby se nerozbil vestavěný prohlížeč PDF.
+
+**Omezení:** `script-src` musí obsahovat `'unsafe-inline'` kvůli ~480 inline handlerům (`onclick=…`). CSP proto nebrání vloženému inline skriptu. Omezuje hlavně původ externích skriptů, pluginy, `<base>`, cíle formulářů a vkládání do cizích rámců. Plná ochrana vyžaduje přechod na delegované listenery (kroky 3.5/4.8).
+
+**Ověření v prohlížeči (dočasný server s testovacími daty):**
+- Všechny knihovny se načetly. SRI prošlo u čtyř souborů, fonty KaTeX se načetly z jsdelivr.
+- Vzorce se vykreslují. Fungují iframe s PDF, audio, SSE stream `/api/logs`, stažení přes blob a data obrázky.
+- Přepnutí sekce přes inline `onclick` funguje.
+- Událost `securitypolicyviolation` se nevyskytla ani jednou.
+
+**Testy:** nový `tests/test_security_headers.py` (4 testy).
+- Před změnou prošly charakterizační testy: tiskový náhled má vlastní CSP, `/health` a PDF hlavičku nemají.
+- Před změnou selhaly: CSP na indexu a pinnutí/SRI u 5 externích zdrojů.
+- Po změně prochází vše.
+
+**Ověření vůči baseline:** 74/74 testů OK, `ruff check` beze změny (2× UP038), F401 130, `ruff format` OK, seznam OpenAPI cest identický.
+
+**Neověřeno:** desktopová aplikace (pywebview). CSP se na ni vztahuje stejně, protože načítá stránku z lokálního serveru, ale v pywebview jsem ji nespouštěl.

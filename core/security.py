@@ -36,3 +36,24 @@ def safe_filename(filename: str) -> str:
     base = os.path.basename(filename.strip().replace("\\", "/"))
     cleaned = re.sub(r"[^\w\-_.]", "_", base)
     return re.sub(r"_+", "_", cleaned).strip("._")
+
+
+# CSP pro HTML stránky aplikace. 'unsafe-inline' ve script-src je zatím nutné kvůli inline handlerům
+# v index.html/app.js (onclick=…); omezuje se tím hlavně původ externích skriptů, pluginy a <base>.
+APP_CONTENT_SECURITY_POLICY = "; ".join(
+    [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+        "font-src 'self' data: https://cdn.jsdelivr.net",
+        "img-src 'self' data: blob: https:",
+        "media-src 'self' blob:",
+        "connect-src 'self'",
+        "frame-src 'self' blob:",
+        "worker-src 'self' blob:",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'self'",
+    ]
+)

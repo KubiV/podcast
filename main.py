@@ -49,7 +49,7 @@ from core.logger import (
     send_log,
     stream_events,
 )
-from core.security import safe_filename, safe_join
+from core.security import APP_CONTENT_SECURITY_POLICY, safe_filename, safe_join
 from core.utils import (
     chunk_text,
     extract_gemini_error_detail,
@@ -145,6 +145,17 @@ def migrate_lessons_out_of_uploads() -> None:
 migrate_lessons_out_of_uploads()
 
 app = FastAPI(title="AI MedStudio")
+
+
+# --- Bezpečnostní hlavičky ---
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    # CSP jen pro HTML stránky; stránky s vlastní CSP (tiskový náhled) a soubory (PDF apod.) se nemění
+    content_type = response.headers.get("content-type", "")
+    if content_type.startswith("text/html") and "content-security-policy" not in response.headers:
+        response.headers["Content-Security-Policy"] = APP_CONTENT_SECURITY_POLICY
+    return response
 
 
 # --- Auth Middleware ---
