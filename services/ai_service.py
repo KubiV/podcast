@@ -8,7 +8,7 @@ import asyncio
 import json
 import re
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any
 
 from google import genai
 from google.genai import types

@@ -1,6 +1,3 @@
-import os
-from typing import Any
-
 from fastapi import APIRouter, Body, HTTPException, Request
 
 from core.authz import require_project_access
@@ -9,7 +6,6 @@ from core.config import TESTS_DIR, USER_DATA_DIR
 from core.context import current_user_var
 from core.logger import send_log
 from core.utils import sanitize_name
-from prompts.podcast import DEFAULT_PODCAST_PROMPT
 from services.ai_service import call_gemini_with_retries
 from services.flashcards_service import internal_generate_flashcards
 from services.medulingo_service import MEDULINGO_PODCAST_PROMPT, MedulingoService

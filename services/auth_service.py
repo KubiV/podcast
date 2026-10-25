@@ -14,7 +14,7 @@ import re
 import secrets
 import sqlite3
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 # Povolené znaky pro nová uživatelská jména (písmena vč. diakritiky, číslice, _ . - @).
 # Stávající účty se nekontrolují; jméno se zobrazuje v administraci a nesmí obsahovat HTML/uvozovky.

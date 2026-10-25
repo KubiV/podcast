@@ -1,7 +1,4 @@
-import os
-import traceback
 import uuid
-from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Body, HTTPException
 
@@ -13,7 +10,6 @@ from services.batch import BatchTexts, run_question_batch
 from services.flashcards_service import internal_generate_flashcards
 from services.notes_service import internal_generate_notes
 from services.podcast_service import (
-    create_srt_for_audio,
     internal_generate_audio,
     internal_generate_script,
 )

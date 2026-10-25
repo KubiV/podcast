@@ -1,8 +1,6 @@
 import base64
 import hashlib
 import html as html_lib
-import subprocess
-import sys
 import uuid
 import webbrowser
 from datetime import datetime
@@ -12,8 +10,6 @@ from fastapi import APIRouter, Body, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 from core.html_sanitizer import sanitize_html
-from core.logger import send_log
-from core.utils import sanitize_name
 
 router = APIRouter()
 

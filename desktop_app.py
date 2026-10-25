@@ -9,7 +9,6 @@ import argparse
 import logging
 import os
 import socket
-import sys
 import threading
 import time
 import webbrowser

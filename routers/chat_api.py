@@ -3,7 +3,6 @@ import os
 import re
 import shutil
 from datetime import datetime
-from typing import Any
 
 from fastapi import APIRouter, Body, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import StreamingResponse
@@ -16,7 +15,6 @@ from core.config import (
     MAX_CUSTOM_SYSTEM_PROMPT_CHARS,
     NOTES_DIR,
     PLANNER_FILENAME,
-    TESTS_DIR,
     UPLOAD_DIR,
 )
 from core.context import current_user_var
@@ -26,7 +24,6 @@ from services.ai_service import call_gemini_with_retries, clean_and_parse_json
 from services.chat_service import (
     clear_project_messages,
     create_thread,
-    delete_lesson,
     delete_thread,
     export_project_chat_markdown,
     export_thread_chat_markdown,
@@ -35,7 +32,6 @@ from services.chat_service import (
     get_thread_messages,
     list_lessons,
     list_threads,
-    save_message,
     stream_grounded_chat,
     toggle_thread_pin,
     update_thread,

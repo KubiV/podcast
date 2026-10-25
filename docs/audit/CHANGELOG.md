@@ -841,4 +841,24 @@ Commit: `1353a3d` – `refactor(frontend): Move Project transfer section into pr
 - Kosmetika bez vlivu na chování: zastaralé zmínky „app.js“ v docstringu smoke testu a komentáři `core/security.py` → `static/js/*.js`.
 - Ruff beze změny (All checks passed), OpenAPI se nedotýká (jen frontend).
 
-- Dodatečně: `ruff format` hlásil `tests/test_frontend_smoke.py` (lambda v `page.on("console", …)`) – odchylka od baseline zavedená už commitem `a9654eb`, přehlédnutá při jeho kontrole. Opraveno samostatným stylovým commitem `style(tests): Format frontend smoke test`; `ruff format --check` je zase čistý.
+- Dodatečně: `ruff format` hlásil `tests/test_frontend_smoke.py` (lambda v `page.on("console", …)`) – odchylka od baseline zavedená už commitem `a9654eb`, přehlédnutá při jeho kontrole. Opraveno samostatným stylovým commitem `65840e2` – `style(tests): Format frontend smoke test`; `ruff format --check` je zase čistý.
+
+## Fáze 4 – úklid
+
+### 4.1 Nepoužívané importy (F401) a zapnutí pravidla
+
+Commit: `refactor: Remove unused imports and enable ruff F401` (hash doplní další krok)
+
+- `ruff check --select F401 --fix`: odstraněno 124 nepoužívaných importů ve 24 souborech. Nejvíc v `main.py` (49 pozůstatků z doby před rozdělením do routerů), dále v `routers/*`, `services/*`, `core/clients.py`, `core/context.py`, `desktop_app.py` a `tests/test_frontend_smoke.py`.
+- `pyproject.toml`: F401 odstraněno z `ignore`, takže pravidlo platí.
+- Navazující kosmetika: `ruff --fix` srovnal blok importů v `services/medulingo_service.py` (I001) a `ruff format` odstranil prázdný první řádek v `routers/medulingo.py`.
+- **Zachovaný re-export:** `routers/medulingo.py` importuje `MEDULINGO_PODCAST_PROMPT` ze `services.medulingo_service`, ne z `prompts.medulingo`. Import ve službě proto zůstal s `# noqa: F401` a komentářem. Odhalil to až pokus o import `main`, autofix sám o sobě by aplikaci rozbil. Přesměrování importu na `prompts.medulingo` patří do 4.5.
+- **Kontrola re-exportů:** AST skript prošel jména odstraněná z každého změněného modulu a hledal jejich použití v celém repu (`from <modul> import`, atributy, řetězcové cíle `patch`). V gitu nezbylo nic dalšího. Dotčené jsou jen:
+  - kořenové shimy `auth_service.py`, `lesson_service.py`, `medulingo_service.py` (`import *` bez `__all__`). Přišly o jména jako `Dict`, `genai` nebo `asyncio`, která nikdo přes shim neimportuje. Shimy se mají mazat ve 4.5.
+  - lokální gitignorované skripty ve `scratch/` (R17). Pět z nich dělá `from main import …` s re-exporty, které z `main.py` zmizely (`resolve_card_source`, `build_anki_tsv`, `call_gemini_with_retries`, `FLASHCARDS_DIR`, `load_user_config`, `sanitize_markdown_tables` aj.). Oprava je importovat z původního modulu (`services.*`, `core.*`).
+- **Ověření:**
+  - `ruff check` All checks passed, `ruff format --check` OK;
+  - import všech 53 modulů v `core`/`services`/`routers`/`prompts` i kořenových shimů OK;
+  - celé OpenAPI schéma `app.openapi()` je bajtově shodné s HEAD;
+  - běžná sada 148 OK (4 přeskočené), smoke 4/4 OK, `py_compile desktop_app.py` OK.
+

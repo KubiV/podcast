@@ -1,15 +1,10 @@
-import csv
-import io
-import mimetypes
 import os
 import re
-import shutil
-from typing import Any
 from urllib.parse import quote
 
 import pdfplumber
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse
 
 from core import uploads as upload_limits
 from core.authz import require_project_access

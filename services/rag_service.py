@@ -4,9 +4,8 @@ sémantický chunking, hybridní vyhledávání v ChromaDB a FTS5.
 """
 
 import asyncio
-import os
 import re
-from typing import Any, Tuple
+from typing import Any
 
 try:
     import docx

@@ -3,11 +3,10 @@ import os
 import shutil
 import tempfile
 import zipfile
-from typing import Any, Optional
 from urllib.parse import quote
 
-from fastapi import APIRouter, BackgroundTasks, Body, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import APIRouter, Body, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 
 from core.authz import filter_accessible_output_files, require_project_access
@@ -15,7 +14,6 @@ from core.clients import get_chroma_client
 from core.config import (
     AUDIO_DIR,
     FLASHCARDS_DIR,
-    LESSONS_DIR,
     NOTES_DIR,
     PLANNER_FILENAME,
     TESTS_DIR,

@@ -6,7 +6,6 @@ vytváření titulků (.srt) a videa (.mp4) přes FFmpeg.
 import asyncio
 import os
 import re
-from typing import Optional, Tuple
 
 import httpx
 

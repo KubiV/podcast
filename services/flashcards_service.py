@@ -9,7 +9,7 @@ from typing import Any
 
 from core.config import FLASHCARDS_DIR
 from core.logger import send_log
-from core.security import safe_filename, safe_join
+from core.security import safe_join
 from core.utils import sanitize_name
 from prompts.flashcards import (
     ADVANCED_ANKI_FLASHCARDS_PROMPT,

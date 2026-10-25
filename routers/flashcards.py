@@ -1,9 +1,7 @@
 import json
 import os
-from typing import Any
-from urllib.parse import quote
 
-from fastapi import APIRouter, Body, HTTPException, Response
+from fastapi import APIRouter, Body, HTTPException
 
 from core.authz import filter_accessible_output_files, require_output_file_access, require_project_access
 from core.clients import require_allowed_model
@@ -14,11 +12,8 @@ from core.utils import sanitize_name
 from prompts.flashcards import (
     ADVANCED_ANKI_FLASHCARDS_PROMPT,
     DEFAULT_FLASHCARDS_PROMPT,
-    FLASHCARDS_PROMPTS,
 )
 from services.flashcards_service import (
-    build_anki_tsv,
-    build_quizlet_text,
     internal_generate_flashcards,
     normalize_front,
     resolve_card_source,

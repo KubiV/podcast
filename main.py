@@ -3,61 +3,33 @@ import os
 import secrets
 import shutil
 import sys
-from datetime import datetime
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from core.authz import ProjectStaticFiles
-from core.clients import (
-    get_chroma_client,
-    get_elevenlabs_api_key,
-    get_gemini_api_key,
-    get_gemini_client,
-    get_openai_api_key,
-    get_openai_client,
-)
 from core.config import (
     APP_PASSWORD,
     AUDIO_DIR,
     BUNDLE_DIR,
-    DB_DIR,
-    FLASHCARDS_DIR,
     IS_FROZEN,
     LESSONS_DIR,
     NOTES_DIR,
     STATIC_DIR,
-    TESTS_DIR,
     UPLOAD_DIR,
     USER_DATA_DIR,
-    load_user_config,
-    save_user_config,
 )
 from core.context import (
     current_language_var,
     current_user_var,
-    get_current_language,
-    get_language_directive,
 )
 from core.logger import (
-    BatchState,
-    active_batches,
-    publish_event,
-    send_batch_event,
-    send_log,
     stream_events,
 )
 from core.rate_limit import LOGIN_MAX_FAILURES_PER_IP, login_limiter
-from core.security import APP_CONTENT_SECURITY_POLICY, safe_filename, safe_join
-from core.utils import (
-    chunk_text,
-    extract_gemini_error_detail,
-    friendly_api_error,
-    is_retryable_gemini_error,
-    sanitize_name,
-)
+from core.security import APP_CONTENT_SECURITY_POLICY
 from routers.auth import init as auth_init
 from routers.auth import router as auth_router
 from routers.batch import router as batch_router
@@ -71,39 +43,7 @@ from routers.print import router as print_router
 from routers.projects import router as projects_router
 from routers.settings import router as settings_router
 from routers.tests_api import router as tests_api_router
-from services.ai_service import (
-    call_gemini_with_resilience,
-    call_gemini_with_retries,
-    clean_and_parse_json,
-    get_fallback_model,
-)
 from services.auth_service import AuthService
-from services.flashcards_service import (
-    build_anki_tsv,
-    build_quizlet_text,
-    internal_generate_flashcards,
-    normalize_front,
-    resolve_card_source,
-)
-from services.notes_service import (
-    internal_generate_notes,
-    sanitize_markdown_tables,
-)
-from services.podcast_service import (
-    create_mp4_with_subtitles,
-    create_srt_for_audio,
-    enrich_prompt_for_tts,
-    internal_generate_audio,
-    internal_generate_script,
-)
-from services.rag_service import (
-    chunk_sections_with_metadata,
-    decompose_question_to_subqueries,
-    extract_sections_from_file,
-    extract_text_from_file,
-    index_file_to_chroma,
-    query_rag_context_with_sources,
-)
 
 load_dotenv()
 

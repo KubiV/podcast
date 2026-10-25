@@ -2,22 +2,18 @@ import asyncio
 import json
 import os
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import pdfplumber
 from dotenv import load_dotenv
-from google import genai
 from google.genai import types
 from mutagen.mp3 import MP3
 
 from core.utils import is_retryable_gemini_error  # noqa: F401 – re-export pro zpětnou kompatibilitu
 from prompts.lesson import STAGE_A_STUDY_MATERIAL_PROMPT, STAGE_B_LECTURE_SCRIPT_PROMPT
 from services.chat_service import (
-    delete_lesson,
     get_ai_client,
     get_chroma_client,
-    get_lesson,
-    list_lessons,
     sanitize_project_name,
     save_or_update_lesson,
 )

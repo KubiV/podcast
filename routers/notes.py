@@ -1,7 +1,6 @@
 import json
 import os
 import re
-from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException
 
@@ -13,7 +12,6 @@ from core.security import safe_filename, safe_join
 from core.utils import friendly_api_error, sanitize_name
 from services.notes_service import (
     internal_generate_notes,
-    sanitize_markdown_tables,
 )
 
 router = APIRouter()

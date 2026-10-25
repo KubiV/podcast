@@ -3,13 +3,12 @@ Služba pro generování strukturovaných studijních poznámek z medicínských
 """
 
 import json
-import os
 import re
 from typing import Any
 
 from core.config import NOTES_DIR
 from core.logger import send_log
-from core.security import safe_filename, safe_join
+from core.security import safe_join
 from core.utils import sanitize_name
 from prompts.notes import DEFAULT_NOTES_PROMPT
 from services.ai_service import call_gemini_with_retries

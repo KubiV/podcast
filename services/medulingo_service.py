@@ -1,12 +1,10 @@
-import asyncio
 import json
 import os
 import re
-import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from prompts.medulingo import MEDULINGO_PODCAST_PROMPT
+from prompts.medulingo import MEDULINGO_PODCAST_PROMPT  # noqa: F401 – re-export pro routers/medulingo.py
 
 
 # Helper for string normalization

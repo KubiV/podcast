@@ -9,7 +9,6 @@ Ověřuje: žádné nezachycené chyby JS při načtení, přihlášení a průc
 globálních funkcí volaných z inline handlerů, běh loaderů sekcí a to, že se nespustí žádný podstrčený skript.
 """
 
-import json
 import os
 import re
 import secrets

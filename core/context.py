@@ -6,7 +6,7 @@ přepisovat signatury desítek existujících funkcí.
 """
 
 from contextvars import ContextVar
-from typing import Any, Optional
+from typing import Any
 
 # Aktuálně přihlášený uživatel (dict s poli id, username, role, status apod.)
 current_user_var: ContextVar[dict[str, Any] | None] = ContextVar("current_user_var", default=None)
