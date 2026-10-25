@@ -49,6 +49,7 @@ from core.logger import (
     send_log,
     stream_events,
 )
+from core.rate_limit import LOGIN_MAX_FAILURES_PER_IP, login_limiter
 from core.security import APP_CONTENT_SECURITY_POLICY, safe_filename, safe_join
 from core.utils import (
     chunk_text,
@@ -207,10 +208,18 @@ async def auth_middleware(request: Request, call_next):
 
     user = auth_service.validate_session(token) if token else None
 
-    # Zpětná kompatibilita pro Basic Auth APP_PASSWORD
+    # Zpětná kompatibilita pro Basic Auth APP_PASSWORD (s omezením neúspěšných pokusů podle IP)
     if not user and APP_PASSWORD:
         auth_h = request.headers.get("Authorization")
         if auth_h and auth_h.startswith("Basic "):
+            basic_key = f"basic-ip:{request.client.host if request.client else 'unknown'}"
+            wait = login_limiter.retry_after([(basic_key, LOGIN_MAX_FAILURES_PER_IP)])
+            if wait:
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Příliš mnoho neúspěšných pokusů o přihlášení."},
+                    headers={"Retry-After": str(wait)},
+                )
             try:
                 encoded = auth_h.split(" ", 1)[1]
                 decoded = base64.b64decode(encoded).decode("utf-8")
@@ -220,6 +229,8 @@ async def auth_middleware(request: Request, call_next):
                         user = {"id": 0, "username": "legacy_admin", "role": "admin", "status": "approved"}
             except Exception:
                 pass
+            if not user:
+                login_limiter.record_failure([basic_key])
 
     if not user and auth_service.is_guest_allowed():
         user = {

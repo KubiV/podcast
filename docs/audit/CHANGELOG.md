@@ -235,7 +235,7 @@ Commit: `fa9894a` – `fix(security): Limit and validate project imports and upl
 
 ## 1.8 ⚠ Pinnuté externí knihovny, SRI a CSP hlavička (nález F5)
 
-Commit: `fix(security): Pin CDN assets with SRI and add Content-Security-Policy` (hash doplní další krok)
+Commit: `5858b6a` – `fix(security): Pin CDN assets with SRI and add Content-Security-Policy`
 
 **Zabezpečeno:**
 - `static/index.html`: všechny externí knihovny mají přesnou verzi a kde to jde, SRI (`sha384`) s `crossorigin="anonymous"`. Hash jsem pro každý soubor spočítal ze dvou nezávislých stažení.
@@ -273,3 +273,38 @@ Commit: `fix(security): Pin CDN assets with SRI and add Content-Security-Policy`
 **Ověření vůči baseline:** 74/74 testů OK, `ruff check` beze změny (2× UP038), F401 130, `ruff format` OK, seznam OpenAPI cest identický.
 
 **Neověřeno:** desktopová aplikace (pywebview). CSP se na ni vztahuje stejně, protože načítá stránku z lokálního serveru, ale v pywebview jsem ji nespouštěl.
+
+## 1.9 ⚠ Omezení pokusů o přihlášení, atomický setup admina, důvěryhodné proxy (nálezy S8, S9, S10)
+
+Commit: `fix(security): Rate-limit logins, make admin setup atomic, restrict trusted proxies` (hash doplní další krok)
+
+**Zabezpečeno:**
+- Nový `core/rate_limit.py`: počítá neúspěšné pokusy v paměti, bez závislostí, v klouzavém okně 15 minut. Limity jsou 10 neúspěchů na dvojici IP + uživatel a 30 na IP. Blokace jen podle uživatelského jména záměrně chybí, aby útočník nemohl zamknout cizí účet z jiné adresy.
+- `routers/auth.py`, `/api/auth/login`:
+  - Při překročení limitu vrací `429` s `Retry-After`, a to i pro správné heslo.
+  - Neúspěch se zapíše oběma čítačům.
+  - Úspěch vynuluje čítač IP + uživatel.
+- `main.py`, legacy Basic Auth (`APP_PASSWORD`): stejné omezení, 30 neúspěchů na IP.
+- `services/auth_service.py`, `create_initial_admin`: kontrola „žádný uživatel“ a vložení admina proběhnou v jedné transakci `BEGIN IMMEDIATE`. Souběžné požadavky na `/api/auth/setup` už nevytvoří víc adminů.
+- `Dockerfile`: odstraněno `--forwarded-allow-ips=*`. Nově `ENV FORWARDED_ALLOW_IPS=172.16.0.0/12`, tedy výchozí Docker sítě (NPM na `proxy_net`, cloudflared). Klienti z LAN už nemohou podvrhnout `X-Forwarded-For` a obejít tím omezení podle IP.
+- `docker-compose.yml`: `FORWARDED_ALLOW_IPS` a adresa publikovaného portu `MEDSTUDIO_BIND_ADDRESS` jsou nastavitelné.
+
+**Rozhodnutí uživatele (odchylka od plánu):** port `8000` zůstává ve výchozím stavu publikovaný na všech rozhraních (`0.0.0.0`), protože DOCKER_GUIDE a CLOUDFLARE_GUIDE počítají s přístupem z LAN, iPadu a Tailscale. `MEDSTUDIO_BIND_ADDRESS=127.0.0.1` (např. v `.env` vedle compose) ho omezí jen na server. Healthchecky v `deploy.sh`/`update.sh` běží přes `localhost` na Pi, takže fungují v obou variantách.
+
+**Změna chování (záměrná):**
+- Po 10 neúspěšných přihlášeních k jednomu účtu z jedné IP, nebo po 30 neúspěších z jedné IP, je přihlášení na 15 minut zablokováno (429).
+- Za proxy mimo `172.16.0.0/12` uvicorn hlavičky `X-Forwarded-*` ignoruje. Pokud by proxy běžela v jiném rozsahu, je nutné nastavit `FORWARDED_ALLOW_IPS`.
+
+**Testy:** nový `tests/test_auth_hardening.py` (9 testů).
+- Před změnou prošly charakterizační testy: úspěšné a neúspěšné přihlášení, vynulování po úspěchu, odmítnutí druhého setupu.
+- Před změnou selhaly: blokace IP + uživatel, blokace IP, vypršení okna, Basic Auth a atomický setup.
+- Skutečný souběhový test (4 vlákna přes `Barrier`) s původním kódem 3× ze 3 vytvořil víc adminů, po změně vždy jen jednoho.
+- Po změně prochází vše.
+
+**Ověření vůči baseline:** 83/83 testů OK, `ruff check` beze změny (2× UP038), F401 130, `ruff format` OK, seznam OpenAPI cest identický. `docker compose config` je validní, výchozí port se rozbalí na `0.0.0.0`, s proměnnou na `127.0.0.1`. Ověřeno, že uvicorn 0.51 přijímá CIDR (`172.18.0.5` je důvěryhodná, `192.168.1.50` a `127.0.0.1` ne).
+
+**Neověřeno:** sestavení Docker image (Docker daemon na tomto stroji neběží) a nasazení na Pi.
+
+**Poznámky:**
+- Limity jsou v paměti procesu. Po restartu se vynulují a nesdílí se mezi více workery. Aplikace dnes běží jako jeden proces uvicornu.
+- Za zablokovaný pokus se počítá i správné heslo k účtu čekajícímu na schválení nebo zablokovanému účtu, protože `authenticate` vrací neúspěch.

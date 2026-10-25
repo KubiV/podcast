@@ -5,6 +5,8 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
+from core.rate_limit import login_keys, login_limiter
+
 router = APIRouter()
 
 auth_service = None
@@ -113,9 +115,21 @@ async def setup_initial_admin(req: SetupRequest, request: Request, response: Res
 
 @router.post("/api/auth/login")
 async def login(req: LoginRequest, request: Request, response: Response):
+    client_ip = request.client.host if request.client else "unknown"
+    keys = login_keys(client_ip, req.username)
+    wait = login_limiter.retry_after(keys)
+    if wait:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Příliš mnoho neúspěšných pokusů o přihlášení. Zkuste to znovu za {-(-wait // 60)} min.",
+            headers={"Retry-After": str(wait)},
+        )
+
     user, msg = auth_service.authenticate(req.username, req.password)
     if not user:
+        login_limiter.record_failure([key for key, _ in keys])
         raise HTTPException(status_code=401, detail=msg)
+    login_limiter.reset(keys[0][0])
 
     token, _ = auth_service.create_session(
         user["id"], remember_me=req.remember_me, user_agent=request.headers.get("user-agent", "")

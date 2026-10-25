@@ -8,11 +8,16 @@ services:
     restart: unless-stopped
     ports:
       # Port aplikace na serveru (např. http://192.168.1.50:8000 nebo http://synology.local:8000)
-      - "8000:8000"
+      # MEDSTUDIO_BIND_ADDRESS=127.0.0.1 (např. v .env vedle compose) omezí port jen na samotný server –
+      # přístup pak jen přes Nginx Proxy Manager / proxy_net. Výchozí 0.0.0.0 = dostupné z LAN (iPad, Tailscale).
+      - "${MEDSTUDIO_BIND_ADDRESS:-0.0.0.0}:8000:8000"
     environment:
       - HOST=0.0.0.0
       - PORT=8000
       - AIMEDSTUDIO_DATA_DIR=/app/data
+      # Komu věřit hlavičky X-Forwarded-For/Proto (IP klienta pro omezení pokusů o přihlášení).
+      # Výchozí: Docker sítě 172.16.0.0/12 (Nginx Proxy Manager, cloudflared). Klienti z LAN se tím nemohou vydávat za jinou IP.
+      - FORWARDED_ALLOW_IPS=${FORWARDED_ALLOW_IPS:-172.16.0.0/12}
       # VOLITELNÉ: Heslo pro ochranu přístupu z lokální sítě (nebo přes internet)
       # Pokud odkomentujete, aplikace bude při vstupu vyžadovat toto heslo:
       # - APP_PASSWORD=zvoltesiheslo

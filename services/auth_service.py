@@ -357,8 +357,9 @@ class AuthService:
         self, username: str, password: str, email: str | None = None
     ) -> tuple[dict[str, Any] | None, str | None]:
         """Vytvoří primární administrátorský účet (povolen pouze při prvním spuštění)."""
+        already_exists = "Administrátorský účet již byl vytvořen. Další registrace podléhají běžnému schválení."
         if not self.needs_setup():
-            return None, "Administrátorský účet již byl vytvořen. Další registrace podléhají běžnému schválení."
+            return None, already_exists
 
         username = username.strip()
         username_error = validate_new_username(username)
@@ -372,6 +373,12 @@ class AuthService:
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
+            # Kontrola a vložení v jedné zápisové transakci: souběžné požadavky na setup nevytvoří dva adminy
+            cursor.execute("BEGIN IMMEDIATE")
+            cursor.execute("SELECT COUNT(*) FROM users")
+            if cursor.fetchone()[0] > 0:
+                conn.rollback()
+                return None, already_exists
             cursor.execute(
                 """
                 INSERT INTO users (username, email, password_hash, salt, role, status, created_at, last_login)

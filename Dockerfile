@@ -13,6 +13,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PORT=8000 \
     AIMEDSTUDIO_DATA_DIR=/app/data
 
+# Důvěryhodné reverzní proxy pro X-Forwarded-* (výchozí Docker sítě, např. Nginx Proxy Manager na proxy_net)
+ENV FORWARDED_ALLOW_IPS=172.16.0.0/12
+
 # Instalace systémových závislostí:
 # - ffmpeg: nezbytný pro skládání a stříhání audio podcastů
 # - curl: pro Docker healthcheck
@@ -55,5 +58,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
 
