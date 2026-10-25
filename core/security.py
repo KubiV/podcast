@@ -39,7 +39,7 @@ def safe_filename(filename: str) -> str:
 
 
 # CSP pro HTML stránky aplikace. 'unsafe-inline' ve script-src je zatím nutné kvůli inline handlerům
-# v index.html/app.js (onclick=…); omezuje se tím hlavně původ externích skriptů, pluginy a <base>.
+# v index.html a static/js/*.js (onclick=…); omezuje se tím hlavně původ externích skriptů, pluginy a <base>.
 APP_CONTENT_SECURITY_POLICY = "; ".join(
     [
         "default-src 'self'",

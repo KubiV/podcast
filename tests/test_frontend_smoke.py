@@ -76,7 +76,7 @@ _NOT_GLOBAL_FUNCTIONS = {
 
 
 def handler_function_names() -> list[str]:
-    """Jména globálních funkcí volaných z inline handlerů v index.html i v šablonách app.js."""
+    """Jména globálních funkcí volaných z inline handlerů v index.html i v šablonách static/js/*.js."""
     sources = []
     js_dir = os.path.join(STATIC, "js")
     paths = [os.path.join(STATIC, "index.html")] + [

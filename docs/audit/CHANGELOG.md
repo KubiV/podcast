@@ -827,8 +827,17 @@ Commit: `a7911ad` – `refactor(frontend): Move Exam planner section into planne
 
 ### 3.5.16 Project transfer → `static/js/project-transfer.js`
 
-Commit: `refactor(frontend): Move Project transfer section into project-transfer.js` (hash doplní další krok)
+Commit: `1353a3d` – `refactor(frontend): Move Project transfer section into project-transfer.js`
 
 - Řádky 1624–2031 původního `app.js` (408 ř., od banneru sekce po dosavadní konec souboru) se přesunuly beze změny do `static/js/project-transfer.js` s krátkou hlavičkou. `app.js` 2031 → 1623 ř.
 - `index.html`: `project-transfer.js` hned za `app.js` (pořadí tagů odpovídá pořadí v původním souboru), cache-busting `app.js`/`project-transfer.js` `?v=2.22`.
 - **Ověření:** spojení všech skriptů v pořadí `index.html` (bez hlaviček) == původní `app.js` před krokem 3.5; `node --check` OK. Smoke 4/4 OK. Běžná sada OK (4 přeskočené smoke).
+
+### 3.5 – shrnutí
+
+- `static/js/app.js` 15 107 → 1 623 ř. Zůstalo jádro: globální stav, `InPageSearcher`, filtry, tisk, záložky, dashboard a správa projektů.
+- 16 sekcí je v samostatných klasických skriptech. Pořadí tagů v `index.html` odpovídá pořadí v původním souboru: `app.js` → `project-transfer.js` → `planner.js` → `questions-manager.js` → `materials.js` → `notes.js` → `flashcards.js` → `practice-tests.js` → `chat.js` → `viewer-navigation.js` → `lesson.js` → `podcast.js` → `settings.js` → `language.js` → `auth.js` → `medulingo.js` → `pomodoro.js`.
+- Spojení všech skriptů v tomto pořadí (bez 5řádkových hlaviček) je bajtově shodné s původním `app.js`. Kód se tedy jen přesunul, nic se nepřepsalo.
+- Kosmetika bez vlivu na chování: zastaralé zmínky „app.js“ v docstringu smoke testu a komentáři `core/security.py` → `static/js/*.js`.
+- Ruff beze změny (All checks passed), OpenAPI se nedotýká (jen frontend).
+
