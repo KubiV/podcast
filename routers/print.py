@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import html as html_lib
 import subprocess
 import sys
@@ -9,12 +11,52 @@ from typing import Any
 from fastapi import APIRouter, Body, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
+from core.html_sanitizer import sanitize_html
 from core.logger import send_log
 from core.utils import sanitize_name
 
 router = APIRouter()
 
 _print_jobs: dict[str, Any] = {}
+
+MAX_PRINT_JOBS = 200
+MAX_PRINT_HTML_BYTES = 10 * 1024 * 1024
+LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost"}
+
+# Vlastní skripty šablony náhledu; CSP povoluje jen je (podle hashe), ne skripty z obsahu dokumentu
+AUTO_PRINT_SCRIPT = """
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                window.print();
+            }, 350);
+        });
+    """
+_TEMPLATE_HANDLERS = ("window.print()", "window.close()")
+
+
+def _csp_hash(source: str) -> str:
+    return "'sha256-" + base64.b64encode(hashlib.sha256(source.encode("utf-8")).digest()).decode("ascii") + "'"
+
+
+PRINT_PREVIEW_CSP = "; ".join(
+    [
+        "default-src 'none'",
+        "script-src "
+        + " ".join([_csp_hash(AUTO_PRINT_SCRIPT), "'unsafe-hashes'", *(_csp_hash(h) for h in _TEMPLATE_HANDLERS)]),
+        "style-src 'unsafe-inline'",
+        "img-src 'self' https: data:",
+        "font-src 'self' https: data:",
+        "base-uri 'none'",
+        "form-action 'none'",
+        "frame-ancestors 'self'",
+    ]
+)
+
+
+def _is_local_desktop_request(request: Request) -> bool:
+    """Prohlížeč na serveru smí otevřít jen lokální desktopová aplikace, ne vzdálený klient ani proxy."""
+    client_host = request.client.host if request.client else ""
+    return client_host in LOOPBACK_HOSTS and "x-forwarded-for" not in request.headers
 
 
 @router.post("/api/print/prepare")
@@ -27,6 +69,9 @@ async def prepare_print_job(request: Request, payload: dict = Body(...)):
     doc_id = uuid.uuid4().hex[:10]
     title = str(payload.get("title", "")).strip() or "Studijní dokument"
     html_content = str(payload.get("html", "")).strip()
+    if len(html_content.encode("utf-8")) > MAX_PRINT_HTML_BYTES:
+        raise HTTPException(status_code=413, detail="Dokument je pro tiskový náhled příliš velký.")
+    html_content = sanitize_html(html_content)
     project = str(payload.get("project", "")).strip()
     auto_open = bool(payload.get("auto_open_browser", False))
     now_ts = datetime.now().timestamp()
@@ -38,15 +83,17 @@ async def prepare_print_job(request: Request, payload: dict = Body(...)):
         "created_at": now_ts,
     }
 
-    # Úklid úloh starších než 2 hodiny
+    # Úklid úloh starších než 2 hodiny a omezení počtu (nejstarší se zahodí)
     for k in list(_print_jobs.keys()):
         if now_ts - _print_jobs[k].get("created_at", 0) > 7200:
             _print_jobs.pop(k, None)
+    while len(_print_jobs) > MAX_PRINT_JOBS:
+        _print_jobs.pop(next(iter(_print_jobs)))
 
     base_url = str(request.base_url).rstrip("/")
     full_url = f"{base_url}/print_preview/{doc_id}"
 
-    if auto_open:
+    if auto_open and _is_local_desktop_request(request):
         try:
             webbrowser.open(full_url)
         except Exception as e:
@@ -308,13 +355,7 @@ async def view_print_preview_page(doc_id: str):
             <span>Vytištěno: {date_str}</span>
         </footer>
     </div>
-    <script>
-        window.addEventListener('load', function() {{
-            setTimeout(function() {{
-                window.print();
-            }}, 350);
-        }});
-    </script>
+    <script>{AUTO_PRINT_SCRIPT}</script>
 </body>
 </html>"""
-    return HTMLResponse(content=html)
+    return HTMLResponse(content=html, headers={"Content-Security-Policy": PRINT_PREVIEW_CSP})

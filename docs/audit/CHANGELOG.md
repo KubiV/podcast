@@ -85,7 +85,7 @@ Commit: `01fd81a` – `fix(security): Filter /api/logs events per user and proje
 
 ## 1.4 ⚠ Sanitizace markdownu z AI výstupů (nálezy F1, F4, část F3)
 
-Commit: `fix(security): Sanitize rendered markdown with DOMPurify` (hash doplní další krok)
+Commit: `404b279` – `fix(security): Sanitize rendered markdown with DOMPurify`
 
 **Nová závislost (schválena):** DOMPurify **3.4.16** z cdnjs s SRI `sha512-flQmhkXN…KjRoag==`, `crossorigin="anonymous"`. Hash jsem ověřil dvakrát: spočítal ze staženého souboru a porovnal s hodnotou z cdnjs API. Nejnovější 3.4.17 (vydaná 2026-10-12) jsem nepoužil, protože je mladší než 14 dní.
 
@@ -110,3 +110,39 @@ Commit: `fix(security): Sanitize rendered markdown with DOMPurify` (hash doplní
 - Ostatní `innerHTML` s neescapovanými názvy souborů a zpráv (F3, F6) a `onclick` s interpolovanými hodnotami mimo citace (F2) řeší krok 1.6.
 - `marked` a Tailwind z CDN jsou stále bez verze a bez SRI. Řeší je krok 1.8.
 - Při testu bez přihlášení hlásí konzole `TypeError … reading 'forEach'` v `loadProjects` (`app.js:1205`), protože stránka čte odpověď 401 jako seznam projektů. Chyba existovala už dřív, je zapsaná a neopravená.
+
+## 1.5 ⚠ Bezpečný tiskový náhled (nálezy S4, S5)
+
+Commit: `fix(security): Sanitize print preview HTML and harden print jobs` (hash doplní další krok)
+
+**Zabezpečeno:**
+- Nový `core/html_sanitizer.py`: allowlist sanitizer postavený jen na standardní knihovně (`html.parser`), **bez nové závislosti**.
+  - Vypisuje jen povolené tagy a atributy. Pokrývá výstup marked, citační odznaky a KaTeX (HTML, MathML i SVG).
+  - Text i hodnoty atributů znovu escapuje.
+  - Obsah `script`, `style`, `iframe`, `form` a dalších nebezpečných elementů zahodí celý.
+  - URL povoluje jen relativní nebo `http(s)`, `mailto` a `tel`. Kontrola probíhá po dekódování entit a odstranění řídicích znaků. Obrázky smí mít navíc `data:image/png|jpeg|gif|webp`.
+  - Zahodí `style`, který obsahuje `url(` nebo `expression(`, a také `id` a `name` (ochrana proti DOM clobberingu).
+  - Výstup má vyvážené tagy, takže obsah nemůže uniknout z `<article>` šablony.
+- `routers/print.py`:
+  - HTML se sanitizuje už při `/api/print/prepare`.
+  - Limit 10 MB na dokument (jinak 413) a nejvýš 200 úloh v paměti (nejstarší se zahodí).
+  - `webbrowser.open` se spustí jen pro požadavek z loopbacku bez `X-Forwarded-For`, tedy jen z lokální desktopové aplikace.
+  - `/print_preview/{id}` posílá CSP `default-src 'none'`. `script-src` povoluje jen hash vlastního auto-print skriptu a obou `onclick` tlačítek šablony.
+
+**Odchylka od schváleného plánu:** bod „zakázat viewerům tisk“ jsem **neprovedl**. Middleware tisk pozorovatelům povoluje záměrně (`main.py`), protože jde o čtecí funkci. Se sanitizací na serveru a CSP už k zákazu není bezpečnostní důvod. Pokud ho chceš i tak, je to jednořádková změna v middleware.
+
+**Změna chování (záměrná):** z tiskového HTML mizí skripty, event handlery (včetně `onclick` citací, které na tiskové stránce stejně nefungovaly), `id`, nepovolené tagy (jejich text zůstává) a nebezpečné URL.
+
+**Testy:** nový `tests/test_print.py` (11 testů).
+- Před změnou prošly charakterizace: struktura běžného obsahu, tisk viewerem, 404 a otevření prohlížeče z localhostu. Selhaly bezpečnostní testy: 17 škodlivých vzorků, CSP, vzdálené otevření prohlížeče, limity a citace s `onclick`.
+- Po změně prochází vše, včetně jednotkových testů okrajových případů sanitizeru.
+
+**Ověření v prohlížeči (dočasný server, jednorázový testovací admin):**
+- Skutečný výstup rendereru aplikace (KaTeX, citace, tabulka, checkboxy) má po serverové sanitizaci **identický DOM** jako odeslaný obsah.
+- CSP povoluje všechny vlastní skripty šablony (ověřeno hashem v prohlížeči). Auto-print se spustil a otevřel tiskový dialog.
+
+**Ověření vůči baseline:** 54/54 testů OK, `ruff check` beze změny (2× UP038), F401 131, `ruff format` OK, seznam OpenAPI cest identický.
+
+**Zjištěné chyby (zapsáno, neopraveno):**
+- Tisková šablona nenačítá KaTeX CSS, takže se vzorce v náhledu tisknou dvakrát (MathML i HTML) a odmocniny mají rozbitou čáru. Chyba existovala už dřív, sanitizace na ní nic nemění (DOM je identický).
+- `/print_preview/{id}` neověřuje, kdo úlohu vytvořil. Kdokoli přihlášený se znalostí 10hex ID ji může zobrazit. S ohledem na sanitizaci jde o nízké riziko, zapsáno pro další kolo.
