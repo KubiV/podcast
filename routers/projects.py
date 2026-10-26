@@ -22,6 +22,7 @@ from core.config import (
 from core.context import current_user_var
 from core.logger import send_log
 from core.request_models import RequestModel
+from core.security import validate_project_id
 from core.uploads import copy_with_limit, validate_import_archive
 from core.utils import sanitize_name
 from services.auth_service import AuthService
@@ -130,7 +131,7 @@ async def create_project(request: Request, payload: ProjectCreateRequest = Body(
     name = payload.name
     if not name:
         raise HTTPException(status_code=400, detail="Název projektu je prázdný.")
-    safe_name = sanitize_name(name)
+    safe_name = validate_project_id(name)
     os.makedirs(os.path.join(UPLOAD_DIR, safe_name), exist_ok=True)
 
     user = getattr(request.state, "user", None) or current_user_var.get()
@@ -144,9 +145,7 @@ async def create_project(request: Request, payload: ProjectCreateRequest = Body(
 @router.delete("/api/projects/{project_id}")
 async def delete_project(project_id: str, request: Request):
     """Kompletně smaže projekt včetně všech materiálů, ChromaDB vektorů, SQLite historie i výstupů."""
-    safe_proj = sanitize_name(project_id)
-    if not safe_proj:
-        raise HTTPException(status_code=400, detail="Neplatný název projektu.")
+    safe_proj = validate_project_id(project_id)
 
     user = getattr(request.state, "user", None) or current_user_var.get()
     if not auth_service.is_shared_projects() and user and user.get("role") != "admin":
@@ -225,11 +224,8 @@ async def rename_project(project_id: str, request: Request, payload: ProjectRena
     if not new_name:
         raise HTTPException(status_code=400, detail="Nový název projektu nesmí být prázdný.")
 
-    old_proj = sanitize_name(project_id)
-    new_proj = sanitize_name(new_name)
-
-    if not old_proj or not new_proj:
-        raise HTTPException(status_code=400, detail="Neplatný název projektu.")
+    old_proj = validate_project_id(project_id)
+    new_proj = validate_project_id(new_name)
 
     user = getattr(request.state, "user", None) or current_user_var.get()
     if not auth_service.is_shared_projects() and user and user.get("role") != "admin":

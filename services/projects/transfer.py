@@ -18,7 +18,7 @@ from core.authz import require_project_access
 from core.clients import get_chroma_client
 from core.config import AUDIO_DIR, FLASHCARDS_DIR, NOTES_DIR, PLANNER_FILENAME, TESTS_DIR, UPLOAD_DIR
 from core.logger import send_log
-from core.security import safe_filename, safe_join
+from core.security import safe_filename, safe_join, validate_project_id
 from core.uploads import is_within
 from core.utils import sanitize_name
 
@@ -310,7 +310,10 @@ def inspect_archive(zf: zipfile.ZipFile, filename: str) -> dict[str, Any]:
             pass
 
     raw_proj_name = manifest.get("project_name") or os.path.splitext(filename)[0]
-    safe_proj = sanitize_name(raw_proj_name) or "Importovany_projekt"
+    safe_proj = sanitize_name(raw_proj_name)
+    if not safe_proj.strip("."):
+        # Prázdný název nebo jen tečky (`..` z manifestu) by návrh nasměroval mimo uploads/
+        safe_proj = "Importovany_projekt"
 
     exists = os.path.exists(os.path.join(UPLOAD_DIR, safe_proj))
     suggested_name = safe_proj
@@ -382,10 +385,7 @@ async def import_archive(
             pass
 
     orig_proj = sanitize_name(manifest.get("project_name") or os.path.splitext(filename)[0])
-    final_proj = sanitize_name(project_name or orig_proj)
-
-    if not final_proj:
-        raise HTTPException(status_code=400, detail="Neplatný název cílového projektu.")
+    final_proj = validate_project_id(project_name or orig_proj)
 
     target_dir = os.path.join(UPLOAD_DIR, final_proj)
     require_project_access(final_proj, write=True)

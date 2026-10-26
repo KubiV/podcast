@@ -21,6 +21,7 @@ from core.config import (
 from core.context import current_user_var
 from core.logger import publish_event, send_log
 from core.request_models import RequestModel
+from core.security import validate_project_id
 from core.utils import friendly_api_error, sanitize_name
 from services.ai_service import call_gemini_with_retries, clean_and_parse_json
 from services.chat_service import (
@@ -544,7 +545,7 @@ async def list_lessons_endpoint():
 
 @router.get("/api/lessons/{project_id}")
 async def get_lesson_endpoint(project_id: str):
-    safe_proj = sanitize_name(project_id)
+    safe_proj = validate_project_id(project_id)
     lesson = get_lesson(safe_proj)
     if not lesson:
         raise HTTPException(status_code=404, detail="Výuková lekce nenalezena.")
@@ -553,7 +554,7 @@ async def get_lesson_endpoint(project_id: str):
 
 @router.delete("/api/lessons/{project_id}")
 async def delete_lesson_endpoint(project_id: str):
-    safe_id = sanitize_name(project_id)
+    safe_id = validate_project_id(project_id)
     from services.chat_service import delete_lesson_records
 
     delete_lesson_records(safe_id)

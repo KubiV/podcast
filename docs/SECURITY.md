@@ -77,7 +77,7 @@ V Dockeru uvicorn důvěřuje hlavičkám `X-Forwarded-*` jen od `FORWARDED_ALLO
 
 | Oblast | Opatření |
 |---|---|
-| Path traversal | `core/security.py` `safe_join` / `safe_filename` pro operace se soubory, úložiště testů přes `safe_join` |
+| Path traversal | `core/security.py` `safe_join` / `safe_filename` pro operace se soubory, úložiště testů přes `safe_join`; ID projektu validuje `validate_project_id` (odmítne prázdné ID a `.`/`..`, i jako `%2E%2E`), volá ho `require_project_access` i create/delete/rename/import/lekce |
 | Upload a import | `core/uploads.py`: max. velikost souboru (`AIMEDSTUDIO_MAX_UPLOAD_MB`, výchozí 200 MB), archivu importu (`AIMEDSTUDIO_MAX_IMPORT_MB`, 2 048 MB), rozbaleného obsahu (`AIMEDSTUDIO_MAX_IMPORT_UNCOMPRESSED_MB`, 4 096 MB), max. 20 000 položek a kompresní poměr 200 (zip bomb). Import nepřepíše cizí projekt. |
 | Těla požadavků | Pydantic modely v strict režimu (`core/request_models.py`), u hodnot špatného typu `422` |
 | SQL | parametrizované dotazy, FTS dotaz se skládá funkcí `build_czech_fts_query` |

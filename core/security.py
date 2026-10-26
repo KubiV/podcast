@@ -7,6 +7,24 @@ import re
 
 from fastapi import HTTPException
 
+from core.utils import sanitize_name
+
+INVALID_PROJECT_DETAIL = "Neplatný název projektu."
+
+
+def validate_project_id(name: str | None) -> str:
+    """
+    Vrátí bezpečné ID projektu (`sanitize_name`), nebo vyhodí 400.
+
+    `sanitize_name` ponechává tečky, takže ID `.` nebo `..` (v URL i jako `%2E%2E`) by jako složka v `uploads/`
+    ukazovalo na samotné `uploads/` nebo na celou datovou složku (smazání, export auth.db). Odmítá se proto
+    prázdné ID a ID složené jen z teček.
+    """
+    safe = sanitize_name(name or "")
+    if not safe.strip("."):
+        raise HTTPException(status_code=400, detail=INVALID_PROJECT_DETAIL)
+    return safe
+
 
 def safe_join(base_dir: str, *paths: str) -> str:
     """

@@ -21,6 +21,7 @@ from starlette.types import Scope
 
 from core.config import UPLOAD_DIR
 from core.context import current_user_var
+from core.security import validate_project_id
 from core.utils import sanitize_name
 from services.auth_service import AuthService
 
@@ -49,6 +50,8 @@ def can_access_project(project: str, user: dict[str, Any] | None = None, write: 
 
 
 def require_project_access(project: str, *, write: bool = False, user: dict[str, Any] | None = None) -> None:
+    # Neplatné ID (prázdné, `.`, `..`) je 400 dřív než kontrola vlastnictví: takový projekt nemá vlastníka a prošel by
+    validate_project_id(project)
     if not can_access_project(project, user=user, write=write):
         raise HTTPException(status_code=403, detail=FORBIDDEN_DETAIL)
 

@@ -1260,3 +1260,41 @@ Commit: `fix(desktop): Keep cookies and local storage between app launches` (has
 - **Ověření:** sada 178 OK (6 přeskočených), `ruff check` / `ruff format --check` OK. Skutečné okno jsem neotevíral, ověření po restartu aplikace zůstává na uživateli.
 - **Poznámka:** localStorage je vázaný na origin včetně portu. Když je 8000 obsazený a aplikace naběhne na jiném portu, úvodní obrazovka se tam ukáže jednou znovu. Cookies na portu nezávisí.
 
+
+## QA-001 / QA-002: ID projektu `.` a `..` mířilo na celou datovou složku
+
+Commit: `fix(security): Reject dot-only project IDs on every project path` (hash doplní další krok). Nálezy viz [../qa/QA_REPORT.md](../qa/QA_REPORT.md).
+
+- **Hlášení (QA audit):**
+  - `DELETE /api/projects/%2E%2E` smazal celou datovou složku; stačil běžný student;
+  - totéž způsobil `POST /api/projects/import` s `project_name=..` a `overwrite=true`;
+  - `GET /api/projects/%2E%2E/export` vydal ZIP s `auth.db` i pozorovateli a při zapnutém režimu hosta i anonymovi. Z tokenů relací šlo převzít účet admina.
+  - Ve vývojovém režimu je datovou složkou kořen repozitáře.
+- **Příčina:**
+  - `sanitize_name` ponechává tečky a Starlette dekóduje `%2E%2E` v cestě na `..`;
+  - `os.path.join(UPLOAD_DIR, "..")` je proto `USER_DATA_DIR`;
+  - `require_project_access("..")` prošlo, protože projekt bez vlastníka je přístupný.
+- **Oprava:**
+  - `core/security.py`: `validate_project_id()` vrátí `sanitize_name(...)`. Prázdné ID a ID složené jen z teček (`.`, `..`, `...`) odmítne s `400 "Neplatný název projektu."`.
+  - `core/authz.require_project_access` ID validuje jako první krok. Tím jsou pokryté všechny endpointy s projektem v cestě, query, JSON těle i formuláři: soubory, poznámky, kartičky, testy, podcast, dávky, chat, plánovač, Medulingo, export, export-info, clear-data, stats, reindex.
+  - Explicitně, protože tyto cesty `require_project_access` nevolají nebo ho volají až po práci s cestou:
+    - `POST /api/projects`, `DELETE /api/projects/{id}`, `POST /api/projects/{id}/rename` (starý i nový název);
+    - `GET` a `DELETE /api/lessons/{id}`;
+    - import (`services/projects/transfer.import_archive`).
+  - `inspect_archive` místo `..` z manifestu navrhne `Importovany_projekt`.
+- **Změna chování (záměrná):** prázdné ID nebo ID z teček vrací 400 všude, kde se dřív zpracovalo. Platí to i pro „   “ a „!!!“ při zakládání projektu (dřív vznikl projekt `""`) a pro `?project=` bez hodnoty u endpointů, které projekt vyžadují. Běžné názvy, včetně `.._evil` z `../evil`, se nemění.
+- **Test** `tests/test_project_id_validation.py` (11 testů):
+  - jednotkové testy validátoru;
+  - DELETE, export a export-info pro studenta, pozorovatele i hosta (odpověď nesmí obsahovat `auth.db`);
+  - import s názvem z formuláře i z manifestu, create, rename, lekce, upload s `project=..`;
+  - sweep všech rout z OpenAPI s projektem v cestě, query nebo JSON těle (zachytí i nově přidané endpointy);
+  - každý test ověřuje, že se obsah datové složky a `uploads/` nezměnil;
+  - na původním kódu modul selže (7 failures, 13 errors; `DELETE ..` tam skutečně smazal dočasnou testovací datovou složku).
+- **Ověření:**
+  - sada 189 OK (6 přeskočených), smoke 6/6, `ruff check` / `ruff format --check` OK;
+  - živě na izolované instanci: všechny útoky vrací 400 a datová složka zůstala beze změny;
+  - běžný export, import kopie, přejmenování a smazání fungují.
+- **Mimo rozsah (zůstává v QA reportu):**
+  - QA-003: `DELETE /api/lessons/{id}` smaže i běžný projekt;
+  - QA-005: převzetí projektu založením stejného názvu;
+  - S12: hashování tokenů relací.
